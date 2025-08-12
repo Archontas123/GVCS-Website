@@ -1,0 +1,65 @@
+# CS Club Hackathon Platform - Backend Dockerfile
+# Phase 6.2: Production-ready backend containerization
+
+FROM node:18-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY backend/package*.json ./
+COPY backend/knexfile.js ./
+
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy source code
+COPY backend/src/ ./src/
+COPY backend/server.js ./
+COPY backend/sql/ ./sql/
+
+# Create necessary directories
+RUN mkdir -p logs && \
+    mkdir -p src/database && \
+    chown -R node:node /app
+
+FROM node:18-alpine AS production
+
+# Install system dependencies for SQLite and other requirements
+RUN apk add --no-cache \
+    sqlite \
+    dumb-init \
+    curl \
+    && rm -rf /var/cache/apk/*
+
+# Create app user
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -S appuser -u 1001 -G appgroup
+
+# Set working directory
+WORKDIR /app
+
+# Copy built application from builder stage
+COPY --from=builder --chown=appuser:appgroup /app ./
+
+# Create and set permissions for directories
+RUN mkdir -p logs src/database && \
+    chown -R appuser:appgroup /app && \
+    chmod 755 /app && \
+    chmod -R 755 logs src/database
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:${PORT:-3000}/api/health || exit 1
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 3000
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start the application
+CMD ["node", "server.js"]

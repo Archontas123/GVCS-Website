@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 3.2 - Real-time Leaderboard Demo</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        .status.connected { background-color: #d4edda; color: #155724; }
+        .status.connecting { background-color: #fff3cd; color: #856404; }
+        .status.disconnected { background-color: #f8d7da; color: #721c24; }
+        .status.error { background-color: #f8d7da; color: #721c24; }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button.primary { background-color: #007bff; color: white; }
+        button.success { background-color: #28a745; color: white; }
+        button.danger { background-color: #dc3545; color: white; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        input, select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 0 5px;
+        }
+        
+        .leaderboard {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .leaderboard-table th, .leaderboard-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .leaderboard-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .leaderboard-table tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .problem-status {
+            text-align: center;
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 3px;
+        }
+        .problem-status.accepted { background-color: #d4edda; color: #155724; }
+        .problem-status.attempted { background-color: #f8d7da; color: #721c24; }
+        .problem-status.compilation_error { background-color: #cce5ff; color: #004085; }
+        .problem-status.not-attempted { color: #6c757d; }
+        
+        .contest-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .info-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .info-card h4 {
+            margin: 0 0 10px 0;
+            color: #495057;
+        }
+        .info-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .logs {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+        }
+        .log-entry.info { color: #007bff; }
+        .log-entry.success { color: #28a745; }
+        .log-entry.error { color: #dc3545; }
+        .log-entry.warning { color: #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏆 Phase 3.2 - Real-time Leaderboard Demo</h1>
+        <p>WebSocket-powered ICPC-style leaderboard with live updates</p>
+    </div>
+
+    <div class="container">
+        <h2>Connection Status</h2>
+        <div id="connectionStatus" class="status disconnected">Disconnected</div>
+        
+        <div class="controls">
+            <button id="connectBtn" class="primary">Connect</button>
+            <button id="disconnectBtn" class="danger" disabled>Disconnect</button>
+            
+            <input type="text" id="contestIdInput" placeholder="Contest ID (e.g., 1)" value="1">
+            <button id="joinContestBtn" class="success" disabled>Join Contest</button>
+            <button id="leaveContestBtn" class="danger" disabled>Leave Contest</button>
+            
+            <button id="requestLeaderboardBtn" class="primary" disabled>Refresh Leaderboard</button>
+            <button id="clearLogsBtn" class="secondary">Clear Logs</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Contest Information</h2>
+        <div id="contestInfo" class="contest-info">
+            <div class="info-card">
+                <h4>Contest Name</h4>
+                <div id="contestName" class="value">-</div>
+            </div>
+            <div class="info-card">
+                <h4>Status</h4>
+                <div id="contestStatus" class="value">-</div>
+            </div>
+            <div class="info-card">
+                <h4>Time Remaining</h4>
+                <div id="timeRemaining" class="value">-</div>
+            </div>
+            <div class="info-card">
+                <h4>Total Teams</h4>
+                <div id="totalTeams" class="value">-</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Live Leaderboard</h2>
+        <div id="lastUpdated" style="text-align: center; color: #6c757d; margin-bottom: 15px;">
+            No data received yet
+        </div>
+        <div id="leaderboard" class="leaderboard">
+            <p style="text-align: center; color: #6c757d;">Connect to WebSocket and join a contest to see the leaderboard</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Event Logs</h2>
+        <div id="logs" class="logs"></div>
+    </div>
+
+    <script>
+        class LeaderboardDemo {
+            constructor() {
+                this.socket = null;
+                this.isConnected = false;
+                this.currentContest = null;
+                this.leaderboardData = null;
+                this.timeInterval = null;
+                
+                this.initializeElements();
+                this.setupEventListeners();
+                this.log('Demo initialized', 'info');
+            }
+            
+            initializeElements() {
+                this.elements = {
+                    connectionStatus: document.getElementById('connectionStatus'),
+                    connectBtn: document.getElementById('connectBtn'),
+                    disconnectBtn: document.getElementById('disconnectBtn'),
+                    contestIdInput: document.getElementById('contestIdInput'),
+                    joinContestBtn: document.getElementById('joinContestBtn'),
+                    leaveContestBtn: document.getElementById('leaveContestBtn'),
+                    requestLeaderboardBtn: document.getElementById('requestLeaderboardBtn'),
+                    clearLogsBtn: document.getElementById('clearLogsBtn'),
+                    contestName: document.getElementById('contestName'),
+                    contestStatus: document.getElementById('contestStatus'),
+                    timeRemaining: document.getElementById('timeRemaining'),
+                    totalTeams: document.getElementById('totalTeams'),
+                    leaderboard: document.getElementById('leaderboard'),
+                    lastUpdated: document.getElementById('lastUpdated'),
+                    logs: document.getElementById('logs')
+                };
+            }
+            
+            setupEventListeners() {
+                this.elements.connectBtn.onclick = () => this.connect();
+                this.elements.disconnectBtn.onclick = () => this.disconnect();
+                this.elements.joinContestBtn.onclick = () => this.joinContest();
+                this.elements.leaveContestBtn.onclick = () => this.leaveContest();
+                this.elements.requestLeaderboardBtn.onclick = () => this.requestLeaderboard();
+                this.elements.clearLogsBtn.onclick = () => this.clearLogs();
+            }
+            
+            connect() {
+                if (this.isConnected) return;
+                
+                this.log('Connecting to WebSocket server...', 'info');
+                this.updateConnectionStatus('connecting');
+                
+                // Connect to the main server (not test server)
+                this.socket = io('http://localhost:3000', {
+                    transports: ['websocket', 'polling']
+                });
+                
+                this.setupSocketEvents();
+            }
+            
+            setupSocketEvents() {
+                this.socket.on('connect', () => {
+                    this.isConnected = true;
+                    this.log('Connected to WebSocket server', 'success');
+                    this.updateConnectionStatus('connected');
+                    this.updateButtonStates();
+                });
+                
+                this.socket.on('disconnect', (reason) => {
+                    this.isConnected = false;
+                    this.log(`Disconnected: ${reason}`, 'warning');
+                    this.updateConnectionStatus('disconnected');
+                    this.updateButtonStates();
+                    this.clearContestInfo();
+                });
+                
+                this.socket.on('connect_error', (error) => {
+                    this.log(`Connection error: ${error.message}`, 'error');
+                    this.updateConnectionStatus('error');
+                });
+                
+                this.socket.on('authenticated', (data) => {
+                    this.log(`Authenticated: ${JSON.stringify(data)}`, 'success');
+                });
+                
+                this.socket.on('auth_error', (error) => {
+                    this.log(`Authentication error: ${error.message}`, 'error');
+                });
+                
+                this.socket.on('joined_contest', (data) => {
+                    this.currentContest = data.contestId;
+                    this.log(`Joined contest: ${data.contestName} (ID: ${data.contestId})`, 'success');
+                    this.updateButtonStates();
+                });
+                
+                this.socket.on('left_contest', () => {
+                    this.currentContest = null;
+                    this.log('Left contest', 'info');
+                    this.updateButtonStates();
+                    this.clearContestInfo();
+                });
+                
+                this.socket.on('join_error', (error) => {
+                    this.log(`Join error: ${error.message}`, 'error');
+                });
+                
+                this.socket.on('leaderboard_update', (data) => {
+                    this.log(`Received leaderboard update for contest ${data.contestId}`, 'success');
+                    this.leaderboardData = data;
+                    this.updateLeaderboardDisplay(data);
+                    this.updateContestInfo(data);
+                });
+                
+                this.socket.on('leaderboard_error', (error) => {
+                    this.log(`Leaderboard error: ${error.message}`, 'error');
+                });
+            }
+            
+            disconnect() {
+                if (this.socket) {
+                    this.socket.disconnect();
+                    this.socket = null;
+                    this.isConnected = false;
+                    this.currentContest = null;
+                    this.log('Disconnected from WebSocket server', 'info');
+                    this.updateConnectionStatus('disconnected');
+                    this.updateButtonStates();
+                    this.clearContestInfo();
+                    this.clearTimeInterval();
+                }
+            }
+            
+            joinContest() {
+                if (!this.isConnected) {
+                    this.log('Not connected to WebSocket server', 'error');
+                    return;
+                }
+                
+                const contestId = this.elements.contestIdInput.value.trim();
+                if (!contestId) {
+                    this.log('Please enter a contest ID', 'error');
+                    return;
+                }
+                
+                this.log(`Attempting to join contest ${contestId}...`, 'info');
+                this.socket.emit('join_contest', { contestId: parseInt(contestId) });
+            }
+            
+            leaveContest() {
+                if (!this.isConnected || !this.currentContest) return;
+                
+                this.log('Leaving contest...', 'info');
+                this.socket.emit('leave_contest', { contestId: this.currentContest });
+            }
+            
+            requestLeaderboard() {
+                if (!this.isConnected || !this.currentContest) {
+                    this.log('Not connected to a contest', 'error');
+                    return;
+                }
+                
+                this.log(`Requesting leaderboard for contest ${this.currentContest}`, 'info');
+                this.socket.emit('request_leaderboard', { contestId: this.currentContest });
+            }
+            
+            updateConnectionStatus(status) {
+                this.elements.connectionStatus.className = `status ${status}`;
+                this.elements.connectionStatus.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+            }
+            
+            updateButtonStates() {
+                this.elements.connectBtn.disabled = this.isConnected;
+                this.elements.disconnectBtn.disabled = !this.isConnected;
+                this.elements.joinContestBtn.disabled = !this.isConnected || this.currentContest;
+                this.elements.leaveContestBtn.disabled = !this.isConnected || !this.currentContest;
+                this.elements.requestLeaderboardBtn.disabled = !this.isConnected || !this.currentContest;
+            }
+            
+            updateContestInfo(data) {
+                if (!data || !data.contest) return;
+                
+                this.elements.contestName.textContent = data.contest.name || 'Unknown Contest';
+                this.elements.contestStatus.textContent = data.contest.status || 'Unknown';
+                this.elements.totalTeams.textContent = data.totalTeams || '0';
+                
+                // Start time countdown
+                this.clearTimeInterval();
+                if (data.contest.timeRemaining > 0) {
+                    let timeRemaining = data.contest.timeRemaining;
+                    this.updateTimeDisplay(timeRemaining);
+                    
+                    this.timeInterval = setInterval(() => {
+                        timeRemaining--;
+                        if (timeRemaining <= 0) {
+                            this.clearTimeInterval();
+                            this.elements.timeRemaining.textContent = 'Contest Ended';
+                        } else {
+                            this.updateTimeDisplay(timeRemaining);
+                        }
+                    }, 1000);
+                } else {
+                    this.elements.timeRemaining.textContent = 'Contest Ended';
+                }
+            }
+            
+            updateTimeDisplay(seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                
+                this.elements.timeRemaining.textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+            
+            clearTimeInterval() {
+                if (this.timeInterval) {
+                    clearInterval(this.timeInterval);
+                    this.timeInterval = null;
+                }
+            }
+            
+            clearContestInfo() {
+                this.elements.contestName.textContent = '-';
+                this.elements.contestStatus.textContent = '-';
+                this.elements.timeRemaining.textContent = '-';
+                this.elements.totalTeams.textContent = '-';
+                this.elements.leaderboard.innerHTML = '<p style="text-align: center; color: #6c757d;">No contest data</p>';
+                this.elements.lastUpdated.textContent = 'No data received yet';
+                this.clearTimeInterval();
+            }
+            
+            updateLeaderboardDisplay(data) {
+                if (!data || !data.teams || !data.problems) {
+                    this.elements.leaderboard.innerHTML = '<p style="text-align: center; color: #dc3545;">Invalid leaderboard data</p>';
+                    return;
+                }
+                
+                // Create table
+                const table = document.createElement('table');
+                table.className = 'leaderboard-table';
+                
+                // Header
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                
+                const headers = ['Rank', 'Team', 'Solved', 'Penalty'];
+                data.problems.forEach(problem => headers.push(problem.letter));
+                
+                headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header;
+                    headerRow.appendChild(th);
+                });
+                
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+                
+                // Body
+                const tbody = document.createElement('tbody');
+                data.teams.forEach(team => {
+                    const row = document.createElement('tr');
+                    
+                    // Rank
+                    const rankCell = document.createElement('td');
+                    rankCell.textContent = team.rank || '-';
+                    row.appendChild(rankCell);
+                    
+                    // Team name
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = team.team_name || 'Unknown Team';
+                    nameCell.style.fontWeight = 'bold';
+                    row.appendChild(nameCell);
+                    
+                    // Problems solved
+                    const solvedCell = document.createElement('td');
+                    solvedCell.textContent = team.problems_solved || '0';
+                    solvedCell.style.fontWeight = 'bold';
+                    row.appendChild(solvedCell);
+                    
+                    // Penalty time
+                    const penaltyCell = document.createElement('td');
+                    penaltyCell.textContent = team.penalty_time || '0';
+                    row.appendChild(penaltyCell);
+                    
+                    // Problem status
+                    data.problems.forEach(problem => {
+                        const statusCell = document.createElement('td');
+                        const problemStatus = team.problemStatus && team.problemStatus[problem.letter];
+                        
+                        if (problemStatus) {
+                            const div = document.createElement('div');
+                            div.className = `problem-status ${problemStatus.status}`;
+                            
+                            switch (problemStatus.status) {
+                                case 'accepted':
+                                    div.textContent = '✓';
+                                    break;
+                                case 'attempted':
+                                    div.textContent = `✗ ${problemStatus.attempts || 0}`;
+                                    break;
+                                case 'compilation_error':
+                                    div.textContent = 'CE';
+                                    break;
+                                default:
+                                    div.textContent = '?';
+                            }
+                            statusCell.appendChild(div);
+                        } else {
+                            const div = document.createElement('div');
+                            div.className = 'problem-status not-attempted';
+                            div.textContent = '-';
+                            statusCell.appendChild(div);
+                        }
+                        
+                        row.appendChild(statusCell);
+                    });
+                    
+                    tbody.appendChild(row);
+                });
+                
+                table.appendChild(tbody);
+                
+                // Update display
+                this.elements.leaderboard.innerHTML = '';
+                this.elements.leaderboard.appendChild(table);
+                
+                // Update last updated time
+                this.elements.lastUpdated.textContent = 
+                    `Last updated: ${new Date(data.timestamp || Date.now()).toLocaleTimeString()}`;
+            }
+            
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry ${type}`;
+                logEntry.textContent = `[${timestamp}] ${message}`;
+                
+                this.elements.logs.insertBefore(logEntry, this.elements.logs.firstChild);
+                
+                // Keep only last 100 log entries
+                while (this.elements.logs.children.length > 100) {
+                    this.elements.logs.removeChild(this.elements.logs.lastChild);
+                }
+            }
+            
+            clearLogs() {
+                this.elements.logs.innerHTML = '';
+                this.log('Logs cleared', 'info');
+            }
+        }
+        
+        // Initialize demo when page loads
+        window.addEventListener('load', () => {
+            window.leaderboardDemo = new LeaderboardDemo();
+        });
+    </script>
+</body>
+</html>

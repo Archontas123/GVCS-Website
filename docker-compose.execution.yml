@@ -1,0 +1,55 @@
+# CS Club Hackathon Platform - Docker Execution Environment
+# Phase 1.3: Code execution container management
+
+version: '3.8'
+
+services:
+  # Build the judge execution image
+  judge-builder:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+    image: hackathon-judge:latest
+    command: echo "Judge container image built successfully"
+    
+  # Test service for validating the execution environment
+  judge-test:
+    image: hackathon-judge:latest
+    depends_on:
+      - judge-builder
+    volumes:
+      - ./tests/execution:/tmp/execution:rw
+    working_dir: /tmp/execution
+    user: executor
+    command: /bin/bash -c "
+      echo 'Testing C++ execution...' &&
+      echo '#include <iostream>\nint main() { std::cout << \"Hello World\" << std::endl; return 0; }' > solution.cpp &&
+      /usr/local/bin/execute.sh cpp 5 256 &&
+      echo 'C++ test completed' &&
+      
+      echo 'Testing Java execution...' &&
+      echo 'public class Solution { public static void main(String[] args) { System.out.println(\"Hello World\"); } }' > Solution.java &&
+      /usr/local/bin/execute.sh java 10 512 &&
+      echo 'Java test completed' &&
+      
+      echo 'Testing Python execution...' &&
+      echo 'print(\"Hello World\")' > solution.py &&
+      /usr/local/bin/execute.sh python 25 307 &&
+      echo 'Python test completed' &&
+      
+      echo 'All language tests completed successfully!'
+    "
+    networks:
+      - none  # No network access for security
+    security_opt:
+      - seccomp:./docker/seccomp-profile.json
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 64
+    read_only: true
+    tmpfs:
+      - /tmp/execution:noexec,nosuid,size=100m
+
+# No networks needed - containers run in isolation
+networks: {}

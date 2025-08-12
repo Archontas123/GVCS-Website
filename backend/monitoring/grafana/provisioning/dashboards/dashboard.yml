@@ -1,0 +1,15 @@
+# CS Club Hackathon Platform - Grafana Dashboard Provisioning
+# Phase 6.2: Dashboard configuration
+
+apiVersion: 1
+
+providers:
+  - name: 'hackathon-dashboards'
+    orgId: 1
+    folder: 'Hackathon Platform'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

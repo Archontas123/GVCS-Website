@@ -1,0 +1,85 @@
+{
+  "cpp": {
+    "name": "C++",
+    "extension": ".cpp",
+    "compileCmd": "g++ -O2 -std=c++17 -o solution {source}",
+    "executeCmd": "./solution",
+    "compileTimeout": 30000,
+    "timeMultiplier": 1.0,
+    "memoryMultiplier": 1.0,
+    "supportsCompilation": true,
+    "mainFile": "solution.cpp",
+    "outputFile": "solution",
+    "errorPatterns": [
+      "error:",
+      "undefined reference",
+      "compilation terminated"
+    ]
+  },
+  "java": {
+    "name": "Java",
+    "extension": ".java",
+    "compileCmd": "javac {source}",
+    "executeCmd": "java Solution",
+    "compileTimeout": 30000,
+    "timeMultiplier": 2.0,
+    "memoryMultiplier": 2.0,
+    "supportsCompilation": true,
+    "mainFile": "Solution.java",
+    "outputFile": "Solution.class",
+    "requiredClass": "Solution",
+    "errorPatterns": [
+      "error:",
+      "cannot find symbol",
+      "class not found"
+    ]
+  },
+  "python": {
+    "name": "Python",
+    "extension": ".py",
+    "executeCmd": "python3 {source}",
+    "compileTimeout": 0,
+    "timeMultiplier": 5.0,
+    "memoryMultiplier": 1.5,
+    "supportsCompilation": false,
+    "mainFile": "solution.py",
+    "errorPatterns": [
+      "SyntaxError:",
+      "IndentationError:",
+      "NameError:",
+      "TypeError:"
+    ]
+  },
+  "javascript": {
+    "name": "JavaScript (Node.js)",
+    "extension": ".js",
+    "executeCmd": "node {source}",
+    "compileTimeout": 0,
+    "timeMultiplier": 3.0,
+    "memoryMultiplier": 2.0,
+    "supportsCompilation": false,
+    "mainFile": "solution.js",
+    "errorPatterns": [
+      "SyntaxError:",
+      "ReferenceError:",
+      "TypeError:"
+    ]
+  },
+  "go": {
+    "name": "Go",
+    "extension": ".go",
+    "compileCmd": "go build -o solution {source}",
+    "executeCmd": "./solution",
+    "compileTimeout": 30000,
+    "timeMultiplier": 1.5,
+    "memoryMultiplier": 1.2,
+    "supportsCompilation": true,
+    "mainFile": "solution.go",
+    "outputFile": "solution",
+    "errorPatterns": [
+      "syntax error",
+      "undefined:",
+      "cannot use"
+    ]
+  }
+}

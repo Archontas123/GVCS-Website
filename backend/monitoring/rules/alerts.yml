@@ -1,0 +1,274 @@
+# CS Club Hackathon Platform - Prometheus Alert Rules
+# Phase 6.2: Production alerting configuration
+
+groups:
+  - name: hackathon-platform.rules
+    rules:
+      # ==============================================
+      # APPLICATION ALERTS
+      # ==============================================
+      
+      - alert: ApplicationDown
+        expr: up{job="hackathon-backend"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: "Hackathon platform backend is down"
+          description: "The backend service has been down for more than 30 seconds"
+          runbook_url: "https://wiki.company.com/runbooks/application-down"
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="hackathon-backend"}[5m])) > 2
+        for: 2m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }}s for {{ $labels.job }}"
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{job="hackathon-backend",status=~"5.."}[5m]) > 0.1
+        for: 1m
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors per second for {{ $labels.job }}"
+
+      - alert: TooManyPendingSubmissions
+        expr: hackathon_submissions_pending > 100
+        for: 1m
+        labels:
+          severity: warning
+          service: judge
+        annotations:
+          summary: "Too many pending submissions"
+          description: "There are {{ $value }} pending submissions in the queue"
+
+      - alert: JudgeSystemDown
+        expr: hackathon_judge_active == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: judge
+        annotations:
+          summary: "Code judge system is down"
+          description: "The code execution judge system is not responding"
+
+      # ==============================================
+      # INFRASTRUCTURE ALERTS
+      # ==============================================
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}% on {{ $labels.instance }}"
+
+      - alert: DiskSpaceRunningOut
+        expr: node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} * 100 < 15
+        for: 5m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Disk space running out"
+          description: "Disk space is {{ $value }}% full on {{ $labels.instance }}"
+
+      - alert: HighLoadAverage
+        expr: node_load15 / on(instance) count by(instance) (node_cpu_seconds_total{mode="idle"}) > 2
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High load average"
+          description: "Load average is {{ $value }} on {{ $labels.instance }}"
+
+      # ==============================================
+      # DATABASE ALERTS
+      # ==============================================
+
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "The PostgreSQL database has been unreachable for more than 30 seconds"
+
+      - alert: DatabaseHighConnections
+        expr: pg_stat_database_numbackends / pg_settings_max_connections * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High number of database connections"
+          description: "Database connections are at {{ $value }}% of maximum"
+
+      - alert: DatabaseSlowQueries
+        expr: rate(pg_stat_database_blk_read_time[5m]) > 1000
+        for: 2m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Database queries are taking longer than expected"
+
+      - alert: DatabaseReplicationLag
+        expr: pg_replication_lag > 60
+        for: 1m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Database replication lag detected"
+          description: "Replication lag is {{ $value }} seconds"
+
+      # ==============================================
+      # REDIS ALERTS
+      # ==============================================
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: cache
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis has been unreachable for more than 30 seconds"
+
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis memory usage is {{ $value }}%"
+
+      - alert: RedisRejectedConnections
+        expr: increase(redis_rejected_connections_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Redis is rejecting connections"
+          description: "Redis rejected {{ $value }} connections in the last 5 minutes"
+
+      # ==============================================
+      # CONTEST-SPECIFIC ALERTS
+      # ==============================================
+
+      - alert: ContestStartingWithoutProblems
+        expr: hackathon_contest_starting{problems="0"} == 1
+        for: 0s
+        labels:
+          severity: critical
+          service: contest
+        annotations:
+          summary: "Contest starting without problems"
+          description: "Contest {{ $labels.contest_id }} is starting but has no problems configured"
+
+      - alert: HighTeamRegistrationRate
+        expr: rate(hackathon_team_registrations_total[1m]) > 10
+        for: 30s
+        labels:
+          severity: info
+          service: contest
+        annotations:
+          summary: "High team registration rate"
+          description: "Teams are registering at {{ $value }} per second"
+
+      - alert: SubmissionProcessingBacklog
+        expr: hackathon_submission_queue_size > 50
+        for: 2m
+        labels:
+          severity: warning
+          service: judge
+        annotations:
+          summary: "Submission processing backlog"
+          description: "There are {{ $value }} submissions waiting to be judged"
+
+      - alert: WebSocketConnectionsHigh
+        expr: hackathon_websocket_connections > 1000
+        for: 1m
+        labels:
+          severity: info
+          service: websocket
+        annotations:
+          summary: "High number of WebSocket connections"
+          description: "There are {{ $value }} active WebSocket connections"
+
+      # ==============================================
+      # SECURITY ALERTS
+      # ==============================================
+
+      - alert: TooManyFailedLogins
+        expr: rate(hackathon_failed_login_attempts_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High rate of failed login attempts"
+          description: "Failed login attempts: {{ $value }} per second from {{ $labels.ip }}"
+
+      - alert: SuspiciousUserActivity
+        expr: rate(hackathon_suspicious_requests_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "Suspicious user activity detected"
+          description: "Suspicious requests: {{ $value }} per second from {{ $labels.source }}"
+
+      # ==============================================
+      # SSL/TLS ALERTS
+      # ==============================================
+
+      - alert: SSLCertificateExpiringSoon
+        expr: ssl_certificate_expiry_seconds < 86400 * 7
+        for: 1h
+        labels:
+          severity: warning
+          service: ssl
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate for {{ $labels.instance }} expires in {{ $value | humanizeDuration }}"
+
+      - alert: SSLCertificateExpired
+        expr: ssl_certificate_expiry_seconds < 0
+        for: 0s
+        labels:
+          severity: critical
+          service: ssl
+        annotations:
+          summary: "SSL certificate has expired"
+          description: "SSL certificate for {{ $labels.instance }} has expired"

@@ -1,0 +1,46 @@
+{
+  "name": "hackathon-load-testing",
+  "version": "1.0.0",
+  "description": "Load testing suite for CS Club Hackathon Platform - Phase 6.1",
+  "main": "index.js",
+  "scripts": {
+    "test:load": "node test-runner.js",
+    "test:teams": "node team-simulation.js",
+    "test:submissions": "node submission-stress-test.js",
+    "test:database": "node database-load-test.js",
+    "test:performance": "node performance-monitor.js",
+    "test:all": "npm run test:teams && npm run test:submissions && npm run test:database",
+    "setup:env": "node setup-test-environment.js",
+    "monitor": "node monitoring-dashboard.js",
+    "report": "node generate-report.js"
+  },
+  "dependencies": {
+    "axios": "^1.11.0",
+    "socket.io-client": "^4.8.1",
+    "sqlite3": "^5.1.7",
+    "uuid": "^9.0.1",
+    "faker": "^5.5.3",
+    "ws": "^8.16.0",
+    "express": "^4.18.2",
+    "lodash": "^4.17.21",
+    "moment": "^2.30.1",
+    "chalk": "^4.1.2",
+    "ora": "^5.4.1",
+    "cli-table3": "^0.6.3",
+    "systeminformation": "^5.21.20",
+    "pidusage": "^3.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^16.18.126",
+    "typescript": "^4.9.5"
+  },
+  "keywords": [
+    "load-testing",
+    "performance",
+    "contest",
+    "hackathon",
+    "stress-test"
+  ],
+  "author": "CS Club Hackathon Platform",
+  "license": "MIT"
+}

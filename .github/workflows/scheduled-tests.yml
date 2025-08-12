@@ -1,0 +1,310 @@
+name: Scheduled Health Checks
+# CS Club Hackathon Platform - Phase 6.2
+# Automated health checks and maintenance tasks
+
+on:
+  schedule:
+    # Run health checks every hour
+    - cron: '0 * * * *'
+    # Run full tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+    # Run cleanup weekly on Sunday at 3 AM UTC
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of test to run'
+        required: true
+        default: 'health'
+        type: choice
+        options:
+          - health
+          - load
+          - security
+          - cleanup
+
+jobs:
+  health-check:
+    name: Health Check
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 * * * *' || github.event.inputs.test_type == 'health'
+    
+    strategy:
+      matrix:
+        environment: [staging, production]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup environment variables
+        run: |
+          if [ "${{ matrix.environment }}" = "production" ]; then
+            echo "BASE_URL=https://hackathon-platform.com" >> $GITHUB_ENV
+            echo "WEBHOOK_URL=${{ secrets.SLACK_WEBHOOK }}" >> $GITHUB_ENV
+          else
+            echo "BASE_URL=https://staging.hackathon-platform.com" >> $GITHUB_ENV
+            echo "WEBHOOK_URL=${{ secrets.SLACK_WEBHOOK_STAGING }}" >> $GITHUB_ENV
+          fi
+      
+      - name: Basic health check
+        id: health
+        run: |
+          # Check main application
+          if curl -f -s "$BASE_URL/api/health" > /dev/null; then
+            echo "api_status=healthy" >> $GITHUB_OUTPUT
+          else
+            echo "api_status=unhealthy" >> $GITHUB_OUTPUT
+          fi
+          
+          # Check frontend
+          if curl -f -s "$BASE_URL/health" > /dev/null; then
+            echo "frontend_status=healthy" >> $GITHUB_OUTPUT
+          else
+            echo "frontend_status=unhealthy" >> $GITHUB_OUTPUT
+          fi
+          
+          # Check response time
+          response_time=$(curl -w '%{time_total}' -o /dev/null -s "$BASE_URL/api/health")
+          echo "response_time=$response_time" >> $GITHUB_OUTPUT
+      
+      - name: Database connectivity check
+        id: database
+        run: |
+          # This would require API endpoint for DB health
+          if curl -f -s "$BASE_URL/api/health/database" > /dev/null 2>&1; then
+            echo "db_status=healthy" >> $GITHUB_OUTPUT
+          else
+            echo "db_status=unknown" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Performance check
+        id: performance
+        run: |
+          # Check if response time is acceptable (< 2 seconds)
+          response_time="${{ steps.health.outputs.response_time }}"
+          if (( $(echo "$response_time < 2.0" | bc -l) )); then
+            echo "performance=good" >> $GITHUB_OUTPUT
+          else
+            echo "performance=degraded" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Notify if unhealthy
+        if: steps.health.outputs.api_status != 'healthy' || steps.health.outputs.frontend_status != 'healthy'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#alerts'
+          webhook_url: ${{ env.WEBHOOK_URL }}
+          message: |
+            🚨 Health Check Alert - ${{ matrix.environment }}
+            API Status: ${{ steps.health.outputs.api_status }}
+            Frontend Status: ${{ steps.health.outputs.frontend_status }}
+            Response Time: ${{ steps.health.outputs.response_time }}s
+            URL: ${{ env.BASE_URL }}
+      
+      - name: Log health status
+        run: |
+          echo "Health Check Results for ${{ matrix.environment }}:"
+          echo "API: ${{ steps.health.outputs.api_status }}"
+          echo "Frontend: ${{ steps.health.outputs.frontend_status }}"
+          echo "Response Time: ${{ steps.health.outputs.response_time }}s"
+          echo "Performance: ${{ steps.performance.outputs.performance }}"
+
+  daily-load-test:
+    name: Daily Load Test
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 2 * * *' || github.event.inputs.test_type == 'load'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install load testing dependencies
+        working-directory: ./load-testing
+        run: npm install
+      
+      - name: Run load test against staging
+        run: |
+          cd load-testing
+          
+          # Configure for staging environment
+          export SERVER_URL=https://staging.hackathon-platform.com
+          export WS_URL=wss://staging.hackathon-platform.com
+          export MAX_TEAMS=25
+          export SUBMISSIONS_PER_SEC=5
+          export TEST_DURATION=180  # 3 minutes
+          
+          # Run load test
+          node test-runner.js --tests team-simulation,submission-stress
+      
+      - name: Upload load test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-test-results-${{ github.run_id }}
+          path: load-testing/results/
+          retention-days: 30
+      
+      - name: Analyze results and alert if needed
+        run: |
+          # Check if load test passed
+          if [ -f "load-testing/results/comprehensive-load-test-report.json" ]; then
+            SUCCESS_RATE=$(jq -r '.summary.successRate' load-testing/results/comprehensive-load-test-report.json | sed 's/%//')
+            
+            if (( $(echo "$SUCCESS_RATE < 95" | bc -l) )); then
+              echo "LOAD_TEST_ALERT=true" >> $GITHUB_ENV
+              echo "SUCCESS_RATE=$SUCCESS_RATE" >> $GITHUB_ENV
+            fi
+          else
+            echo "LOAD_TEST_ALERT=true" >> $GITHUB_ENV
+            echo "SUCCESS_RATE=0" >> $GITHUB_ENV
+          fi
+      
+      - name: Alert on load test failure
+        if: env.LOAD_TEST_ALERT == 'true'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#alerts'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          message: |
+            ⚠️ Load Test Alert - Performance Degradation
+            Success Rate: ${{ env.SUCCESS_RATE }}% (threshold: 95%)
+            Environment: Staging
+            Time: ${{ github.run_started_at }}
+            
+            Please investigate potential performance issues.
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 2 * * *' || github.event.inputs.test_type == 'security'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'json'
+          output: 'trivy-results.json'
+      
+      - name: Check for critical vulnerabilities
+        run: |
+          # Count critical and high severity vulnerabilities
+          CRITICAL=$(jq '.Results[]?.Vulnerabilities[]? | select(.Severity=="CRITICAL") | length' trivy-results.json | wc -l)
+          HIGH=$(jq '.Results[]?.Vulnerabilities[]? | select(.Severity=="HIGH") | length' trivy-results.json | wc -l)
+          
+          echo "CRITICAL_VULNS=$CRITICAL" >> $GITHUB_ENV
+          echo "HIGH_VULNS=$HIGH" >> $GITHUB_ENV
+          
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "SECURITY_ALERT=critical" >> $GITHUB_ENV
+          elif [ "$HIGH" -gt 5 ]; then
+            echo "SECURITY_ALERT=high" >> $GITHUB_ENV
+          fi
+      
+      - name: Alert on security issues
+        if: env.SECURITY_ALERT != ''
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#security'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          message: |
+            🔒 Security Alert - Vulnerabilities Detected
+            Critical: ${{ env.CRITICAL_VULNS }}
+            High: ${{ env.HIGH_VULNS }}
+            
+            Please review and address security vulnerabilities immediately.
+      
+      - name: Upload security scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-${{ github.run_id }}
+          path: trivy-results.json
+          retention-days: 90
+
+  cleanup:
+    name: Cleanup and Maintenance
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 3 * * 0' || github.event.inputs.test_type == 'cleanup'
+    
+    steps:
+      - name: Cleanup old workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 30
+          keep_minimum_runs: 10
+      
+      - name: Cleanup old artifacts
+        run: |
+          # This would typically be done via API calls to clean up old artifacts
+          # For now, just log the cleanup action
+          echo "Cleaning up artifacts older than 30 days..."
+      
+      - name: Database maintenance notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "channel": "#maintenance",
+              "username": "Maintenance Bot",
+              "icon_emoji": ":gear:",
+              "attachments": [{
+                "color": "good",
+                "title": "Weekly Maintenance Reminder",
+                "text": "Time for weekly database maintenance and cleanup:\n• Check database performance\n• Review backup integrity\n• Update system dependencies\n• Review monitoring dashboards\n• Check SSL certificate expiry",
+                "footer": "Hackathon Platform Maintenance",
+                "ts": "${{ github.run_started_at }}"
+              }]
+            }
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+  monitoring-check:
+    name: Monitoring Systems Check
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 2 * * *'
+    
+    steps:
+      - name: Check monitoring endpoints
+        run: |
+          # Check Prometheus
+          if curl -f -s "https://monitoring.hackathon-platform.com:9090/api/v1/query?query=up" > /dev/null; then
+            echo "PROMETHEUS_STATUS=healthy" >> $GITHUB_ENV
+          else
+            echo "PROMETHEUS_STATUS=unhealthy" >> $GITHUB_ENV
+          fi
+          
+          # Check Grafana
+          if curl -f -s "https://monitoring.hackathon-platform.com:3001/api/health" > /dev/null; then
+            echo "GRAFANA_STATUS=healthy" >> $GITHUB_ENV
+          else
+            echo "GRAFANA_STATUS=unhealthy" >> $GITHUB_ENV
+          fi
+      
+      - name: Alert on monitoring issues
+        if: env.PROMETHEUS_STATUS != 'healthy' || env.GRAFANA_STATUS != 'healthy'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#alerts'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          message: |
+            🔍 Monitoring System Alert
+            Prometheus: ${{ env.PROMETHEUS_STATUS }}
+            Grafana: ${{ env.GRAFANA_STATUS }}
+            
+            Please check monitoring infrastructure.

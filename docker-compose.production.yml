@@ -1,0 +1,311 @@
+# CS Club Hackathon Platform - Production Docker Compose
+# Phase 6.2: Complete production deployment setup
+
+version: '3.8'
+
+services:
+  # Frontend React Application
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:3000}
+        - REACT_APP_WS_URL=${REACT_APP_WS_URL:-ws://localhost:3000}
+    container_name: hackathon_frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - backend
+    environment:
+      - NODE_ENV=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN:-localhost}`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+    networks:
+      - hackathon_network
+
+  # Backend Node.js API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: hackathon_backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Application settings
+      - NODE_ENV=production
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      
+      # Database configuration
+      - DB_TYPE=${DB_TYPE:-postgres}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      
+      # Redis configuration
+      - REDIS_URL=redis://redis:6379
+      
+      # Contest settings
+      - CONTEST_DURATION=${CONTEST_DURATION:-240}
+      - MAX_TEAMS=${MAX_TEAMS:-100}
+      - MAX_SUBMISSIONS_PER_MINUTE=${MAX_SUBMISSIONS_PER_MINUTE:-10}
+      
+      # Code execution settings
+      - EXECUTION_TIMEOUT=${EXECUTION_TIMEOUT:-10}
+      - MEMORY_LIMIT=${MEMORY_LIMIT:-256}
+      - ENABLE_CODE_EXECUTION=${ENABLE_CODE_EXECUTION:-true}
+      
+      # Monitoring settings
+      - ENABLE_METRICS=${ENABLE_METRICS:-true}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - backend_data:/app/src/database
+      - logs_data:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`${DOMAIN:-localhost}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+    networks:
+      - hackathon_network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: hackathon_postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-hackathon_db}
+      - POSTGRES_USER=${POSTGRES_USER:-hackathon_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST_AUTH_METHOD=md5
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hackathon_user} -d ${POSTGRES_DB:-hackathon_db}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - hackathon_network
+
+  # Redis Cache and Session Store
+  redis:
+    image: redis:7-alpine
+    container_name: hackathon_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - hackathon_network
+
+  # Code Execution Judge
+  judge:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: hackathon_judge
+    restart: unless-stopped
+    privileged: false
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:./docker/seccomp-profile.json
+    read_only: true
+    tmpfs:
+      - /tmp:exec,size=100M
+    volumes:
+      - /dev/null:/dev/null:ro
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+    networks:
+      - hackathon_network
+
+  # Nginx Load Balancer / Reverse Proxy
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: hackathon_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - frontend
+      - backend
+    labels:
+      - "traefik.enable=false"
+    networks:
+      - hackathon_network
+
+  # Monitoring with Prometheus
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: hackathon_prometheus
+    restart: unless-stopped
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    networks:
+      - hackathon_network
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: hackathon_grafana
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - hackathon_network
+
+  # Log Management with Loki
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: hackathon_loki
+    restart: unless-stopped
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    volumes:
+      - ./monitoring/loki.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - hackathon_network
+
+  # Log Shipping with Promtail
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: hackathon_promtail
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/promtail.yml:/etc/promtail/config.yml:ro
+      - logs_data:/var/log/app:ro
+      - nginx_logs:/var/log/nginx:ro
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - hackathon_network
+
+  # Database Backup Service
+  db-backup:
+    image: postgres:16-alpine
+    container_name: hackathon_db_backup
+    restart: "no"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-hackathon_db}
+      - POSTGRES_USER=${POSTGRES_USER:-hackathon_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup.sh:/backup.sh:ro
+    command: ["/backup.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - hackathon_network
+    profiles:
+      - backup
+
+  # Health Check Service
+  healthcheck:
+    image: alpine:3.18
+    container_name: hackathon_healthcheck
+    restart: unless-stopped
+    volumes:
+      - ./scripts/healthcheck.sh:/healthcheck.sh:ro
+    command: ["/healthcheck.sh"]
+    depends_on:
+      - frontend
+      - backend
+      - postgres
+      - redis
+    networks:
+      - hackathon_network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  backend_data:
+    driver: local
+  logs_data:
+    driver: local
+  nginx_logs:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  loki_data:
+    driver: local
+
+networks:
+  hackathon_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
