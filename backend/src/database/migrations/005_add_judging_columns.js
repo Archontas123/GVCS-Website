@@ -4,28 +4,34 @@
  */
 
 exports.up = function(knex) {
-  return knex.schema.table('submissions', function(table) {
-    // Add verdict column if it doesn't exist
-    table.string('verdict', 50).defaultTo('Pending');
-    
-    // Add judge details JSON column if it doesn't exist  
-    table.json('judge_details').nullable();
-    
-    // Add judged timestamp
-    table.timestamp('judged_at').nullable();
-    
-    // Add indexes for performance
-    table.index('verdict');
-    table.index('judged_at');
+  return knex.schema.hasTable('submissions').then(function(exists) {
+    if (exists) {
+      return knex.schema.hasColumn('submissions', 'verdict').then(function(hasVerdict) {
+        return knex.schema.hasColumn('submissions', 'judge_details').then(function(hasJudgeDetails) {
+          return knex.schema.table('submissions', function(table) {
+            // Add verdict column if it doesn't exist
+            if (!hasVerdict) {
+              table.string('verdict', 50).defaultTo('Pending');
+              table.index('verdict');
+            }
+            
+            // Add judge details JSON column if it doesn't exist  
+            if (!hasJudgeDetails) {
+              table.json('judge_details').nullable();
+            }
+          });
+        });
+      });
+    }
   }).then(() => {
     // Create team_scores table if it doesn't exist
     return knex.schema.hasTable('team_scores').then(function(exists) {
       if (!exists) {
         return knex.schema.createTable('team_scores', function(table) {
           table.increments('score_id').primary();
-          table.integer('contest_id').unsigned().references('contest_id').inTable('contests');
-          table.integer('team_id').unsigned().references('team_id').inTable('teams');
-          table.integer('problem_id').unsigned().references('problem_id').inTable('problems');
+          table.integer('contest_id').unsigned().references('id').inTable('contests');
+          table.integer('team_id').unsigned().references('id').inTable('teams');
+          table.integer('problem_id').unsigned().references('id').inTable('problems');
           table.boolean('solved').defaultTo(false);
           table.integer('attempts').defaultTo(0);
           table.integer('solve_time').defaultTo(0); // Minutes from contest start

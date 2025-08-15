@@ -326,10 +326,23 @@ class JudgeQueueService {
 
     console.log(`Starting ${numWorkers} judge workers...`);
 
-    // Start multiple worker processes
+    // Set up single handler that can process jobs concurrently
+    this.judgeQueue.process('judge', numWorkers, async (job) => {
+      const workerId = `worker-${job.id % numWorkers}`;
+      return await this.processSubmission(job.data, workerId);
+    });
+
+    // Initialize worker tracking
     for (let i = 0; i < numWorkers; i++) {
       const workerId = `worker-${i}`;
-      await this.startWorker(workerId);
+      this.workers.set(workerId, {
+        startTime: new Date(),
+        processedJobs: 0,
+        failedJobs: 0,
+        isHealthy: true,
+        lastHeartbeat: new Date()
+      });
+      console.log(`Worker ${workerId} started successfully`);
     }
 
     // Set up load-based scaling
@@ -337,31 +350,13 @@ class JudgeQueueService {
   }
 
   /**
-   * Task 4: Start individual worker
+   * Task 4: Start individual worker (deprecated - using single handler with concurrency)
    */
   async startWorker(workerId) {
-    if (!this.judgeQueue) return;
-
-    try {
-      const worker = this.judgeQueue.process('judge', async (job) => {
-        return await this.processSubmission(job.data, workerId);
-      });
-
-      this.workers.set(workerId, {
-        worker: worker,
-        startTime: new Date(),
-        processedJobs: 0,
-        failedJobs: 0,
-        isHealthy: true,
-        lastHeartbeat: new Date()
-      });
-
-      console.log(`Worker ${workerId} started successfully`);
-      return true;
-    } catch (error) {
-      console.error(`Failed to start worker ${workerId}:`, error);
-      return false;
-    }
+    // This method is now handled by the single process handler in startWorkers
+    // Individual workers are tracked but don't register separate handlers
+    console.log(`Worker ${workerId} registered in pool`);
+    return true;
   }
 
   /**

@@ -14,7 +14,7 @@ import {
   LinearProgress,
   IconButton,
   Tooltip,
-  Grid,
+  Stack,
   Paper,
   Avatar,
   List,
@@ -211,9 +211,9 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
           </CardContent>
         </Card>
       ) : (
-        <Grid container spacing={3}>
+        <Stack spacing={3} direction={{ xs: 'column', lg: 'row' }}>
           {activeContests.map((contest) => (
-            <Grid item xs={12} lg={6} key={contest.id}>
+            <Box key={contest.id} sx={{ flex: { lg: 1 }, minWidth: 0 }}>
               <Card sx={{ height: '100%' }}>
                 <CardContent>
                   {/* Contest Header */}
@@ -267,34 +267,30 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
                   </Box>
 
                   {/* Stats Grid */}
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <Paper sx={{ p: 1.5, textAlign: 'center', backgroundColor: 'background.default' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
-                          <People sx={{ fontSize: 18, mr: 0.5, color: 'primary.main' }} />
-                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                            {contest.teams_count}
-                          </Typography>
-                        </Box>
-                        <Typography variant="caption" color="text.secondary">
-                          Teams
+                  <Stack direction="row" spacing={2}>
+                    <Paper sx={{ p: 1.5, textAlign: 'center', backgroundColor: 'background.default', flex: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
+                        <People sx={{ fontSize: 18, mr: 0.5, color: 'primary.main' }} />
+                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                          {contest.teams_count}
                         </Typography>
-                      </Paper>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Paper sx={{ p: 1.5, textAlign: 'center', backgroundColor: 'background.default' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
-                          <Assessment sx={{ fontSize: 18, mr: 0.5, color: 'secondary.main' }} />
-                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                            {contest.submissions_count}
-                          </Typography>
-                        </Box>
-                        <Typography variant="caption" color="text.secondary">
-                          Submissions
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Teams
+                      </Typography>
+                    </Paper>
+                    <Paper sx={{ p: 1.5, textAlign: 'center', backgroundColor: 'background.default', flex: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
+                        <Assessment sx={{ fontSize: 18, mr: 0.5, color: 'secondary.main' }} />
+                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                          {contest.submissions_count}
                         </Typography>
-                      </Paper>
-                    </Grid>
-                  </Grid>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Submissions
+                      </Typography>
+                    </Paper>
+                  </Stack>
 
                   {/* Additional Stats */}
                   <Box sx={{ mt: 2 }}>
@@ -338,9 +334,9 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
                   </Box>
                 </CardContent>
               </Card>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Stack>
       )}
     </Box>
   );

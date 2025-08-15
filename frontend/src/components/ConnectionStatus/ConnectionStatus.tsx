@@ -189,7 +189,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
           <Collapse in={expanded}>
             <Box sx={{ mt: 2, pt: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
               <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid size={6}>
                   <Typography variant="caption" color="text.secondary">
                     Status
                   </Typography>
@@ -198,7 +198,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
                   </Typography>
                 </Grid>
                 
-                <Grid item xs={6}>
+                <Grid size={6}>
                   <Typography variant="caption" color="text.secondary">
                     Authenticated
                   </Typography>
@@ -207,7 +207,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
                   </Typography>
                 </Grid>
                 
-                <Grid item xs={6}>
+                <Grid size={6}>
                   <Typography variant="caption" color="text.secondary">
                     Reconnect Attempts
                   </Typography>
@@ -216,7 +216,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
                   </Typography>
                 </Grid>
                 
-                <Grid item xs={6}>
+                <Grid size={6}>
                   <Typography variant="caption" color="text.secondary">
                     Queued Events
                   </Typography>
@@ -226,7 +226,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
                 </Grid>
                 
                 {lastPingTime && (
-                  <Grid item xs={12}>
+                  <Grid size={12}>
                     <Typography variant="caption" color="text.secondary">
                       Last Ping
                     </Typography>
@@ -286,7 +286,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={3}>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
                 <Typography variant="h6" gutterBottom>
                   Current Status
@@ -307,7 +307,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
               </Paper>
             </Grid>
 
-            <Grid item xs={6}>
+            <Grid size={6}>
               <Typography variant="subtitle2" gutterBottom>
                 Authentication
               </Typography>
@@ -316,7 +316,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
               </Typography>
             </Grid>
 
-            <Grid item xs={6}>
+            <Grid size={6}>
               <Typography variant="subtitle2" gutterBottom>
                 Reconnection Attempts
               </Typography>
@@ -325,7 +325,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
               </Typography>
             </Grid>
 
-            <Grid item xs={6}>
+            <Grid size={6}>
               <Typography variant="subtitle2" gutterBottom>
                 Queued Events
               </Typography>
@@ -334,7 +334,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
               </Typography>
             </Grid>
 
-            <Grid item xs={6}>
+            <Grid size={6}>
               <Typography variant="subtitle2" gutterBottom>
                 Connection Health
               </Typography>
@@ -347,7 +347,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
             </Grid>
 
             {(connectionStatus === 'disconnected' || connectionStatus === 'error') && (
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Button
                   variant="contained"
                   startIcon={<Refresh />}

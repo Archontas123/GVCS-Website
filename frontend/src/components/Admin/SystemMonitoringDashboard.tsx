@@ -9,7 +9,6 @@ import {
   CardContent,
   Typography,
   Box,
-  Grid,
   LinearProgress,
   Chip,
   IconButton,
@@ -306,101 +305,98 @@ const SystemMonitoringDashboard: React.FC = () => {
       </Box>
 
       {/* Overview Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Computer sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  CPU Usage
-                </Typography>
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-                {metrics.cpu.usage_percent}%
+      <Box sx={{ 
+        display: 'grid', 
+        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, 
+        gap: 3, 
+        mb: 3 
+      }}>
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Computer sx={{ mr: 1, color: 'primary.main' }} />
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                CPU Usage
               </Typography>
-              <LinearProgress
-                variant="determinate"
-                value={metrics.cpu.usage_percent}
-                color={metrics.cpu.usage_percent > 80 ? 'error' : metrics.cpu.usage_percent > 60 ? 'warning' : 'success'}
-                sx={{ height: 6, borderRadius: 3 }}
-              />
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                Load: {metrics.cpu.load_average[0].toFixed(2)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+            </Box>
+            <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+              {metrics.cpu.usage_percent}%
+            </Typography>
+            <LinearProgress
+              variant="determinate"
+              value={metrics.cpu.usage_percent}
+              color={metrics.cpu.usage_percent > 80 ? 'error' : metrics.cpu.usage_percent > 60 ? 'warning' : 'success'}
+              sx={{ height: 6, borderRadius: 3 }}
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+              Load: {metrics.cpu.load_average[0].toFixed(2)}
+            </Typography>
+          </CardContent>
+        </Card>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Memory sx={{ mr: 1, color: 'secondary.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Memory Usage
-                </Typography>
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-                {metrics.memory.usage_percent}%
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Memory sx={{ mr: 1, color: 'secondary.main' }} />
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Memory Usage
               </Typography>
-              <LinearProgress
-                variant="determinate"
-                value={metrics.memory.usage_percent}
-                color={metrics.memory.usage_percent > 85 ? 'error' : metrics.memory.usage_percent > 70 ? 'warning' : 'success'}
-                sx={{ height: 6, borderRadius: 3 }}
-              />
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                {formatBytes(metrics.memory.used_mb * 1024 * 1024)} / {formatBytes(metrics.memory.total_mb * 1024 * 1024)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+            </Box>
+            <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+              {metrics.memory.usage_percent}%
+            </Typography>
+            <LinearProgress
+              variant="determinate"
+              value={metrics.memory.usage_percent}
+              color={metrics.memory.usage_percent > 85 ? 'error' : metrics.memory.usage_percent > 70 ? 'warning' : 'success'}
+              sx={{ height: 6, borderRadius: 3 }}
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+              {formatBytes(metrics.memory.used_mb * 1024 * 1024)} / {formatBytes(metrics.memory.total_mb * 1024 * 1024)}
+            </Typography>
+          </CardContent>
+        </Card>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Storage sx={{ mr: 1, color: 'info.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Disk Usage
-                </Typography>
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-                {metrics.disk.usage_percent}%
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Storage sx={{ mr: 1, color: 'info.main' }} />
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Disk Usage
               </Typography>
-              <LinearProgress
-                variant="determinate"
-                value={metrics.disk.usage_percent}
-                color={metrics.disk.usage_percent > 90 ? 'error' : metrics.disk.usage_percent > 75 ? 'warning' : 'success'}
-                sx={{ height: 6, borderRadius: 3 }}
-              />
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                {metrics.disk.used_gb} GB / {metrics.disk.total_gb} GB
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+            </Box>
+            <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+              {metrics.disk.usage_percent}%
+            </Typography>
+            <LinearProgress
+              variant="determinate"
+              value={metrics.disk.usage_percent}
+              color={metrics.disk.usage_percent > 90 ? 'error' : metrics.disk.usage_percent > 75 ? 'warning' : 'success'}
+              sx={{ height: 6, borderRadius: 3 }}
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+              {metrics.disk.used_gb} GB / {metrics.disk.total_gb} GB
+            </Typography>
+          </CardContent>
+        </Card>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Timer sx={{ mr: 1, color: 'success.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Uptime
-                </Typography>
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-                {formatUptime(metrics.uptime_seconds)}
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Timer sx={{ mr: 1, color: 'success.main' }} />
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Uptime
               </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {metrics.processes.total} processes running
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+            </Box>
+            <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+              {formatUptime(metrics.uptime_seconds)}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {metrics.processes.total} processes running
+            </Typography>
+          </CardContent>
+        </Card>
+      </Box>
 
       {/* Detailed Monitoring Tabs */}
       <Card>
@@ -420,55 +416,61 @@ const SystemMonitoringDashboard: React.FC = () => {
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
                 Queue Status & Workers
               </Typography>
-              <Grid container spacing={2}>
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
+                gap: 2 
+              }}>
                 {queueStatus.map((queue, index) => (
-                  <Grid item xs={12} md={6} key={index}>
-                    <Paper sx={{ p: 2, border: 1, borderColor: 'divider' }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                          {queue.name}
-                        </Typography>
-                        <Chip
-                          label={`${queue.workers_active}/${queue.workers_total} workers`}
-                          color={queue.workers_active === queue.workers_total ? 'success' : 'warning'}
-                          size="small"
-                        />
+                  <Paper key={index} sx={{ p: 2, border: 1, borderColor: 'divider' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                        {queue.name}
+                      </Typography>
+                      <Chip
+                        label={`${queue.workers_active}/${queue.workers_total} workers`}
+                        color={queue.workers_active === queue.workers_total ? 'success' : 'warning'}
+                        size="small"
+                      />
+                    </Box>
+                    
+                    <Box sx={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: '1fr 1fr', 
+                      gap: 2 
+                    }}>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">Pending</Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 600 }}>{queue.pending}</Typography>
                       </Box>
-                      
-                      <Grid container spacing={2}>
-                        <Grid item xs={6}>
-                          <Typography variant="body2" color="text.secondary">Pending</Typography>
-                          <Typography variant="h5" sx={{ fontWeight: 600 }}>{queue.pending}</Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2" color="text.secondary">Processing</Typography>
-                          <Typography variant="h5" sx={{ fontWeight: 600 }}>{queue.processing}</Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2" color="text.secondary">Completed</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 600 }}>{queue.completed}</Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2" color="text.secondary">Failed</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 600, color: 'error.main' }}>{queue.failed}</Typography>
-                        </Grid>
-                      </Grid>
-                      
-                      <Box sx={{ mt: 2 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Avg. Processing Time: {queue.avg_processing_time_seconds.toFixed(1)}s
-                        </Typography>
-                        <LinearProgress
-                          variant="determinate"
-                          value={Math.min(100, (queue.pending / (queue.pending + queue.completed)) * 100)}
-                          color={queue.pending > 20 ? 'error' : 'success'}
-                          sx={{ mt: 1, height: 4 }}
-                        />
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">Processing</Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 600 }}>{queue.processing}</Typography>
                       </Box>
-                    </Paper>
-                  </Grid>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">Completed</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>{queue.completed}</Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">Failed</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 600, color: 'error.main' }}>{queue.failed}</Typography>
+                      </Box>
+                    </Box>
+                      
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Avg. Processing Time: {queue.avg_processing_time_seconds.toFixed(1)}s
+                      </Typography>
+                      <LinearProgress
+                        variant="determinate"
+                        value={Math.min(100, (queue.pending / (queue.pending + queue.completed)) * 100)}
+                        color={queue.pending > 20 ? 'error' : 'success'}
+                        sx={{ mt: 1, height: 4 }}
+                      />
+                    </Box>
+                  </Paper>
                 ))}
-              </Grid>
+              </Box>
             </Box>
           )}
 
@@ -478,8 +480,12 @@ const SystemMonitoringDashboard: React.FC = () => {
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
                 Database Status
               </Typography>
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
+                gap: 3 
+              }}>
+                <Box>
                   <List>
                     <ListItem>
                       <ListItemIcon>
@@ -536,14 +542,14 @@ const SystemMonitoringDashboard: React.FC = () => {
                       />
                     </ListItem>
                   </List>
-                </Grid>
+                </Box>
 
-                <Grid item xs={12} md={6}>
+                <Box>
                   <Alert severity={dbStatus.status === 'connected' ? 'success' : 'error'}>
                     Database is {dbStatus.status === 'connected' ? 'operating normally' : 'experiencing issues'}
                   </Alert>
-                </Grid>
-              </Grid>
+                </Box>
+              </Box>
             </Box>
           )}
 
@@ -629,8 +635,12 @@ const SystemMonitoringDashboard: React.FC = () => {
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
                 Monitoring Configuration
               </Typography>
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
+                gap: 3 
+              }}>
+                <Box>
                   <FormControl fullWidth sx={{ mb: 2 }}>
                     <InputLabel>Refresh Interval</InputLabel>
                     <Select
@@ -661,9 +671,9 @@ const SystemMonitoringDashboard: React.FC = () => {
                     defaultValue={85}
                     sx={{ mb: 2 }}
                   />
-                </Grid>
+                </Box>
 
-                <Grid item xs={12} md={6}>
+                <Box>
                   <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
                     Alert Settings
                   </Typography>
@@ -683,8 +693,8 @@ const SystemMonitoringDashboard: React.FC = () => {
                     control={<Switch />}
                     label="Disk space alerts"
                   />
-                </Grid>
-              </Grid>
+                </Box>
+              </Box>
 
               <Box sx={{ mt: 3 }}>
                 <Button variant="contained" sx={{ mr: 2 }}>

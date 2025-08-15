@@ -252,20 +252,13 @@ if (process.env.NODE_ENV !== 'test') {
       
       // Initialize judge queue service
       const queueInitialized = await judgeQueueService.initialize();
-      if (queueInitialized) {
-        console.log('✅ Phase 4.3 Judge Queue System is ready!');
-      } else {
-        console.log('⚠️  Phase 4.3 Judge Queue System failed to initialize - Redis may not be available');
+      if (!queueInitialized) {
+        console.log('⚠️  Judge Queue System failed to initialize - Redis may not be available');
       }
       
       // Initialize performance monitoring storage
       await performanceStatsStorage.initialize();
-      console.log('✅ Phase 4.4 Performance Monitoring is ready!');
       
-      console.log('✅ Phase 1.2 Team Registration System is ready!');
-      console.log('✅ Phase 2.4 Contest Timing System is ready!');
-      console.log('✅ Phase 3.1 ICPC Scoring Algorithm is ready!');
-      console.log('✅ Phase 3.2 Real-time Leaderboard WebSocket is ready!');
     } catch (error) {
       logger.error('Failed to initialize server:', error);
       console.error('❌ Server initialization failed. Please check your database connection.');

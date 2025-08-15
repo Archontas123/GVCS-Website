@@ -18,7 +18,7 @@ import {
   TextField,
   Alert,
   Chip,
-  Grid,
+  Stack,
   LinearProgress,
   List,
   ListItem,
@@ -235,9 +235,9 @@ const ContestControlPanel: React.FC = () => {
         Contest Control Panel
       </Typography>
 
-      <Grid container spacing={3}>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
         {/* Contest Controls */}
-        <Grid item xs={12} md={8}>
+        <Box sx={{ flex: 2, minWidth: 0 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -365,10 +365,10 @@ const ContestControlPanel: React.FC = () => {
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </Box>
 
         {/* System Monitoring */}
-        <Grid item xs={12} md={4}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -475,8 +475,8 @@ const ContestControlPanel: React.FC = () => {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Stack>
 
       {/* Contest Action Confirmation Dialog */}
       <Dialog open={controlDialog.open} onClose={() => setControlDialog({ open: false, action: null })}>

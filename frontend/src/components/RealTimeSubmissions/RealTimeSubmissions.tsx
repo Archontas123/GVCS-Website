@@ -469,7 +469,7 @@ const RealTimeSubmissions: React.FC<RealTimeSubmissionsProps> = ({
                             {verdictInfo.text}
                           </Typography>
                           {isJudging && (
-                            <LinearProgress size={16} sx={{ width: 30, ml: 1 }} />
+                            <LinearProgress sx={{ width: 30, ml: 1, height: 4 }} />
                           )}
                         </Box>
                       </TableCell>

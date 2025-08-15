@@ -130,7 +130,7 @@ class WebSocketService {
   private isAuthenticated = false;
 
   // Server URL configuration
-  private readonly serverUrl = process.env.REACT_APP_WS_URL || 'http://localhost:3000';
+  private readonly serverUrl = process.env.REACT_APP_WS_URL || 'http://localhost:3001';
 
   constructor() {
     this.setupEventListeners();

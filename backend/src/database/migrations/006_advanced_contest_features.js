@@ -4,6 +4,23 @@
  */
 
 exports.up = async function(knex) {
+  // Contest series (tournaments) table - must be created first since it's referenced by others
+  await knex.schema.createTable('contest_series', function(table) {
+    table.increments('id').primary();
+    table.string('name').notNullable();
+    table.text('description');
+    table.date('start_date');
+    table.date('end_date');
+    table.json('settings'); // qualification_criteria, advancement_rules, prize_distribution
+    table.enum('status', ['planning', 'active', 'completed', 'cancelled']).defaultTo('planning');
+    table.integer('created_by').references('id').inTable('admins');
+    table.timestamp('created_at').defaultTo(knex.fn.now());
+    table.timestamp('updated_at').defaultTo(knex.fn.now());
+    
+    table.index(['status']);
+    table.index(['start_date', 'end_date']);
+  });
+
   // Contest templates table
   await knex.schema.createTable('contest_templates', function(table) {
     table.increments('id').primary();
@@ -65,23 +82,6 @@ exports.up = async function(knex) {
     
     table.index(['is_active']);
     table.index(['next_execution']);
-  });
-
-  // Contest series (tournaments) table
-  await knex.schema.createTable('contest_series', function(table) {
-    table.increments('id').primary();
-    table.string('name').notNullable();
-    table.text('description');
-    table.date('start_date');
-    table.date('end_date');
-    table.json('settings'); // qualification_criteria, advancement_rules, prize_distribution
-    table.enum('status', ['planning', 'active', 'completed', 'cancelled']).defaultTo('planning');
-    table.integer('created_by').references('id').inTable('admins');
-    table.timestamp('created_at').defaultTo(knex.fn.now());
-    table.timestamp('updated_at').defaultTo(knex.fn.now());
-    
-    table.index(['status']);
-    table.index(['start_date', 'end_date']);
   });
 
   // Recurring contest executions log

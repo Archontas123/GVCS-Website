@@ -107,8 +107,24 @@
       "Bash(NODE_ENV=test node server.js)",
       "Bash(npm ls:*)",
       "Bash(tree:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(npm ci:*)",
+      "Bash(NODE_ENV=development npx knex migrate:latest)",
+      "Bash(NODE_ENV=development npm run db:migrate)",
+      "Bash(NODE_ENV=development npm run db:seed)",
+      "Bash(sudo rm:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(NODE_ENV=development npm start)",
+      "Bash(npm rebuild:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(psql:*)",
+      "Bash(npx knex migrate:up:*)",
+      "Bash(npx react-scripts:*)",
+      "Bash(npx vite:*)",
+      "Bash(npx --yes yarn install)",
+      "Bash(yarn workspace client add:*)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }

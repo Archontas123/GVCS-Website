@@ -18,7 +18,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Avatar,
   LinearProgress,
   Select,
@@ -26,28 +25,27 @@ import {
   FormControl,
   InputLabel,
   Badge,
-  Grid,
   List,
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
   Tabs,
   Tab,
+  Container,
+  Stack,
+  Paper,
 } from '@mui/material';
 import {
   Code,
   Refresh,
-  FilterList,
-  Timeline,
-  Speed,
-  Language,
   CheckCircle,
   Cancel,
   Schedule,
   Memory,
   Timer,
   Assessment,
-  TrendingUp,
+  Speed,
+  Language,
   BarChart,
 } from '@mui/icons-material';
 
@@ -91,16 +89,14 @@ const SubmissionFeedDisplay: React.FC = () => {
   const [languageFilter, setLanguageFilter] = useState<string>('all');
   const [lastUpdate, setLastUpdate] = useState(new Date());
 
-  // Mock data - in real app, this would come from WebSocket
   useEffect(() => {
     fetchSubmissions();
-    const interval = setInterval(fetchSubmissions, 3000); // Update every 3 seconds
+    const interval = setInterval(fetchSubmissions, 3000);
     return () => clearInterval(interval);
   }, []);
 
   const fetchSubmissions = async () => {
     try {
-      // Mock API call - replace with real WebSocket or polling API
       const mockSubmissions: Submission[] = [
         {
           id: 1001,
@@ -109,7 +105,7 @@ const SubmissionFeedDisplay: React.FC = () => {
           problem_title: 'Sum of Two Numbers',
           language: 'cpp',
           status: 'accepted',
-          submission_time: new Date(Date.now() - 30000).toISOString(), // 30 seconds ago
+          submission_time: new Date(Date.now() - 30000).toISOString(),
           judged_at: new Date(Date.now() - 25000).toISOString(),
           execution_time: 15,
           memory_used: 1024,
@@ -122,7 +118,7 @@ const SubmissionFeedDisplay: React.FC = () => {
           problem_title: 'Binary Search',
           language: 'java',
           status: 'wrong_answer',
-          submission_time: new Date(Date.now() - 60000).toISOString(), // 1 minute ago
+          submission_time: new Date(Date.now() - 60000).toISOString(),
           judged_at: new Date(Date.now() - 50000).toISOString(),
           execution_time: 120,
           memory_used: 2048,
@@ -135,7 +131,7 @@ const SubmissionFeedDisplay: React.FC = () => {
           problem_title: 'Sum of Two Numbers',
           language: 'python',
           status: 'pending',
-          submission_time: new Date(Date.now() - 10000).toISOString(), // 10 seconds ago
+          submission_time: new Date(Date.now() - 10000).toISOString(),
           contest_name: 'Beginner Contest'
         },
         {
@@ -145,7 +141,7 @@ const SubmissionFeedDisplay: React.FC = () => {
           problem_title: 'Graph Traversal',
           language: 'cpp',
           status: 'time_limit_exceeded',
-          submission_time: new Date(Date.now() - 90000).toISOString(), // 1.5 minutes ago
+          submission_time: new Date(Date.now() - 90000).toISOString(),
           judged_at: new Date(Date.now() - 80000).toISOString(),
           execution_time: 2000,
           contest_name: 'ICPC Practice Round'
@@ -157,7 +153,7 @@ const SubmissionFeedDisplay: React.FC = () => {
           problem_title: 'Binary Search',
           language: 'java',
           status: 'compilation_error',
-          submission_time: new Date(Date.now() - 120000).toISOString(), // 2 minutes ago
+          submission_time: new Date(Date.now() - 120000).toISOString(),
           judged_at: new Date(Date.now() - 115000).toISOString(),
           contest_name: 'ICPC Practice Round',
           verdict_details: 'Line 15: cannot find symbol'
@@ -231,7 +227,7 @@ const SubmissionFeedDisplay: React.FC = () => {
     if (languageFilter !== 'all' && sub.language !== languageFilter) return false;
     
     switch (selectedTab) {
-      case 0: return true; // All
+      case 0: return true;
       case 1: return sub.status === 'pending';
       case 2: return sub.status === 'accepted';
       case 3: return sub.status !== 'pending' && sub.status !== 'accepted';
@@ -243,30 +239,30 @@ const SubmissionFeedDisplay: React.FC = () => {
   const uniqueLanguages = [...new Set(submissions.map(s => s.language))];
 
   return (
-    <Box>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600 }}>
-          Real-time Submission Feed
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography variant="body2" color="text.secondary">
-            Last updated: {lastUpdate.toLocaleTimeString()}
+    <Container maxWidth="xl">
+      <Box sx={{ py: 3 }}>
+        {/* Header */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>
+            Real-time Submission Feed
           </Typography>
-          <Badge badgeContent={stats.pending_count} color="error">
-            <Tooltip title="Refresh">
-              <IconButton size="small" onClick={fetchSubmissions}>
-                <Refresh />
-              </IconButton>
-            </Tooltip>
-          </Badge>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              Last updated: {lastUpdate.toLocaleTimeString()}
+            </Typography>
+            <Badge badgeContent={stats.pending_count} color="error">
+              <Tooltip title="Refresh">
+                <IconButton size="small" onClick={fetchSubmissions}>
+                  <Refresh />
+                </IconButton>
+              </Tooltip>
+            </Badge>
+          </Box>
         </Box>
-      </Box>
 
-      {/* Stats Cards */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={6} md={3}>
-          <Card>
+        {/* Stats Cards */}
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
+          <Card sx={{ flex: 1 }}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Speed sx={{ fontSize: 24, color: 'primary.main', mb: 1 }} />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -277,10 +273,8 @@ const SubmissionFeedDisplay: React.FC = () => {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
 
-        <Grid item xs={6} md={3}>
-          <Card>
+          <Card sx={{ flex: 1 }}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Assessment sx={{ fontSize: 24, color: 'info.main', mb: 1 }} />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -291,10 +285,8 @@ const SubmissionFeedDisplay: React.FC = () => {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
 
-        <Grid item xs={6} md={3}>
-          <Card>
+          <Card sx={{ flex: 1 }}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Timer sx={{ fontSize: 24, color: 'secondary.main', mb: 1 }} />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -305,10 +297,8 @@ const SubmissionFeedDisplay: React.FC = () => {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
 
-        <Grid item xs={6} md={3}>
-          <Card>
+          <Card sx={{ flex: 1 }}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Schedule sx={{ fontSize: 24, color: 'warning.main', mb: 1 }} />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -319,152 +309,149 @@ const SubmissionFeedDisplay: React.FC = () => {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Stack>
 
-      <Grid container spacing={3}>
-        {/* Submission Feed */}
-        <Grid item xs={12} md={8}>
-          <Card>
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Tabs value={selectedTab} onChange={(_, newValue) => setSelectedTab(newValue)}>
-                <Tab label={`All (${submissions.length})`} />
-                <Tab 
-                  label={
-                    <Badge badgeContent={submissions.filter(s => s.status === 'pending').length} color="error">
-                      Pending
-                    </Badge>
-                  } 
-                />
-                <Tab label={`Accepted (${submissions.filter(s => s.status === 'accepted').length})`} />
-                <Tab label={`Rejected (${submissions.filter(s => s.status !== 'pending' && s.status !== 'accepted').length})`} />
-              </Tabs>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
+          {/* Submission Feed */}
+          <Box sx={{ flex: 2, minWidth: 0 }}>
+            <Card>
+              <Box sx={{ borderBottom: 1, borderColor: 'divider', p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Tabs value={selectedTab} onChange={(_, newValue) => setSelectedTab(newValue)}>
+                  <Tab label={`All (${submissions.length})`} />
+                  <Tab 
+                    label={
+                      <Badge badgeContent={submissions.filter(s => s.status === 'pending').length} color="error">
+                        Pending
+                      </Badge>
+                    } 
+                  />
+                  <Tab label={`Accepted (${submissions.filter(s => s.status === 'accepted').length})`} />
+                  <Tab label={`Rejected (${submissions.filter(s => s.status !== 'pending' && s.status !== 'accepted').length})`} />
+                </Tabs>
 
-              {/* Filters */}
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <FormControl size="small" sx={{ minWidth: 100 }}>
-                  <InputLabel>Contest</InputLabel>
-                  <Select
-                    value={contestFilter}
-                    label="Contest"
-                    onChange={(e) => setContestFilter(e.target.value)}
-                  >
-                    <MenuItem value="all">All</MenuItem>
-                    {uniqueContests.map(contest => (
-                      <MenuItem key={contest} value={contest}>{contest}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                <FormControl size="small" sx={{ minWidth: 100 }}>
-                  <InputLabel>Language</InputLabel>
-                  <Select
-                    value={languageFilter}
-                    label="Language"
-                    onChange={(e) => setLanguageFilter(e.target.value)}
-                  >
-                    <MenuItem value="all">All</MenuItem>
-                    {uniqueLanguages.map(lang => (
-                      <MenuItem key={lang} value={lang}>{lang.toUpperCase()}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Box>
-            </Box>
-
-            <CardContent sx={{ p: 0, maxHeight: 400, overflow: 'auto' }}>
-              {loading ? (
-                <LinearProgress />
-              ) : (
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Team</TableCell>
-                        <TableCell>Problem</TableCell>
-                        <TableCell>Language</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Time</TableCell>
-                        <TableCell>Performance</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {filteredSubmissions.map((submission) => (
-                        <TableRow key={submission.id}>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <Avatar sx={{ width: 24, height: 24, mr: 1, fontSize: 12 }}>
-                                {submission.team_name.charAt(0)}
-                              </Avatar>
-                              <Typography variant="body2">
-                                {submission.team_name}
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Box>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {submission.problem_letter}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {submission.problem_title}
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={submission.language.toUpperCase()}
-                              size="small"
-                              sx={{
-                                bgcolor: getLanguageColor(submission.language) + '20',
-                                color: getLanguageColor(submission.language),
-                                fontWeight: 600
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              icon={getStatusIcon(submission.status)}
-                              label={submission.status.replace('_', ' ')}
-                              color={getStatusColor(submission.status) as any}
-                              size="small"
-                              sx={{ textTransform: 'capitalize' }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="caption" color="text.secondary">
-                              {formatTime(submission.submission_time)}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            {submission.execution_time !== undefined && (
-                              <Box>
-                                <Typography variant="caption" sx={{ display: 'block' }}>
-                                  {submission.execution_time}ms
-                                </Typography>
-                                {submission.memory_used && (
-                                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                                    {(submission.memory_used / 1024).toFixed(1)}KB
-                                  </Typography>
-                                )}
-                              </Box>
-                            )}
-                          </TableCell>
-                        </TableRow>
+                <Stack direction="row" spacing={1}>
+                  <FormControl size="small" sx={{ minWidth: 100 }}>
+                    <InputLabel>Contest</InputLabel>
+                    <Select
+                      value={contestFilter}
+                      label="Contest"
+                      onChange={(e) => setContestFilter(e.target.value)}
+                    >
+                      <MenuItem value="all">All</MenuItem>
+                      {uniqueContests.map(contest => (
+                        <MenuItem key={contest} value={contest}>{contest}</MenuItem>
                       ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
+                    </Select>
+                  </FormControl>
 
-        {/* Statistics Panel */}
-        <Grid item xs={12} md={4}>
-          <Grid container spacing={2}>
-            {/* Language Usage */}
-            <Grid item xs={12}>
+                  <FormControl size="small" sx={{ minWidth: 100 }}>
+                    <InputLabel>Language</InputLabel>
+                    <Select
+                      value={languageFilter}
+                      label="Language"
+                      onChange={(e) => setLanguageFilter(e.target.value)}
+                    >
+                      <MenuItem value="all">All</MenuItem>
+                      {uniqueLanguages.map(lang => (
+                        <MenuItem key={lang} value={lang}>{lang.toUpperCase()}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Stack>
+              </Box>
+
+              <CardContent sx={{ p: 0, maxHeight: 400, overflow: 'auto' }}>
+                {loading ? (
+                  <LinearProgress />
+                ) : (
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Team</TableCell>
+                          <TableCell>Problem</TableCell>
+                          <TableCell>Language</TableCell>
+                          <TableCell>Status</TableCell>
+                          <TableCell>Time</TableCell>
+                          <TableCell>Performance</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {filteredSubmissions.map((submission) => (
+                          <TableRow key={submission.id}>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <Avatar sx={{ width: 24, height: 24, mr: 1, fontSize: 12 }}>
+                                  {submission.team_name.charAt(0)}
+                                </Avatar>
+                                <Typography variant="body2">
+                                  {submission.team_name}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Box>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {submission.problem_letter}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {submission.problem_title}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={submission.language.toUpperCase()}
+                                size="small"
+                                sx={{
+                                  bgcolor: getLanguageColor(submission.language) + '20',
+                                  color: getLanguageColor(submission.language),
+                                  fontWeight: 600
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                icon={getStatusIcon(submission.status)}
+                                label={submission.status.replace('_', ' ')}
+                                color={getStatusColor(submission.status) as any}
+                                size="small"
+                                sx={{ textTransform: 'capitalize' }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="caption" color="text.secondary">
+                                {formatTime(submission.submission_time)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              {submission.execution_time !== undefined && (
+                                <Box>
+                                  <Typography variant="caption" sx={{ display: 'block' }}>
+                                    {submission.execution_time}ms
+                                  </Typography>
+                                  {submission.memory_used && (
+                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                      {(submission.memory_used / 1024).toFixed(1)}KB
+                                    </Typography>
+                                  )}
+                                </Box>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+              </CardContent>
+            </Card>
+          </Box>
+
+          {/* Statistics Panel */}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Stack spacing={2}>
+              {/* Language Usage */}
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
@@ -494,10 +481,8 @@ const SubmissionFeedDisplay: React.FC = () => {
                   </List>
                 </CardContent>
               </Card>
-            </Grid>
 
-            {/* Verdict Distribution */}
-            <Grid item xs={12}>
+              {/* Verdict Distribution */}
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
@@ -535,11 +520,11 @@ const SubmissionFeedDisplay: React.FC = () => {
                   </List>
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>
-        </Grid>
-      </Grid>
-    </Box>
+            </Stack>
+          </Box>
+        </Stack>
+      </Box>
+    </Container>
   );
 };
 
