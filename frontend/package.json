@@ -7,11 +7,8 @@
     "react-scripts": "5.0.1"
   },
   "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.1",
+    "core-js": "^3.38.1",
     "@monaco-editor/react": "^4.7.0",
-    "@mui/icons-material": "^7.3.1",
-    "@mui/material": "^7.3.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.6.4",
     "@testing-library/react": "^16.3.0",
@@ -19,18 +16,18 @@
     "@types/jest": "^27.5.2",
     "@types/katex": "^0.16.7",
     "@types/node": "^16.18.126",
-    "@types/react": "^19.1.9",
-    "@types/react-dom": "^19.1.7",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/socket.io-client": "^1.4.36",
     "axios": "^1.11.0",
-    "date-fns": "^4.1.0",
+    "date-fns": "^3.6.0",
     "katex": "^0.16.22",
     "monaco-editor": "^0.52.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-markdown": "^10.1.0",
-    "react-router-dom": "^7.7.1",
+    "react-router-dom": "^6.26.1",
     "react-syntax-highlighter": "^15.6.1",
     "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
@@ -40,10 +37,20 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096\" npx --yes react-scripts@5.0.1 start",
-    "build": "npx --yes react-scripts@5.0.1 build",
+    "start": "cross-env NODE_OPTIONS=\"--max-old-space-size=8192\" GENERATE_SOURCEMAP=false BROWSER=none npx --yes react-scripts@5.0.1 start",
+    "build": "cross-env NODE_OPTIONS=\"--max-old-space-size=8192\" GENERATE_SOURCEMAP=false npx --yes react-scripts@5.0.1 build",
     "test": "npx --yes react-scripts@5.0.1 test",
     "eject": "npx --yes react-scripts@5.0.1 eject"
+  },
+  "resolutions": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0"
+  },
+  "overrides": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   },
   "eslintConfig": {
     "extends": [
@@ -62,5 +69,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "proxy": "http://localhost:3000"
 }

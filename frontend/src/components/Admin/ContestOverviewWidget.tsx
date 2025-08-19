@@ -81,49 +81,78 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
 
   const fetchActiveContests = async () => {
     try {
-      // Mock API call - replace with real API
-      const mockContests: ActiveContest[] = [
-        {
-          id: 1,
-          contest_name: 'ICPC Practice Round',
-          start_time: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-          duration: 180, // 3 hours
-          time_remaining_seconds: 6300, // 1 hour 45 minutes left
-          time_elapsed_seconds: 3900, // 1 hour 5 minutes elapsed
-          progress_percentage: 35.4,
-          status: 'running',
-          registration_code: 'ICPC2024',
-          teams_count: 24,
-          submissions_count: 156,
-          stats: {
-            total_submissions: 156,
-            problems_solved: 45,
-            team_participation_rate: 87.5,
-            average_solve_time: 25.6
-          }
-        },
-        {
-          id: 2,
-          contest_name: 'Beginner Programming Contest',
-          start_time: new Date(Date.now() - 2700000).toISOString(), // 45 minutes ago
-          duration: 90, // 1.5 hours
-          time_remaining_seconds: 2700, // 45 minutes left
-          time_elapsed_seconds: 2700, // 45 minutes elapsed
-          progress_percentage: 50,
-          status: 'running',
-          registration_code: 'BEGIN01',
-          teams_count: 16,
-          submissions_count: 78,
-          stats: {
-            total_submissions: 78,
-            problems_solved: 28,
-            team_participation_rate: 93.8,
-            average_solve_time: 15.2
-          }
+      const response = await fetch('/api/admin/contests', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+          'Content-Type': 'application/json'
         }
-      ];
-
-      setActiveContests(mockContests);
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch contests');
+      }
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        // Filter for active/running contests and get their progress data
+        const contestPromises = result.data
+          .filter((contest: any) => contest.is_active)
+          .map(async (contest: any) => {
+            try {
+              // Get contest progress
+              const progressResponse = await fetch(`/api/admin/contests/${contest.id}/progress`, {
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              const progressData = await progressResponse.json();
+              const progress = progressData.success ? progressData.data : null;
+              
+              // Get contest live stats
+              const statsResponse = await fetch(`/api/admin/contests/${contest.id}/live-stats`, {
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              const statsData = await statsResponse.json();
+              const liveStats = statsData.success ? statsData.data : null;
+              
+              return {
+                id: contest.id,
+                contest_name: contest.contest_name,
+                start_time: contest.start_time,
+                duration: contest.duration,
+                time_remaining_seconds: progress?.time_remaining_seconds || 0,
+                time_elapsed_seconds: progress?.time_elapsed_seconds || 0,
+                progress_percentage: progress?.progress_percentage || 0,
+                status: progress?.status || 'not_started',
+                registration_code: contest.registration_code,
+                teams_count: liveStats?.teams_count || 0,
+                submissions_count: liveStats?.submissions_count || 0,
+                stats: {
+                  total_submissions: liveStats?.submissions_count || 0,
+                  problems_solved: liveStats?.problems_solved || 0,
+                  team_participation_rate: liveStats?.participation_rate || 0,
+                  average_solve_time: liveStats?.avg_solve_time || 0
+                }
+              };
+            } catch (error) {
+              console.error(`Error fetching progress for contest ${contest.id}:`, error);
+              return null;
+            }
+          });
+        
+        const contests = await Promise.all(contestPromises);
+        const validContests = contests.filter(contest => contest !== null) as ActiveContest[];
+        
+        setActiveContests(validContests);
+      }
+      
       setLastUpdate(new Date());
     } catch (error) {
       console.error('Failed to fetch active contests:', error);

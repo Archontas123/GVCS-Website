@@ -4,30 +4,10 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Button,
-  Box,
-  IconButton,
-  Menu,
-  MenuItem,
-  useTheme,
-  useMediaQuery,
-  Chip,
-} from '@mui/material';
-import {
-  Menu as MenuIcon,
-  AccountCircle,
-  Timer,
-  Code,
-  Dashboard,
-  Leaderboard,
-} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import NotificationSystem from '../NotificationSystem';
 import ConnectionStatus from '../ConnectionStatus';
+import '../../styles/theme.css';
 
 interface HeaderProps {
   teamName?: string;
@@ -46,13 +26,21 @@ const Header: React.FC<HeaderProps> = ({
   onLogout,
   contestId,
 }) => {
-  const theme = useTheme();
   const navigate = useNavigate();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [mobileMenuAnchor, setMobileMenuAnchor] = useState<null | HTMLElement>(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [displayTime, setDisplayTime] = useState<string>('');
+
+  // Handle responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Format time remaining
   useEffect(() => {
@@ -68,17 +56,17 @@ const Header: React.FC<HeaderProps> = ({
     }
   }, [timeRemaining]);
 
-  const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
+  const handleProfileMenuToggle = () => {
+    setShowProfileMenu(!showProfileMenu);
   };
 
-  const handleMobileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setMobileMenuAnchor(event.currentTarget);
+  const handleMobileMenuToggle = () => {
+    setShowMobileMenu(!showMobileMenu);
   };
 
   const handleMenuClose = () => {
-    setAnchorEl(null);
-    setMobileMenuAnchor(null);
+    setShowProfileMenu(false);
+    setShowMobileMenu(false);
   };
 
   const handleLogout = () => {
@@ -92,199 +80,394 @@ const Header: React.FC<HeaderProps> = ({
     navigate(path);
   };
 
-  const getTimerColor = (): string => {
-    if (!timeRemaining || timeRemaining <= 0) return theme.palette.error.main;
-    if (timeRemaining < 1800) return theme.palette.error.main; // < 30 minutes
-    if (timeRemaining < 3600) return theme.palette.warning.main; // < 1 hour
-    return theme.palette.success.main;
+  const getTimerClass = (): string => {
+    if (!timeRemaining || timeRemaining <= 0) return 'chip chip-error';
+    if (timeRemaining < 1800) return 'chip chip-error'; // < 30 minutes
+    if (timeRemaining < 3600) return 'chip chip-warning'; // < 1 hour
+    return 'chip chip-success';
   };
 
   const NavigationButtons = () => (
     <>
-      <Button
-        color="inherit"
-        startIcon={<Dashboard />}
+      <button
         onClick={() => handleNavigation('/dashboard')}
-        sx={{ mx: 1 }}
+        style={{ 
+          background: 'none',
+          border: 'none',
+          color: '#374151',
+          padding: '8px 16px',
+          margin: '0 4px',
+          borderRadius: '8px',
+          fontSize: '0.9rem',
+          fontWeight: 500,
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#f3f4f6';
+          e.currentTarget.style.color = '#1d4ed8';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'transparent';
+          e.currentTarget.style.color = '#374151';
+        }}
       >
-        Dashboard
-      </Button>
-      <Button
-        color="inherit"
-        startIcon={<Leaderboard />}
+        📊 Dashboard
+      </button>
+      <button
         onClick={() => handleNavigation('/leaderboard')}
-        sx={{ mx: 1 }}
+        style={{ 
+          background: 'none',
+          border: 'none',
+          color: '#374151',
+          padding: '8px 16px',
+          margin: '0 4px',
+          borderRadius: '8px',
+          fontSize: '0.9rem',
+          fontWeight: 500,
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#f3f4f6';
+          e.currentTarget.style.color = '#1d4ed8';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'transparent';
+          e.currentTarget.style.color = '#374151';
+        }}
       >
-        Leaderboard
-      </Button>
+        🏆 Leaderboard
+      </button>
     </>
   );
 
   const MobileMenu = () => (
-    <Menu
-      anchorEl={mobileMenuAnchor}
-      open={Boolean(mobileMenuAnchor)}
-      onClose={handleMenuClose}
-      anchorOrigin={{
-        vertical: 'top',
-        horizontal: 'right',
-      }}
-      transformOrigin={{
-        vertical: 'top',
-        horizontal: 'right',
-      }}
-    >
-      <MenuItem onClick={() => handleNavigation('/dashboard')}>
-        <Dashboard sx={{ mr: 2 }} />
-        Dashboard
-      </MenuItem>
-      <MenuItem onClick={() => handleNavigation('/leaderboard')}>
-        <Leaderboard sx={{ mr: 2 }} />
-        Leaderboard
-      </MenuItem>
-    </Menu>
+    showMobileMenu && (
+      <div style={{
+        position: 'absolute',
+        top: '60px',
+        right: '16px',
+        backgroundColor: 'white',
+        borderRadius: '12px',
+        boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04)',
+        minWidth: '200px',
+        zIndex: 1000,
+        border: '1px solid #e2e8f0',
+        overflow: 'hidden',
+      }}>
+        <div 
+          style={{ 
+            cursor: 'pointer', 
+            borderBottom: '1px solid #e5e7eb',
+            padding: '12px 16px',
+            fontSize: '0.9rem',
+            fontWeight: 500,
+            color: '#374151',
+            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            transition: 'background-color 0.2s ease',
+          }}
+          onClick={() => handleNavigation('/dashboard')}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#f8fafc';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
+        >
+          📊 Dashboard
+        </div>
+        <div 
+          style={{ 
+            cursor: 'pointer',
+            padding: '12px 16px',
+            fontSize: '0.9rem',
+            fontWeight: 500,
+            color: '#374151',
+            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            transition: 'background-color 0.2s ease',
+          }}
+          onClick={() => handleNavigation('/leaderboard')}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#f8fafc';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
+        >
+          🏆 Leaderboard
+        </div>
+      </div>
+    )
   );
 
   const ProfileMenu = () => (
-    <Menu
-      anchorEl={anchorEl}
-      open={Boolean(anchorEl)}
-      onClose={handleMenuClose}
-      anchorOrigin={{
-        vertical: 'top',
-        horizontal: 'right',
-      }}
-      transformOrigin={{
-        vertical: 'top',
-        horizontal: 'right',
-      }}
-    >
-      <MenuItem disabled>
-        <Typography variant="body2" color="text.secondary">
+    showProfileMenu && (
+      <div style={{
+        position: 'absolute',
+        top: '60px',
+        right: '16px',
+        backgroundColor: 'white',
+        borderRadius: '12px',
+        boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04)',
+        minWidth: '200px',
+        zIndex: 1000,
+        border: '1px solid #e2e8f0',
+        overflow: 'hidden',
+      }}>
+        <div style={{ 
+          borderBottom: '1px solid #e5e7eb',
+          padding: '12px 16px',
+          fontSize: '0.85rem',
+          color: '#6b7280',
+          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+        }}>
           Team: {teamName}
-        </Typography>
-      </MenuItem>
-      <MenuItem onClick={handleLogout}>
-        Logout
-      </MenuItem>
-    </Menu>
+        </div>
+        <div 
+          style={{ 
+            cursor: 'pointer',
+            padding: '12px 16px',
+            fontSize: '0.9rem',
+            fontWeight: 500,
+            color: '#374151',
+            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            transition: 'background-color 0.2s ease',
+          }}
+          onClick={handleLogout}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#fef2f2';
+            e.currentTarget.style.color = '#dc2626';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = '#374151';
+          }}
+        >
+          Logout
+        </div>
+      </div>
+    )
   );
 
+  // Close menus when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowProfileMenu(false);
+      setShowMobileMenu(false);
+    };
+    if (showProfileMenu || showMobileMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showProfileMenu, showMobileMenu]);
+
   return (
-    <AppBar position="sticky" color="primary">
-      <Toolbar>
-        {/* Logo/Brand */}
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            flexGrow: { xs: 1, md: 0 },
-            cursor: 'pointer'
-          }}
-          onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')}
-        >
-          <Code sx={{ mr: 1 }} />
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{
-              fontWeight: 'bold',
-              display: { xs: 'none', sm: 'block' }
+    <nav style={{ 
+      position: 'sticky', 
+      top: 0, 
+      zIndex: 100,
+      backgroundColor: '#ffffff',
+      borderBottom: '1px solid #e2e8f0',
+      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+      padding: '12px 24px',
+      display: 'flex',
+      alignItems: 'center',
+      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+    }}>
+      {/* Logo/Brand */}
+      <div 
+        style={{ 
+          cursor: 'pointer',
+          flexGrow: isMobile ? 1 : 0,
+          display: 'flex',
+          alignItems: 'center',
+        }}
+        onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')}
+      >
+        <span style={{ marginRight: '12px', fontSize: '1.5rem' }}>💻</span>
+        {!isMobile && (
+          <h1 style={{ 
+            fontWeight: 700, 
+            fontSize: '1.5rem',
+            color: '#1d4ed8',
+            letterSpacing: '-0.02em',
+            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            margin: 0,
+          }}>
+            Hack The Valley
+          </h1>
+        )}
+      </div>
+
+      {/* Contest Info */}
+      {contestName && !isMobile && (
+        <div style={{ margin: '0 24px' }}>
+          <span style={{ 
+            fontSize: '0.95rem',
+            color: '#64748b',
+            fontWeight: 500,
+            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+          }}>
+            {contestName}
+          </span>
+        </div>
+      )}
+
+      {/* Spacer */}
+      <div style={{ flexGrow: 1 }} />
+
+      {/* Contest Timer */}
+      {displayTime && (
+        <div style={{ margin: '0 16px' }}>
+          <span style={{
+            backgroundColor: timeRemaining && timeRemaining > 0 
+              ? (timeRemaining < 1800 ? '#fef2f2' : timeRemaining < 3600 ? '#fff4e5' : '#e8f5e8')
+              : '#fef2f2',
+            color: timeRemaining && timeRemaining > 0 
+              ? (timeRemaining < 1800 ? '#dc2626' : timeRemaining < 3600 ? '#a16207' : '#166534')
+              : '#dc2626',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            fontSize: '0.9rem',
+            fontWeight: 600,
+            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+          }}>
+            ⏱ {displayTime}
+          </span>
+        </div>
+      )}
+
+      {isAuthenticated ? (
+        <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+          {/* Desktop Navigation */}
+          {!isMobile && <NavigationButtons />}
+
+          {/* Real-time Components */}
+          <ConnectionStatus compact />
+          <NotificationSystem contestId={contestId} />
+
+          {/* Mobile Menu Button */}
+          {isMobile && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMobileMenuToggle();
+              }}
+              style={{ 
+                background: 'none',
+                border: 'none',
+                color: '#374151',
+                padding: '8px 12px',
+                marginRight: '8px',
+                borderRadius: '8px',
+                fontSize: '1.1rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f3f4f6';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              ☰
+            </button>
+          )}
+
+          {/* Profile Menu */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleProfileMenuToggle();
+            }}
+            style={{ 
+              background: 'none',
+              border: 'none',
+              color: '#374151',
+              padding: '8px 12px',
+              marginLeft: '8px',
+              borderRadius: '8px',
+              fontSize: '1.1rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#f3f4f6';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
             }}
           >
-            CS Club Hackathon
-          </Typography>
-        </Box>
+            👤
+          </button>
 
-        {/* Contest Info */}
-        {contestName && (
-          <Box sx={{ mx: 2, display: { xs: 'none', md: 'block' } }}>
-            <Typography variant="body2" color="inherit" sx={{ opacity: 0.9 }}>
-              {contestName}
-            </Typography>
-          </Box>
-        )}
-
-        {/* Spacer */}
-        <Box sx={{ flexGrow: 1 }} />
-
-        {/* Contest Timer */}
-        {displayTime && (
-          <Box sx={{ mx: 2 }}>
-            <Chip
-              icon={<Timer />}
-              label={displayTime}
-              variant="filled"
-              sx={{
-                backgroundColor: getTimerColor(),
-                color: 'white',
-                fontWeight: 'bold',
-                fontSize: { xs: '0.75rem', sm: '0.875rem' },
-              }}
-            />
-          </Box>
-        )}
-
-        {isAuthenticated ? (
-          <>
-            {/* Desktop Navigation */}
-            {!isMobile && <NavigationButtons />}
-
-            {/* Real-time Components */}
-            <ConnectionStatus compact />
-            <NotificationSystem contestId={contestId} />
-
-            {/* Mobile Menu Button */}
-            {isMobile && (
-              <IconButton
-                color="inherit"
-                onClick={handleMobileMenuOpen}
-                sx={{ mr: 1 }}
-              >
-                <MenuIcon />
-              </IconButton>
-            )}
-
-            {/* Profile Menu */}
-            <IconButton
-              color="inherit"
-              onClick={handleProfileMenuOpen}
-              sx={{ ml: 1 }}
-            >
-              <AccountCircle />
-            </IconButton>
-
-            {/* Menus */}
-            <MobileMenu />
-            <ProfileMenu />
-          </>
-        ) : (
-          /* Login/Register Buttons for non-authenticated users */
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              color="inherit"
-              variant="outlined"
-              size="small"
-              onClick={() => navigate('/login')}
-              sx={{ 
-                borderColor: 'rgba(255,255,255,0.5)',
-                '&:hover': { borderColor: 'white' }
-              }}
-            >
-              Login
-            </Button>
-            <Button
-              color="secondary"
-              variant="contained"
-              size="small"
-              onClick={() => navigate('/register')}
-            >
-              Register
-            </Button>
-          </Box>
-        )}
-      </Toolbar>
-    </AppBar>
+          {/* Menus */}
+          <MobileMenu />
+          <ProfileMenu />
+        </div>
+      ) : (
+        /* Login/Register Buttons for non-authenticated users */
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button
+            onClick={() => navigate('/login')}
+            style={{
+              background: '#ffffff',
+              color: '#374151',
+              border: '2px solid #e5e7eb',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              fontSize: '0.9rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#1d4ed8';
+              e.currentTarget.style.color = '#1d4ed8';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#e5e7eb';
+              e.currentTarget.style.color = '#374151';
+            }}
+          >
+            Login
+          </button>
+          <button
+            onClick={() => navigate('/register')}
+            style={{
+              background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              fontSize: '0.9rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+              boxShadow: '0 4px 12px rgba(29, 78, 216, 0.25)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%)';
+              e.currentTarget.style.boxShadow = '0 8px 20px rgba(29, 78, 216, 0.35)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(29, 78, 216, 0.25)';
+            }}
+          >
+            Register
+          </button>
+        </div>
+      )}
+    </nav>
   );
 };
 

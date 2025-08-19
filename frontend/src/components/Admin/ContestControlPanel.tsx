@@ -91,10 +91,10 @@ const ContestControlPanel: React.FC = () => {
   const [contests, setContests] = useState<Contest[]>([]);
   const [selectedContest, setSelectedContest] = useState<Contest | null>(null);
   const [systemStatus, setSystemStatus] = useState<SystemStatus>({
-    judge_queue: { pending: 15, processing: 3, workers_active: 5, avg_processing_time: 1.8 },
-    database: { status: 'connected', connections: 12, response_time: 45 },
-    server: { cpu_usage: 35, memory_usage: 68, disk_usage: 42, uptime: 86400 },
-    contests_scheduler: { status: 'running', last_check: new Date().toISOString(), scheduled_tasks: 3 }
+    judge_queue: { pending: 0, processing: 0, workers_active: 0, avg_processing_time: 0 },
+    database: { status: 'disconnected', connections: 0, response_time: 0 },
+    server: { cpu_usage: 0, memory_usage: 0, disk_usage: 0, uptime: 0 },
+    contests_scheduler: { status: 'stopped', last_check: '', scheduled_tasks: 0 }
   });
   const [controlDialog, setControlDialog] = useState<{
     open: boolean;
@@ -114,52 +114,112 @@ const ContestControlPanel: React.FC = () => {
 
   const fetchContests = async () => {
     try {
-      // Mock API call
-      const mockContests: Contest[] = [
-        {
-          id: 1,
-          contest_name: 'ICPC Practice Round',
-          status: 'running',
-          start_time: new Date(Date.now() - 3600000).toISOString(),
-          duration: 180,
-          time_remaining_seconds: 6300,
-          progress_percentage: 35.4,
-          teams_count: 24,
-          registration_code: 'ICPC2024'
-        },
-        {
-          id: 2,
-          contest_name: 'Beginner Programming Contest',
-          status: 'not_started',
-          start_time: new Date(Date.now() + 1800000).toISOString(),
-          duration: 90,
-          time_remaining_seconds: 0,
-          progress_percentage: 0,
-          teams_count: 16,
-          registration_code: 'BEGIN01'
+      const response = await fetch('/api/admin/contests', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+          'Content-Type': 'application/json'
         }
-      ];
-      setContests(mockContests);
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          // Get progress data for each contest
+          const contestPromises = result.data.map(async (contest: any) => {
+            try {
+              const progressResponse = await fetch(`/api/admin/contests/${contest.id}/progress`, {
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              const progressData = await progressResponse.json();
+              const progress = progressData.success ? progressData.data : null;
+              
+              return {
+                id: contest.id,
+                contest_name: contest.contest_name,
+                status: progress?.status || 'not_started',
+                start_time: contest.start_time,
+                duration: contest.duration,
+                time_remaining_seconds: progress?.time_remaining_seconds || 0,
+                progress_percentage: progress?.progress_percentage || 0,
+                teams_count: contest.teams_count || 0,
+                registration_code: contest.registration_code
+              };
+            } catch (error) {
+              console.error(`Error fetching progress for contest ${contest.id}:`, error);
+              return {
+                id: contest.id,
+                contest_name: contest.contest_name,
+                status: 'not_started' as const,
+                start_time: contest.start_time,
+                duration: contest.duration,
+                time_remaining_seconds: 0,
+                progress_percentage: 0,
+                teams_count: 0,
+                registration_code: contest.registration_code
+              };
+            }
+          });
+          
+          const contests = await Promise.all(contestPromises);
+          setContests(contests);
+          
+          if (!selectedContest && contests.length > 0) {
+            setSelectedContest(contests[0]);
+          }
+        }
+      } else {
+        console.error('Failed to fetch contests - API error');
+        setContests([]);
+      }
     } catch (error) {
       console.error('Failed to fetch contests:', error);
+      setContests([]);
     }
   };
 
   const fetchSystemStatus = async () => {
     try {
-      // Mock API call - in real app, this would fetch actual system metrics
-      setSystemStatus(prev => ({
-        ...prev,
-        judge_queue: {
-          ...prev.judge_queue,
-          pending: Math.max(0, prev.judge_queue.pending + Math.floor(Math.random() * 5) - 2)
-        },
-        server: {
-          ...prev.server,
-          cpu_usage: Math.max(10, Math.min(90, prev.server.cpu_usage + Math.floor(Math.random() * 10) - 5)),
-          memory_usage: Math.max(30, Math.min(95, prev.server.memory_usage + Math.floor(Math.random() * 6) - 3))
+      const response = await fetch('/api/admin/system/status', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+          'Content-Type': 'application/json'
         }
-      }));
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          const data = result.data;
+          setSystemStatus({
+            judge_queue: {
+              pending: data.judge_queue?.pending || 0,
+              processing: data.judge_queue?.processing || 0,
+              workers_active: data.judge_queue?.workers_active || 0,
+              avg_processing_time: data.judge_queue?.avg_processing_time || 0
+            },
+            database: {
+              status: data.database?.status || 'connected',
+              connections: data.database?.connections || 0,
+              response_time: data.database?.response_time || 0
+            },
+            server: {
+              cpu_usage: data.server?.cpu_usage || 0,
+              memory_usage: data.server?.memory_usage || 0,
+              disk_usage: data.server?.disk_usage || 0,
+              uptime: data.server?.uptime || 0
+            },
+            contests_scheduler: {
+              status: data.contests_scheduler?.status || 'running',
+              last_check: data.contests_scheduler?.last_check || new Date().toISOString(),
+              scheduled_tasks: data.contests_scheduler?.scheduled_tasks || 0
+            }
+          });
+        }
+      }
     } catch (error) {
       console.error('Failed to fetch system status:', error);
     }
@@ -174,22 +234,47 @@ const ContestControlPanel: React.FC = () => {
     if (!selectedContest || !controlDialog.action) return;
 
     setLoading(true);
+    
     try {
-      // Mock API call - replace with real API
-      console.log(`${controlDialog.action} contest:`, selectedContest.contest_name);
-      
-      // Update local state
-      const newStatus = controlDialog.action === 'start' ? 'running' : 
-                       controlDialog.action === 'freeze' ? 'frozen' : 'ended';
-      
-      setContests(prev => prev.map(contest => 
-        contest.id === selectedContest.id 
-          ? { ...contest, status: newStatus }
-          : contest
-      ));
+      let endpoint = '';
+      switch (controlDialog.action) {
+        case 'start':
+          endpoint = `/api/admin/contests/${selectedContest.id}/start`;
+          break;
+        case 'freeze':
+          endpoint = `/api/admin/contests/${selectedContest.id}/freeze`;
+          break;
+        case 'end':
+          endpoint = `/api/admin/contests/${selectedContest.id}/end`;
+          break;
+        case 'emergency_stop':
+          endpoint = `/api/admin/contests/${selectedContest.id}/emergency-stop`;
+          break;
+        default:
+          throw new Error('Invalid action');
+      }
 
-      setControlDialog({ open: false, action: null });
-      setSelectedContest(null);
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          // Refresh contests to get updated data
+          await fetchContests();
+          setControlDialog({ open: false, action: null });
+          setSelectedContest(null);
+        } else {
+          console.error('Contest action failed:', result.message);
+        }
+      } else {
+        console.error('Contest action request failed:', response.status);
+      }
     } catch (error) {
       console.error('Failed to execute contest action:', error);
     } finally {
@@ -414,7 +499,7 @@ const ContestControlPanel: React.FC = () => {
                   <ListItemText
                     primary="Server Resources"
                     secondary={
-                      <Box>
+                      <span>
                         <Typography variant="caption" sx={{ display: 'block' }}>
                           CPU: {systemStatus.server.cpu_usage}% | RAM: {systemStatus.server.memory_usage}%
                         </Typography>
@@ -424,7 +509,7 @@ const ContestControlPanel: React.FC = () => {
                           color={systemStatus.server.cpu_usage > 80 || systemStatus.server.memory_usage > 80 ? 'warning' : 'success'}
                           sx={{ height: 3, mt: 0.5 }}
                         />
-                      </Box>
+                      </span>
                     }
                   />
                 </ListItem>

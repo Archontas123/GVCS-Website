@@ -132,14 +132,14 @@ class Admin {
     try {
       const hashedPassword = await this.hashPassword(adminData.password);
 
-      const [adminId] = await db('admins').insert({
+      const [result] = await db('admins').insert({
         username: adminData.username.trim(),
         email: adminData.email.trim().toLowerCase(),
         password_hash: hashedPassword,
         role: adminData.role || 'judge'
       }).returning('id');
 
-      const createdAdmin = await this.findById(adminId);
+      const createdAdmin = await this.findById(result.id);
       return createdAdmin;
     } catch (error) {
       throw new DatabaseError('Failed to create admin account', error);

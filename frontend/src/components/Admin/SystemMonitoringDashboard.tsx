@@ -119,71 +119,25 @@ interface DatabaseStatus {
 
 const SystemMonitoringDashboard: React.FC = () => {
   const [metrics, setMetrics] = useState<SystemMetrics>({
-    cpu: { usage_percent: 35, load_average: [1.2, 1.4, 1.1], cores: 4 },
-    memory: { total_mb: 8192, used_mb: 5574, free_mb: 2618, usage_percent: 68 },
-    disk: { total_gb: 500, used_gb: 210, free_gb: 290, usage_percent: 42 },
-    network: { bytes_sent: 1024000000, bytes_received: 2048000000, connections_active: 45 },
-    processes: { total: 156, running: 3, sleeping: 153 },
-    uptime_seconds: 86400
+    cpu: { usage_percent: 0, load_average: [0, 0, 0], cores: 0 },
+    memory: { total_mb: 0, used_mb: 0, free_mb: 0, usage_percent: 0 },
+    disk: { total_gb: 0, used_gb: 0, free_gb: 0, usage_percent: 0 },
+    network: { bytes_sent: 0, bytes_received: 0, connections_active: 0 },
+    processes: { total: 0, running: 0, sleeping: 0 },
+    uptime_seconds: 0
   });
 
-  const [queueStatus, setQueueStatus] = useState<QueueStatus[]>([
-    {
-      name: 'Judge Queue',
-      pending: 15,
-      processing: 3,
-      completed: 1247,
-      failed: 12,
-      workers_active: 5,
-      workers_total: 8,
-      avg_processing_time_seconds: 1.8
-    },
-    {
-      name: 'Notification Queue',
-      pending: 2,
-      processing: 1,
-      completed: 856,
-      failed: 3,
-      workers_active: 2,
-      workers_total: 3,
-      avg_processing_time_seconds: 0.3
-    }
-  ]);
+  const [queueStatus, setQueueStatus] = useState<QueueStatus[]>([]);
 
   const [dbStatus, setDbStatus] = useState<DatabaseStatus>({
-    status: 'connected',
-    connections_active: 12,
-    connections_max: 100,
-    response_time_ms: 45,
-    queries_per_second: 28
+    status: 'disconnected',
+    connections_active: 0,
+    connections_max: 0,
+    response_time_ms: 0,
+    queries_per_second: 0
   });
 
-  const [logs, setLogs] = useState<LogEntry[]>([
-    {
-      id: 1,
-      timestamp: new Date(Date.now() - 30000).toISOString(),
-      level: 'info',
-      service: 'contest-scheduler',
-      message: 'Contest auto-started successfully',
-      details: { contest_id: 1, contest_name: 'ICPC Practice Round' }
-    },
-    {
-      id: 2,
-      timestamp: new Date(Date.now() - 120000).toISOString(),
-      level: 'warning',
-      service: 'judge-queue',
-      message: 'High queue backlog detected',
-      details: { pending_submissions: 25 }
-    },
-    {
-      id: 3,
-      timestamp: new Date(Date.now() - 300000).toISOString(),
-      level: 'error',
-      service: 'docker-executor',
-      message: 'Container execution failed',
-      details: { submission_id: 1245, error: 'timeout' }
-    }
-  ]);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
 
   const [selectedTab, setSelectedTab] = useState(0);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -191,40 +145,99 @@ const SystemMonitoringDashboard: React.FC = () => {
   const [logFilter, setLogFilter] = useState<'all' | 'error' | 'warning' | 'info'>('all');
 
   useEffect(() => {
+    fetchMetrics();
+    fetchLogs();
     if (autoRefresh) {
-      const interval = setInterval(fetchMetrics, refreshInterval * 1000);
+      const interval = setInterval(() => {
+        fetchMetrics();
+        fetchLogs();
+      }, refreshInterval * 1000);
       return () => clearInterval(interval);
     }
   }, [autoRefresh, refreshInterval]);
 
   const fetchMetrics = async () => {
     try {
-      // Mock API calls - replace with real monitoring API
-      setMetrics(prev => ({
-        ...prev,
-        cpu: {
-          ...prev.cpu,
-          usage_percent: Math.max(10, Math.min(90, prev.cpu.usage_percent + Math.floor(Math.random() * 10) - 5))
-        },
-        memory: {
-          ...prev.memory,
-          usage_percent: Math.max(30, Math.min(95, prev.memory.usage_percent + Math.floor(Math.random() * 6) - 3))
+      // Fetch real system metrics from API
+      const response = await fetch('/api/admin/system/metrics', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+          'Content-Type': 'application/json'
         }
-      }));
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setMetrics(result.data);
+        }
+      } else {
+        console.error('Failed to fetch system metrics');
+      }
 
-      setQueueStatus(prev => prev.map(queue => ({
-        ...queue,
-        pending: Math.max(0, queue.pending + Math.floor(Math.random() * 4) - 2),
-        processing: Math.max(0, Math.min(queue.workers_active, queue.processing + Math.floor(Math.random() * 2) - 1))
-      })));
+      // Fetch system status including queue and database status
+      const statusResponse = await fetch('/api/admin/system/status', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (statusResponse.ok) {
+        const statusResult = await statusResponse.json();
+        if (statusResult.success) {
+          const systemStatus = statusResult.data;
+          
+          // Update queue status
+          if (systemStatus.judge_queue) {
+            setQueueStatus([{
+              name: 'Judge Queue',
+              pending: systemStatus.judge_queue.pending || 0,
+              processing: systemStatus.judge_queue.processing || 0,
+              completed: systemStatus.judge_queue.completed || 0,
+              failed: systemStatus.judge_queue.failed || 0,
+              workers_active: systemStatus.judge_queue.workers_active || 0,
+              workers_total: systemStatus.judge_queue.workers_total || 0,
+              avg_processing_time_seconds: systemStatus.judge_queue.avg_processing_time || 0
+            }]);
+          }
 
-      setDbStatus(prev => ({
-        ...prev,
-        response_time_ms: Math.max(20, Math.min(200, prev.response_time_ms + Math.floor(Math.random() * 20) - 10))
-      }));
+          // Update database status
+          if (systemStatus.database) {
+            setDbStatus({
+              status: systemStatus.database.status || 'disconnected',
+              connections_active: systemStatus.database.connections_active || 0,
+              connections_max: systemStatus.database.connections_max || 0,
+              response_time_ms: systemStatus.database.response_time_ms || 0,
+              queries_per_second: systemStatus.database.queries_per_second || 0
+            });
+          }
+        }
+      }
+
 
     } catch (error) {
       console.error('Failed to fetch metrics:', error);
+    }
+  };
+
+  const fetchLogs = async () => {
+    try {
+      const response = await fetch('/api/admin/system/logs?limit=50', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setLogs(result.data || []);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch system logs:', error);
     }
   };
 

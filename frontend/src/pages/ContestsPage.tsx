@@ -53,6 +53,14 @@ interface Contest {
   teams_count?: number;
 }
 
+const processSimpleMarkdown = (text: string): string => {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code>$1</code>')
+    .replace(/\n/g, '<br>');
+};
+
 const ContestsPage: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -284,9 +292,17 @@ const ContestsPage: React.FC = () => {
                     </Box>
                     
                     {/* Description */}
-                    <Typography color="text.secondary" sx={{ mb: 2, fontSize: '0.9rem' }}>
-                      {contest.description || 'No description'}
-                    </Typography>
+                    <Box sx={{ mb: 2, fontSize: '0.9rem', color: 'text.secondary' }}>
+                      {contest.description ? (
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: processSimpleMarkdown(contest.description)
+                          }}
+                        />
+                      ) : (
+                        <Typography color="text.secondary">No description</Typography>
+                      )}
+                    </Box>
                     
                     {/* Contest Details */}
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>

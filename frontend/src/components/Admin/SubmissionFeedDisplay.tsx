@@ -97,78 +97,53 @@ const SubmissionFeedDisplay: React.FC = () => {
 
   const fetchSubmissions = async () => {
     try {
-      const mockSubmissions: Submission[] = [
-        {
-          id: 1001,
-          team_name: 'Code Warriors',
-          problem_letter: 'A',
-          problem_title: 'Sum of Two Numbers',
-          language: 'cpp',
-          status: 'accepted',
-          submission_time: new Date(Date.now() - 30000).toISOString(),
-          judged_at: new Date(Date.now() - 25000).toISOString(),
-          execution_time: 15,
-          memory_used: 1024,
-          contest_name: 'ICPC Practice Round'
-        },
-        {
-          id: 1002,
-          team_name: 'Algorithm Masters',
-          problem_letter: 'B',
-          problem_title: 'Binary Search',
-          language: 'java',
-          status: 'wrong_answer',
-          submission_time: new Date(Date.now() - 60000).toISOString(),
-          judged_at: new Date(Date.now() - 50000).toISOString(),
-          execution_time: 120,
-          memory_used: 2048,
-          contest_name: 'ICPC Practice Round'
-        },
-        {
-          id: 1003,
-          team_name: 'Debug Demons',
-          problem_letter: 'A',
-          problem_title: 'Sum of Two Numbers',
-          language: 'python',
-          status: 'pending',
-          submission_time: new Date(Date.now() - 10000).toISOString(),
-          contest_name: 'Beginner Contest'
-        },
-        {
-          id: 1004,
-          team_name: 'Syntax Squad',
-          problem_letter: 'C',
-          problem_title: 'Graph Traversal',
-          language: 'cpp',
-          status: 'time_limit_exceeded',
-          submission_time: new Date(Date.now() - 90000).toISOString(),
-          judged_at: new Date(Date.now() - 80000).toISOString(),
-          execution_time: 2000,
-          contest_name: 'ICPC Practice Round'
-        },
-        {
-          id: 1005,
-          team_name: 'Logic Lords',
-          problem_letter: 'B',
-          problem_title: 'Binary Search',
-          language: 'java',
-          status: 'compilation_error',
-          submission_time: new Date(Date.now() - 120000).toISOString(),
-          judged_at: new Date(Date.now() - 115000).toISOString(),
-          contest_name: 'ICPC Practice Round',
-          verdict_details: 'Line 15: cannot find symbol'
-        }
-      ];
+      // Fetch submissions and analytics in parallel
+      const [submissionsResponse, statsResponse, analyticsResponse] = await Promise.all([
+        fetch('/api/admin/submissions/live?limit=50', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+            'Content-Type': 'application/json'
+          }
+        }),
+        fetch('/api/admin/submissions/stats', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+            'Content-Type': 'application/json'
+          }
+        }),
+        fetch('/api/admin/submissions/analytics', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+            'Content-Type': 'application/json'
+          }
+        })
+      ]);
 
-      setSubmissions(mockSubmissions);
-      setStats({
-        submissions_per_minute: 8.5,
-        language_usage: { 'cpp': 45, 'java': 30, 'python': 25 },
-        verdict_distribution: { 'accepted': 35, 'wrong_answer': 25, 'time_limit_exceeded': 15, 'compilation_error': 10, 'runtime_error': 10, 'memory_limit_exceeded': 5 },
-        average_judging_time: 1.8,
-        total_submissions_today: 247,
-        pending_count: 15
-      });
+      if (submissionsResponse.ok) {
+        const submissionsData = await submissionsResponse.json();
+        if (submissionsData.success) {
+          setSubmissions(submissionsData.data || []);
+        }
+      }
+
+      if (statsResponse.ok && analyticsResponse.ok) {
+        const [statsData, analyticsData] = await Promise.all([
+          statsResponse.json(),
+          analyticsResponse.json()
+        ]);
+
+        if (statsData.success && analyticsData.success) {
+          setStats({
+            submissions_per_minute: statsData.data.submissions_per_minute || 0,
+            average_judging_time: statsData.data.average_judging_time || 0,
+            total_submissions_today: statsData.data.total_submissions_today || 0,
+            pending_count: statsData.data.pending_count || 0,
+            language_usage: analyticsData.data.language_usage || {},
+            verdict_distribution: analyticsData.data.verdict_distribution || {}
+          });
+        }
+      }
+      
       setLastUpdate(new Date());
     } catch (error) {
       console.error('Failed to fetch submissions:', error);

@@ -106,51 +106,35 @@ const TeamRegistrationMonitor: React.FC = () => {
 
   const fetchRegistrations = async () => {
     try {
-      // Mock API call - replace with real API
-      const mockRegistrations: TeamRegistration[] = [
-        {
-          id: 1,
-          team_name: 'Code Warriors',
-          contest_code: 'ICPC2024',
-          contest_name: 'ICPC Practice Round',
-          registered_at: new Date(Date.now() - 300000).toISOString(), // 5 minutes ago
-          last_activity: new Date(Date.now() - 30000).toISOString(), // 30 seconds ago
-          is_active: true,
-          status: 'active',
-          ip_address: '192.168.1.100'
-        },
-        {
-          id: 2,
-          team_name: 'Algorithm Masters',
-          contest_code: 'ICPC2024',
-          contest_name: 'ICPC Practice Round',
-          registered_at: new Date(Date.now() - 120000).toISOString(), // 2 minutes ago
-          last_activity: new Date(Date.now() - 60000).toISOString(), // 1 minute ago
-          is_active: true,
-          status: 'pending',
-          validation_errors: ['Team name may be duplicate']
-        },
-        {
-          id: 3,
-          team_name: 'Debug Demons',
-          contest_code: 'BEGIN01',
-          contest_name: 'Beginner Programming Contest',
-          registered_at: new Date(Date.now() - 60000).toISOString(), // 1 minute ago
-          last_activity: new Date(Date.now() - 10000).toISOString(), // 10 seconds ago
-          is_active: true,
-          status: 'active',
-          ip_address: '192.168.1.101'
-        }
-      ];
+      // Fetch team registrations and stats in parallel
+      const [registrationsResponse, statsResponse] = await Promise.all([
+        fetch('/api/admin/teams/registrations?limit=100', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+            'Content-Type': 'application/json'
+          }
+        }),
+        fetch('/api/admin/teams/stats', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+            'Content-Type': 'application/json'
+          }
+        })
+      ]);
 
-      setRegistrations(mockRegistrations);
-      setStats({
-        total_registrations: 45,
-        pending_approvals: 3,
-        active_teams: 42,
-        registrations_today: 12,
-        recent_activity: 8
-      });
+      if (registrationsResponse.ok && statsResponse.ok) {
+        const registrationsData = await registrationsResponse.json();
+        const statsData = await statsResponse.json();
+
+        if (registrationsData.success) {
+          setRegistrations(registrationsData.data || []);
+        }
+
+        if (statsData.success) {
+          setStats(statsData.data);
+        }
+      }
+      
       setLastUpdate(new Date());
     } catch (error) {
       console.error('Failed to fetch registrations:', error);
@@ -178,15 +162,41 @@ const TeamRegistrationMonitor: React.FC = () => {
     if (!selectedTeam || !actionDialog.action) return;
 
     try {
-      // Mock API call - replace with real API
-      console.log(`${actionDialog.action} team:`, selectedTeam.team_name);
-      
-      // Update local state
-      setRegistrations(prev => prev.map(reg => 
-        reg.id === selectedTeam.id 
-          ? { ...reg, status: actionDialog.action === 'approve' ? 'active' : 'rejected' }
-          : reg
-      ));
+      let response;
+      const authHeaders = {
+        'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+        'Content-Type': 'application/json'
+      };
+
+      switch (actionDialog.action) {
+        case 'approve':
+          response = await fetch(`/api/admin/teams/${selectedTeam.id}/approve`, {
+            method: 'POST',
+            headers: authHeaders
+          });
+          break;
+        case 'reject':
+          response = await fetch(`/api/admin/teams/${selectedTeam.id}/reject`, {
+            method: 'POST',
+            headers: authHeaders,
+            body: JSON.stringify({ reason: 'Rejected by admin' })
+          });
+          break;
+        case 'reset':
+          // This would reset the team's session - we'll implement if needed
+          console.log('Reset session for team:', selectedTeam.team_name);
+          break;
+        default:
+          return;
+      }
+
+      if (response && response.ok) {
+        // Refresh the registrations list to get updated data
+        await fetchRegistrations();
+      } else if (response) {
+        const error = await response.json();
+        console.error('API error:', error.message);
+      }
 
       setActionDialog({ open: false, action: null });
       setSelectedTeam(null);

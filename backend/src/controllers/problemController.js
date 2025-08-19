@@ -47,8 +47,8 @@ class Problem {
       errors.push('Problem title must not exceed 255 characters');
     }
     
-    if (!data.description || data.description.trim().length < 10) {
-      errors.push('Problem description must be at least 10 characters long');
+    if (!data.description) {
+      errors.push('Problem description is required');
     }
     if (data.description && data.description.length > 10000) {
       errors.push('Problem description must not exceed 10000 characters');
@@ -61,8 +61,8 @@ class Problem {
       errors.push('Input format must not exceed 2000 characters');
     }
 
-    if (!data.output_format || data.output_format.trim().length < 5) {
-      errors.push('Output format must be at least 5 characters long');
+    if (!data.output_format) {
+      errors.push('Output format is required');
     }
     if (data.output_format && data.output_format.length > 2000) {
       errors.push('Output format must not exceed 2000 characters');
@@ -172,7 +172,7 @@ class Problem {
     }
 
     try {
-      const [problemId] = await db('problems').insert({
+      const result = await db('problems').insert({
         contest_id: contestId,
         problem_letter: problemLetter,
         title: problemData.title.trim(),
@@ -186,6 +186,8 @@ class Problem {
         memory_limit: problemData.memory_limit || 256,
         difficulty: problemData.difficulty || 'medium'
       }).returning('id');
+      
+      const problemId = Array.isArray(result) ? result[0].id || result[0] : result.id || result;
 
       // Create sample test case if sample input/output provided
       if (problemData.sample_input && problemData.sample_output) {
@@ -199,6 +201,12 @@ class Problem {
 
       return await this.findById(problemId);
     } catch (error) {
+      console.error('Problem creation error details:', {
+        error: error.message,
+        stack: error.stack,
+        code: error.code,
+        detail: error.detail
+      });
       throw new DatabaseError('Failed to create problem', error);
     }
   }

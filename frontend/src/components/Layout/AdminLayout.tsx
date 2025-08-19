@@ -24,6 +24,10 @@ import {
   Menu,
   MenuItem,
   Alert,
+  Avatar,
+  Stack,
+  Paper,
+  alpha,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -150,26 +154,55 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
   };
 
   const drawer = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box 
+      sx={{ 
+        height: '100%', 
+        display: 'flex', 
+        flexDirection: 'column',
+        background: 'linear-gradient(180deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%)',
+        color: 'white',
+        borderRight: '1px solid rgba(59, 130, 246, 0.3)'
+      }}
+    >
       {/* Sidebar Header */}
-      <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-          <AdminPanelSettings sx={{ mr: 1, color: 'primary.main' }} />
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+      <Box 
+        sx={{ 
+          p: 2.5, 
+          borderBottom: '1px solid rgba(59, 130, 246, 0.3)',
+          background: 'rgba(30, 58, 138, 0.3)'
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box
+            sx={{
+              width: 32,
+              height: 32,
+              borderRadius: 1.5,
+              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 8px rgba(59, 130, 246, 0.3)'
+            }}
+          >
+            <AdminPanelSettings sx={{ color: 'white', fontSize: 18 }} />
+          </Box>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              fontWeight: 600,
+              color: '#ffffff',
+              fontSize: '1.1rem'
+            }}
+          >
             Admin Panel
           </Typography>
         </Box>
-        <Chip
-          label={`System ${systemStatus.system_health}`}
-          color={getSystemStatusColor() as any}
-          size="small"
-          sx={{ textTransform: 'capitalize' }}
-        />
       </Box>
 
       {/* Navigation Menu */}
-      <Box sx={{ flex: 1, overflowY: 'auto' }}>
-        <List sx={{ pt: 2 }}>
+      <Box sx={{ flex: 1, overflowY: 'auto', py: 2 }}>
+        <List sx={{ px: 2 }}>
           {navigationItems.map((item) => {
             const isActive = location.pathname === item.path || 
               (item.path !== '/admin/dashboard' && location.pathname.startsWith(item.path));
@@ -183,31 +216,56 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
                     if (isMobile) setMobileOpen(false);
                   }}
                   sx={{
-                    mx: 1,
-                    borderRadius: 1,
-                    '&.Mui-selected': {
-                      backgroundColor: `${theme.palette.primary.main}15`,
-                      '&:hover': {
-                        backgroundColor: `${theme.palette.primary.main}20`,
-                      },
+                    borderRadius: 1.5,
+                    py: 1.2,
+                    px: 1.5,
+                    minHeight: 48,
+                    transition: 'all 0.2s ease',
+                    backgroundColor: isActive ? 'rgba(59, 130, 246, 0.3)' : 'transparent',
+                    border: isActive ? '1px solid rgba(59, 130, 246, 0.5)' : '1px solid transparent',
+                    '&:hover': {
+                      backgroundColor: isActive ? 'rgba(59, 130, 246, 0.4)' : 'rgba(59, 130, 246, 0.1)',
+                      border: '1px solid rgba(59, 130, 246, 0.3)'
                     },
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: 40 }}>
+                  <ListItemIcon 
+                    sx={{ 
+                      minWidth: 40,
+                      color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.8)'
+                    }}
+                  >
                     {item.badge ? (
-                      <Badge badgeContent={item.badge} color="error" max={999}>
-                        {item.icon}
+                      <Badge 
+                        badgeContent={item.badge} 
+                        sx={{
+                          '& .MuiBadge-badge': {
+                            backgroundColor: '#f56565',
+                            color: 'white',
+                            fontSize: '0.75rem',
+                            minWidth: '16px',
+                            height: '16px'
+                          }
+                        }}
+                        max={99}
+                      >
+                        {React.cloneElement(item.icon as React.ReactElement, {
+                          sx: { fontSize: 20 }
+                        })}
                       </Badge>
                     ) : (
-                      item.icon
+                      React.cloneElement(item.icon as React.ReactElement, {
+                        sx: { fontSize: 20 }
+                      })
                     )}
                   </ListItemIcon>
                   <ListItemText 
                     primary={item.label}
                     sx={{
                       '& .MuiListItemText-primary': {
-                        fontWeight: isActive ? 600 : 400,
-                        color: isActive ? 'primary.main' : 'text.primary',
+                        fontWeight: isActive ? 600 : 500,
+                        color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.9)',
+                        fontSize: '0.9rem'
                       },
                     }}
                   />
@@ -218,23 +276,34 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
         </List>
       </Box>
 
-      <Divider />
-      
-      {/* User Info & Settings */}
-      <Box sx={{ p: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-              {admin?.username}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {admin?.role === 'super_admin' ? 'Super Admin' : 'Judge'}
-            </Typography>
-          </Box>
-          <IconButton size="small" onClick={handleMenuOpen}>
-            <Settings />
-          </IconButton>
-        </Box>
+      {/* Bottom Section */}
+      <Box sx={{ p: 2, borderTop: '1px solid rgba(59, 130, 246, 0.3)' }}>
+        <ListItemButton
+          onClick={handleMenuOpen}
+          sx={{
+            borderRadius: 1.5,
+            py: 1,
+            px: 1.5,
+            '&:hover': {
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              border: '1px solid rgba(59, 130, 246, 0.3)'
+            },
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 40, color: 'rgba(255, 255, 255, 0.8)' }}>
+            <Settings sx={{ fontSize: 20 }} />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Settings"
+            sx={{
+              '& .MuiListItemText-primary': {
+                fontWeight: 500,
+                color: 'rgba(255, 255, 255, 0.9)',
+                fontSize: '0.9rem'
+              },
+            }}
+          />
+        </ListItemButton>
       </Box>
     </Box>
   );
@@ -244,54 +313,116 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
       {/* App Bar */}
       <AppBar
         position="fixed"
+        elevation={0}
         sx={{
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
           zIndex: theme.zIndex.drawer + 1,
+          background: 'linear-gradient(90deg, #1e3a8a 0%, #1e40af 100%)',
+          borderBottom: '1px solid rgba(59, 130, 246, 0.3)'
         }}
       >
-        <Toolbar>
+        <Toolbar sx={{ py: 0.5 }}>
           <IconButton
             color="inherit"
             aria-label="open drawer"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: 'none' } }}
+            sx={{ 
+              mr: 2, 
+              display: { md: 'none' },
+              color: 'rgba(255, 255, 255, 0.9)',
+              '&:hover': {
+                backgroundColor: 'rgba(59, 130, 246, 0.2)'
+              }
+            }}
           >
             <MenuIcon />
           </IconButton>
           
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+          <Typography 
+            variant="h6" 
+            noWrap 
+            component="div" 
+            sx={{ 
+              flexGrow: 1,
+              fontWeight: 600,
+              color: '#ffffff',
+              fontSize: '1.25rem'
+            }}
+          >
             {title}
           </Typography>
 
           {/* System Status Indicator */}
           <Chip
-            label={`${systemStatus.contests_running} Running`}
+            label={`${systemStatus.contests_running} Active`}
             size="small"
-            variant="outlined"
-            sx={{ mr: 2, color: 'inherit', borderColor: 'inherit' }}
+            sx={{
+              mr: 2,
+              backgroundColor: 'rgba(34, 197, 94, 0.9)',
+              color: 'white',
+              fontWeight: 500,
+              fontSize: '0.75rem'
+            }}
           />
 
           {/* Notifications */}
-          <IconButton color="inherit" sx={{ mr: 1 }}>
-            <Badge badgeContent={systemStatus.pending_submissions} color="error" max={99}>
-              <Notifications />
+          <IconButton 
+            sx={{ 
+              mr: 1,
+              color: 'rgba(255, 255, 255, 0.8)',
+              '&:hover': {
+                backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                color: '#ffffff'
+              }
+            }}
+          >
+            <Badge 
+              badgeContent={systemStatus.pending_submissions} 
+              sx={{
+                '& .MuiBadge-badge': {
+                  backgroundColor: '#f56565',
+                  color: 'white',
+                  fontSize: '0.75rem'
+                }
+              }}
+              max={99}
+            >
+              <Notifications sx={{ fontSize: 20 }} />
             </Badge>
           </IconButton>
 
           {/* Actions */}
-          {actions}
+          {actions && (
+            <Box sx={{ mr: 1 }}>
+              {actions}
+            </Box>
+          )}
 
-          {/* Settings Menu */}
+          {/* User Menu */}
           <IconButton
-            size="large"
-            edge="end"
-            color="inherit"
             onClick={handleMenuOpen}
-            sx={{ ml: 1 }}
+            sx={{ 
+              color: 'rgba(255, 255, 255, 0.8)',
+              '&:hover': {
+                backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                color: '#ffffff'
+              }
+            }}
           >
-            <Settings />
+            <Avatar
+              sx={{
+                width: 32,
+                height: 32,
+                fontSize: '0.875rem',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                fontWeight: 600
+              }}
+            >
+              {admin?.username?.charAt(0)?.toUpperCase()}
+            </Avatar>
           </IconButton>
           
           <Menu
@@ -300,15 +431,33 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
             onClose={handleMenuClose}
             transformOrigin={{ horizontal: 'right', vertical: 'top' }}
             anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            PaperProps={{
+              elevation: 3,
+              sx: {
+                mt: 1.5,
+                borderRadius: 2,
+                minWidth: 180,
+                backgroundColor: '#1e3a8a',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                '& .MuiMenuItem-root': {
+                  py: 1.5,
+                  px: 2,
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)'
+                  }
+                }
+              }
+            }}
           >
-            <MenuItem onClick={() => navigate('/admin/settings')}>
-              <Settings sx={{ mr: 1 }} />
-              Settings
+            <MenuItem onClick={() => { navigate('/admin/settings'); handleMenuClose(); }}>
+              <Settings sx={{ mr: 1.5, fontSize: 18 }} />
+              <Typography sx={{ fontSize: '0.9rem' }}>Settings</Typography>
             </MenuItem>
-            <Divider />
+            <Divider sx={{ borderColor: 'rgba(59, 130, 246, 0.3)' }} />
             <MenuItem onClick={handleLogout}>
-              <Logout sx={{ mr: 1 }} />
-              Logout
+              <Logout sx={{ mr: 1.5, fontSize: 18 }} />
+              <Typography sx={{ fontSize: '0.9rem' }}>Logout</Typography>
             </MenuItem>
           </Menu>
         </Toolbar>
@@ -363,17 +512,24 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
         sx={{
           flexGrow: 1,
           width: { md: `calc(100% - ${drawerWidth}px)` },
-          backgroundColor: 'background.default',
-          minHeight: '100vh',
+          backgroundColor: '#f8fafc',
+          minHeight: '100vh'
         }}
       >
         <Toolbar /> {/* Spacer for AppBar */}
         
         {/* Alerts */}
         {alerts.length > 0 && (
-          <Box sx={{ p: 2, pb: 0 }}>
+          <Box sx={{ p: 3, pb: 0 }}>
             {alerts.map((alert, index) => (
-              <Alert key={index} severity={alert.type} sx={{ mb: 1 }}>
+              <Alert 
+                key={index} 
+                severity={alert.type} 
+                sx={{ 
+                  mb: 2,
+                  borderRadius: 1.5
+                }}
+              >
                 {alert.message}
               </Alert>
             ))}

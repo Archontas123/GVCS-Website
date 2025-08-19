@@ -220,7 +220,7 @@ class Contest {
         throw new DatabaseError('Failed to generate unique registration code');
       }
 
-      const [contestId] = await db('contests').insert({
+      const [result] = await db('contests').insert({
         contest_name: contestData.contest_name.trim(),
         description: contestData.description ? contestData.description.trim() : null,
         registration_code: registrationCode,
@@ -232,7 +232,7 @@ class Contest {
         is_registration_open: contestData.is_registration_open !== undefined ? contestData.is_registration_open : true
       }).returning('id');
 
-      const createdContest = await this.findById(contestId);
+      const createdContest = await this.findById(result.id);
       return createdContest;
     } catch (error) {
       // Fallback: create and store mock contest in memory

@@ -1,16 +1,9 @@
 /**
  * CS Club Hackathon Platform - Main Layout Component
- * Phase 1.4: Responsive layout with header and main content area
+ * Phase 1.4: Responsive layout with header and main content area (CSS-based, removed MUI)
  */
 
 import React, { ReactNode } from 'react';
-import {
-  Box,
-  Container,
-  CssBaseline,
-  useTheme,
-  useMediaQuery,
-} from '@mui/material';
 import Header from './Header';
 
 interface LayoutProps {
@@ -20,8 +13,6 @@ interface LayoutProps {
   timeRemaining?: number;
   isAuthenticated: boolean;
   onLogout: () => void;
-  maxWidth?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | false;
-  disableGutters?: boolean;
   contestId?: number;
 }
 
@@ -32,17 +23,16 @@ const Layout: React.FC<LayoutProps> = ({
   timeRemaining,
   isAuthenticated,
   onLogout,
-  maxWidth = 'lg',
-  disableGutters = false,
   contestId,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <CssBaseline />
-      
+    <div style={{ 
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
+      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
       {/* Header */}
       <Header
         teamName={teamName}
@@ -54,42 +44,30 @@ const Layout: React.FC<LayoutProps> = ({
       />
 
       {/* Main Content */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          bgcolor: 'background.default',
-          py: { xs: 2, sm: 3 },
-        }}
-      >
-        <Container
-          maxWidth={maxWidth}
-          disableGutters={disableGutters || isMobile}
-          sx={{
-            px: { xs: 1, sm: 2 },
-            height: '100%',
-          }}
-        >
+      <main style={{ 
+        flexGrow: 1, 
+        padding: '32px 16px',
+      }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           {children}
-        </Container>
-      </Box>
+        </div>
+      </main>
 
       {/* Footer (optional) */}
-      <Box
-        component="footer"
-        sx={{
-          py: 2,
-          px: 2,
-          bgcolor: 'background.paper',
-          borderTop: `1px solid ${theme.palette.divider}`,
-          textAlign: 'center',
-          fontSize: '0.875rem',
-          color: 'text.secondary',
+      <footer 
+        style={{ 
+          textAlign: 'center', 
+          padding: '24px 16px',
+          borderTop: '1px solid #e5e7eb',
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          fontSize: '0.9rem',
+          color: '#6b7280',
+          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
         }}
       >
-        CS Club Hackathon Platform - Powered by React & Material-UI
-      </Box>
-    </Box>
+        CS Club Hackathon Platform - Powered by React & Modern CSS
+      </footer>
+    </div>
   );
 };
 

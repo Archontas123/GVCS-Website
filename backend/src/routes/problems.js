@@ -506,4 +506,81 @@ router.post('/testcases/:id/validate', verifyAdminToken, async (req, res, next) 
   }
 });
 
+// =============================================================================
+// PUBLIC PROBLEM ROUTES (FOR CONTESTANTS)
+// =============================================================================
+
+/**
+ * GET /api/problems/:id/public
+ * Get problem details for contestants (includes sample test cases only)
+ */
+router.get('/problems/:id/public', async (req, res, next) => {
+  try {
+    const problem = await Problem.findById(req.params.id);
+    
+    // Get only sample test cases (visible to contestants)
+    const sampleTestCases = await TestCase.findByProblemId(req.params.id, true);
+    
+    // Return problem with sample test cases
+    res.success({
+      id: problem.id,
+      contest_id: problem.contest_id,
+      problem_letter: problem.problem_letter,
+      title: problem.title,
+      description: problem.description,
+      input_format: problem.input_format,
+      output_format: problem.output_format,
+      constraints: problem.constraints,
+      time_limit: problem.time_limit,
+      memory_limit: problem.memory_limit,
+      difficulty: problem.difficulty,
+      sample_test_cases: sampleTestCases.map(tc => ({
+        input: tc.input,
+        expected_output: tc.expected_output
+      }))
+    }, 'Problem details retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/contests/:contestId/problems/public
+ * Get all problems for a contest (public view for contestants)
+ */
+router.get('/contests/:contestId/problems/public', async (req, res, next) => {
+  try {
+    const problems = await Problem.findByContestId(req.params.contestId);
+    
+    // For each problem, get only sample test cases
+    const problemsWithSamples = await Promise.all(
+      problems.map(async (problem) => {
+        const sampleTestCases = await TestCase.findByProblemId(problem.id, true);
+        
+        return {
+          id: problem.id,
+          contest_id: problem.contest_id,
+          problem_letter: problem.problem_letter,
+          title: problem.title,
+          description: problem.description,
+          input_format: problem.input_format,
+          output_format: problem.output_format,
+          constraints: problem.constraints,
+          time_limit: problem.time_limit,
+          memory_limit: problem.memory_limit,
+          difficulty: problem.difficulty,
+          sample_test_cases: sampleTestCases.map(tc => ({
+            input: tc.input,
+            expected_output: tc.expected_output
+          }))
+        };
+      })
+    );
+    
+    res.success(problemsWithSamples, 'Contest problems retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

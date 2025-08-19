@@ -100,14 +100,14 @@ class TestCase {
     }
 
     try {
-      const [testCaseId] = await db('test_cases').insert({
+      const [result] = await db('test_cases').insert({
         problem_id: problemId,
         input: testCaseData.input || '',
         expected_output: testCaseData.expected_output || '',
         is_sample: testCaseData.is_sample || false
       }).returning('id');
 
-      return await this.findById(testCaseId);
+      return await this.findById(result.id);
     } catch (error) {
       throw new DatabaseError('Failed to create test case', error);
     }
@@ -258,11 +258,11 @@ class TestCase {
         is_sample: data.is_sample || false
       }));
 
-      const insertedIds = await db('test_cases').insert(testCasesToInsert).returning('id');
+      const insertedResults = await db('test_cases').insert(testCasesToInsert).returning('id');
 
       // Fetch all created test cases
       const createdTestCases = await Promise.all(
-        insertedIds.map(id => this.findById(id))
+        insertedResults.map(result => this.findById(result.id))
       );
 
       return {

@@ -1,18 +1,10 @@
 /**
  * CS Club Hackathon Platform - Error Boundary Component
- * Phase 1.4: React Error Boundary for graceful error handling
+ * Phase 1.4: React Error Boundary for graceful error handling (CSS-based, removed MUI)
  */
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Card,
-  CardContent,
-  Alert,
-} from '@mui/material';
-import { Refresh, BugReport } from '@mui/icons-material';
+import '../styles/theme.css';
 
 interface Props {
   children: ReactNode;
@@ -80,94 +72,91 @@ class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <Box
-          sx={{
+        <div
+          className="flex-center p-3"
+          style={{
             minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            bgcolor: 'background.default',
-            p: 2,
+            backgroundColor: 'var(--background-default)',
           }}
         >
-          <Card sx={{ maxWidth: 600, width: '100%' }}>
-            <CardContent sx={{ p: 4 }}>
+          <div className="card" style={{ maxWidth: '600px', width: '100%' }}>
+            <div className="card-content p-4">
               {/* Header */}
-              <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <BugReport
-                  sx={{
-                    fontSize: 48,
-                    color: 'error.main',
-                    mb: 2,
+              <div className="text-center mb-4">
+                <div
+                  style={{
+                    fontSize: '48px',
+                    color: 'var(--contest-wrong-answer)',
+                    marginBottom: '16px',
                   }}
-                />
-                <Typography
-                  variant="h4"
-                  component="h1"
-                  gutterBottom
-                  sx={{ fontWeight: 600 }}
+                >
+                  🐛
+                </div>
+                <h1
+                  className="mb-2"
+                  style={{ fontWeight: 600, fontSize: '2rem' }}
                 >
                   Oops! Something went wrong
-                </Typography>
-                <Typography variant="body1" color="text.secondary">
+                </h1>
+                <p className="text-muted">
                   An unexpected error occurred while rendering this page.
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
               {/* Error Details (Development only) */}
               {process.env.NODE_ENV === 'development' && this.state.error && (
-                <Alert severity="error" sx={{ mb: 3, textAlign: 'left' }}>
-                  <Typography variant="body2" component="div" sx={{ mb: 1 }}>
+                <div className="alert alert-error mb-3" style={{ textAlign: 'left' }}>
+                  <div className="mb-2" style={{ fontSize: '0.875rem' }}>
                     <strong>Error:</strong> {this.state.error.message}
-                  </Typography>
+                  </div>
                   {this.state.error.stack && (
-                    <Typography
-                      variant="caption"
-                      component="pre"
-                      sx={{
+                    <pre
+                      style={{
                         whiteSpace: 'pre-wrap',
                         fontFamily: 'monospace',
                         fontSize: '0.75rem',
                         opacity: 0.8,
-                        mt: 1,
-                        maxHeight: 200,
+                        marginTop: '8px',
+                        maxHeight: '200px',
                         overflow: 'auto',
+                        backgroundColor: '#f5f5f5',
+                        padding: '8px',
+                        borderRadius: '4px',
                       }}
                     >
                       {this.state.error.stack}
-                    </Typography>
+                    </pre>
                   )}
-                </Alert>
+                </div>
               )}
 
               {/* Action Buttons */}
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-                <Button
-                  variant="contained"
-                  startIcon={<Refresh />}
+              <div className="flex justify-center" style={{ gap: '16px', flexWrap: 'wrap' }}>
+                <button
+                  className="btn btn-primary"
                   onClick={this.handleRetry}
-                  size="large"
+                  style={{ padding: '12px 24px' }}
                 >
-                  Try Again
-                </Button>
-                <Button
-                  variant="outlined"
+                  🔄 Try Again
+                </button>
+                <button
+                  className="btn btn-outlined"
                   onClick={this.handleReload}
-                  size="large"
+                  style={{ padding: '12px 24px' }}
                 >
                   Reload Page
-                </Button>
-              </Box>
+                </button>
+              </div>
 
               {/* Support Info */}
-              <Box sx={{ mt: 3, textAlign: 'center' }}>
-                <Typography variant="body2" color="text.secondary">
+              <div className="mt-4 text-center">
+                <p className="text-muted" style={{ fontSize: '0.875rem' }}>
                   If this problem persists, please contact the contest organizer.
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Box>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       );
     }
 

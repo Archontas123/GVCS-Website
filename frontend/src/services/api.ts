@@ -23,7 +23,7 @@ class ApiService {
 
   constructor() {
     this.api = axios.create({
-      baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3001/api',
+      baseURL: process.env.REACT_APP_API_URL || '/api',
       timeout: 30000, // 30 second timeout
       headers: {
         'Content-Type': 'application/json',
@@ -84,14 +84,25 @@ class ApiService {
     return response.data;
   }
 
-  async getContestProblems(contestId: number): Promise<ApiResponse<Problem[]>> {
-    const response = await this.api.get(`/api/problems?contestId=${contestId}`);
+  async getContestProblems(contestId?: number): Promise<ApiResponse<Problem[]>> {
+    const response = await this.api.get('/team/contest/problems');
     return response.data;
   }
 
   // Problem endpoints
   async getProblem(problemId: number): Promise<ApiResponse<Problem>> {
-    const response = await this.api.get(`/problems/${problemId}`);
+    const response = await this.api.get(`/team/problems/${problemId}`);
+    return response.data;
+  }
+
+  // Public problem endpoints (for viewing problems with sample test cases)
+  async getProblemPublic(problemId: number): Promise<ApiResponse<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>> {
+    const response = await this.api.get(`/problems/${problemId}/public`);
+    return response.data;
+  }
+
+  async getContestProblemsPublic(contestId: number): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>>> {
+    const response = await this.api.get(`/contests/${contestId}/problems/public`);
     return response.data;
   }
 
@@ -143,28 +154,28 @@ class ApiService {
 
   // Leaderboard endpoints
   async getLeaderboard(contestId: number): Promise<ApiResponse<{ leaderboard: LeaderboardEntry[]; statistics?: any }>> {
-    const response = await this.api.get(`/api/leaderboard/${contestId}`);
+    const response = await this.api.get(`/leaderboard/${contestId}`);
     return response.data;
   }
 
   async getTeamStatistics(teamId: number, contestId: number): Promise<ApiResponse<any>> {
-    const response = await this.api.get(`/api/leaderboard/${contestId}/team/${teamId}`);
+    const response = await this.api.get(`/leaderboard/${contestId}/team/${teamId}`);
     return response.data;
   }
 
   // Contest timer endpoints
   async getContestTimer(contestCode: string): Promise<ApiResponse<any>> {
-    const response = await this.api.get(`/api/timer/contest/${contestCode}`);
+    const response = await this.api.get(`/timer/contest/${contestCode}`);
     return response.data;
   }
 
   async getContestStatus(contestCode: string): Promise<ApiResponse<any>> {
-    const response = await this.api.get(`/api/timer/contest/${contestCode}/status`);
+    const response = await this.api.get(`/timer/contest/${contestCode}/status`);
     return response.data;
   }
 
   async pingTeamActivity(contestCode: string): Promise<ApiResponse<any>> {
-    const response = await this.api.post(`/api/timer/contest/${contestCode}/ping`);
+    const response = await this.api.post(`/timer/contest/${contestCode}/ping`);
     return response.data;
   }
 
@@ -191,7 +202,17 @@ class ApiService {
     return response.data;
   }
 
+  async getAdminContest(contestId: number): Promise<ApiResponse<any>> {
+    const response = await this.api.get(`/admin/contests/${contestId}`);
+    return response.data;
+  }
+
   async updateContest(contestId: number, data: any): Promise<ApiResponse<any>> {
+    const response = await this.api.put(`/admin/contests/${contestId}`, data);
+    return response.data;
+  }
+
+  async updateAdminContest(contestId: number, data: any): Promise<ApiResponse<any>> {
     const response = await this.api.put(`/admin/contests/${contestId}`, data);
     return response.data;
   }
@@ -213,6 +234,12 @@ class ApiService {
 
   async endContest(contestId: number): Promise<ApiResponse<any>> {
     const response = await this.api.post(`/admin/contests/${contestId}/end`);
+    return response.data;
+  }
+
+  // Admin team management endpoints
+  async getAdminContestTeams(contestId: number): Promise<ApiResponse<any[]>> {
+    const response = await this.api.get(`/admin/teams/registrations?contest_id=${contestId}`);
     return response.data;
   }
 
@@ -254,6 +281,141 @@ class ApiService {
         'Content-Type': 'multipart/form-data',
       },
     });
+    return response.data;
+  }
+
+  // =============================================================================
+  // NEW ADMIN DASHBOARD ENDPOINTS
+  // =============================================================================
+
+  // Dashboard stats endpoints
+  async getDashboardStats(): Promise<ApiResponse<any>> {
+    const response = await this.api.get('/admin/dashboard/stats');
+    return response.data;
+  }
+
+  async getSystemHealth(): Promise<ApiResponse<any>> {
+    const response = await this.api.get('/admin/system/health');
+    return response.data;
+  }
+
+  async getJudgeQueue(): Promise<ApiResponse<any>> {
+    const response = await this.api.get('/admin/judge/queue');
+    return response.data;
+  }
+
+  // Contest live stats endpoints
+  async getContestLiveStats(contestId: number): Promise<ApiResponse<any>> {
+    const response = await this.api.get(`/admin/contests/${contestId}/live-stats`);
+    return response.data;
+  }
+
+  async getContestProgress(contestId: number): Promise<ApiResponse<any>> {
+    const response = await this.api.get(`/admin/contests/${contestId}/progress`);
+    return response.data;
+  }
+
+  // Team registration endpoints
+  async getTeamRegistrations(params?: { status?: string; contest_id?: number; limit?: number }): Promise<ApiResponse<any[]>> {
+    const queryString = params ? '?' + new URLSearchParams(
+      Object.entries(params).reduce((acc, [key, value]) => {
+        if (value !== undefined) acc[key] = value.toString();
+        return acc;
+      }, {} as Record<string, string>)
+    ).toString() : '';
+    
+    const response = await this.api.get(`/admin/teams/registrations${queryString}`);
+    return response.data;
+  }
+
+  async getTeamStats(): Promise<ApiResponse<any>> {
+    const response = await this.api.get('/admin/teams/stats');
+    return response.data;
+  }
+
+  async approveTeam(teamId: number): Promise<ApiResponse<any>> {
+    const response = await this.api.post(`/admin/teams/${teamId}/approve`);
+    return response.data;
+  }
+
+  async rejectTeam(teamId: number, reason?: string): Promise<ApiResponse<any>> {
+    const response = await this.api.post(`/admin/teams/${teamId}/reject`, { reason });
+    return response.data;
+  }
+
+  // Submission endpoints
+  async getLiveSubmissions(params?: { contest_id?: number; language?: string; status?: string; limit?: number }): Promise<ApiResponse<any[]>> {
+    const queryString = params ? '?' + new URLSearchParams(
+      Object.entries(params).reduce((acc, [key, value]) => {
+        if (value !== undefined) acc[key] = value.toString();
+        return acc;
+      }, {} as Record<string, string>)
+    ).toString() : '';
+    
+    const response = await this.api.get(`/admin/submissions/live${queryString}`);
+    return response.data;
+  }
+
+  async getSubmissionStats(contestId?: number): Promise<ApiResponse<any>> {
+    const queryString = contestId ? `?contest_id=${contestId}` : '';
+    const response = await this.api.get(`/admin/submissions/stats${queryString}`);
+    return response.data;
+  }
+
+  async getSubmissionAnalytics(contestId?: number): Promise<ApiResponse<any>> {
+    const queryString = contestId ? `?contest_id=${contestId}` : '';
+    const response = await this.api.get(`/admin/submissions/analytics${queryString}`);
+    return response.data;
+  }
+
+  // System monitoring endpoints
+  async getSystemStatus(): Promise<ApiResponse<any>> {
+    const response = await this.api.get('/admin/system/status');
+    return response.data;
+  }
+
+  async getSystemMetrics(): Promise<ApiResponse<any>> {
+    const response = await this.api.get('/admin/system/metrics');
+    return response.data;
+  }
+
+  async getSystemLogs(params?: { level?: string; limit?: number; service?: string }): Promise<ApiResponse<any[]>> {
+    const queryString = params ? '?' + new URLSearchParams(
+      Object.entries(params).reduce((acc, [key, value]) => {
+        if (value !== undefined) acc[key] = value.toString();
+        return acc;
+      }, {} as Record<string, string>)
+    ).toString() : '';
+    
+    const response = await this.api.get(`/admin/system/logs${queryString}`);
+    return response.data;
+  }
+
+  // Project submission endpoints
+  async getAdminContestProjects(contestId: number): Promise<ApiResponse<any[]>> {
+    const response = await this.api.get(`/admin/contests/${contestId}/projects`);
+    return response.data;
+  }
+
+  async downloadProject(submissionId: number): Promise<Blob> {
+    const response = await this.api.get(`/admin/projects/${submissionId}/download`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
+  // Team project submission endpoints
+  async submitProject(contestId: number, formData: FormData): Promise<ApiResponse<any>> {
+    const response = await this.api.post(`/team/contests/${contestId}/projects`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  }
+
+  async getTeamProjectSubmission(contestId: number): Promise<ApiResponse<any>> {
+    const response = await this.api.get(`/team/contests/${contestId}/projects/my-submission`);
     return response.data;
   }
 

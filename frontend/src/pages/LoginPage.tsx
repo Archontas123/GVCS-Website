@@ -1,28 +1,15 @@
 /**
- * CS Club Hackathon Platform - Team Login Page
- * Phase 1.4: Team login form with authentication
+ * Hack The Valley - Team Login Page
+ * Team authentication for hackathon participation
  */
 
 import React, { useState } from 'react';
-import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  Card,
-  CardContent,
-  Alert,
-  CircularProgress,
-  Link,
-  useTheme,
-} from '@mui/material';
-import { Login } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
 import { LoginFormData } from '../types';
+import '../styles/theme.css';
 
 const LoginPage: React.FC = () => {
-  const theme = useTheme();
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState<LoginFormData>({
@@ -91,146 +78,283 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: '80vh',
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
+        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+        padding: '32px 16px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        py: 4,
       }}
     >
-      <Card sx={{ maxWidth: 480, width: '100%', mx: 2 }}>
-        <CardContent sx={{ p: 4 }}>
-          {/* Header */}
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Box
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 60,
-                height: 60,
-                borderRadius: '50%',
-                bgcolor: theme.palette.secondary.light,
-                color: 'white',
-                mb: 2,
-              }}
-            >
-              <Login sx={{ fontSize: 30 }} />
-            </Box>
-            
-            <Typography
-              variant="h4"
-              component="h1"
-              gutterBottom
-              sx={{ fontWeight: 600 }}
-            >
-              Team Login
-            </Typography>
-            
-            <Typography variant="body1" color="text.secondary">
-              Access your team account to continue competing
-            </Typography>
-          </Box>
+      <div 
+        style={{
+          backgroundColor: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '16px',
+          boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)',
+          maxWidth: '480px',
+          width: '100%',
+          padding: '48px 40px',
+        }}
+      >
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div
+            style={{
+              width: '80px',
+              height: '80px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 24px',
+              boxShadow: '0 8px 25px rgba(29, 78, 216, 0.25)',
+              fontSize: '2rem',
+            }}
+          >
+            🔑
+          </div>
+          
+          <h1 style={{ 
+            fontWeight: 700, 
+            fontSize: '2rem',
+            color: '#1f2937',
+            marginBottom: '8px',
+            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+          }}>
+            Hack The Valley
+          </h1>
+          
+          <p style={{ 
+            color: '#6b7280',
+            fontSize: '1rem',
+            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+          }}>
+            Enter your team credentials to join the hackathon
+          </p>
+          </div>
 
-          {/* Error Alert */}
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
+        {/* Error Alert */}
+        {error && (
+          <div style={{
+            padding: '16px 20px',
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '12px',
+            marginBottom: '24px',
+            color: '#dc2626',
+            fontSize: '0.9rem',
+            fontWeight: 500,
+            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+          }}>
+            {error}
+          </div>
+        )}
 
-          {/* Form */}
-          <Box component="form" onSubmit={handleSubmit}>
-            <TextField
-              fullWidth
-              label="Team Name"
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '8px',
+              fontWeight: 500,
+              color: '#374151',
+              fontSize: '0.9rem',
+              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            }}>
+              Team Name
+            </label>
+            <input
+              type="text"
               name="teamName"
               value={formData.teamName}
               onChange={handleChange}
-              margin="normal"
               required
               disabled={isLoading}
               placeholder="Enter your registered team name"
-              sx={{ mb: 2 }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: '2px solid #e5e7eb',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                transition: 'border-color 0.2s ease',
+                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                backgroundColor: isLoading ? '#f9fafb' : '#ffffff',
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#1d4ed8';
+                e.target.style.boxShadow = '0 0 0 3px rgba(29, 78, 216, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e5e7eb';
+                e.target.style.boxShadow = 'none';
+              }}
             />
-            
-            <TextField
-              fullWidth
-              label="Contest Code"
+          </div>
+          
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '8px',
+              fontWeight: 500,
+              color: '#374151',
+              fontSize: '0.9rem',
+              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            }}>
+              Contest Code
+            </label>
+            <input
+              type="text"
               name="contestCode"
               value={formData.contestCode}
               onChange={handleChange}
-              margin="normal"
               required
               disabled={isLoading}
               placeholder="Enter the contest code"
-              sx={{ mb: 3 }}
-            />
-
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              size="large"
-              disabled={isLoading}
-              sx={{
-                py: 1.5,
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: '2px solid #e5e7eb',
+                borderRadius: '8px',
                 fontSize: '1rem',
-                position: 'relative',
+                transition: 'border-color 0.2s ease',
+                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                backgroundColor: isLoading ? '#f9fafb' : '#ffffff',
               }}
-            >
-              {isLoading && (
-                <CircularProgress
-                  size={20}
-                  sx={{
-                    position: 'absolute',
-                    left: '50%',
-                    marginLeft: '-10px',
-                  }}
-                />
-              )}
-              {isLoading ? 'Logging in...' : 'Login'}
-            </Button>
-          </Box>
+              onFocus={(e) => {
+                e.target.style.borderColor = '#1d4ed8';
+                e.target.style.boxShadow = '0 0 0 3px rgba(29, 78, 216, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e5e7eb';
+                e.target.style.boxShadow = 'none';
+              }}
+            />
+          </div>
 
-          {/* Footer */}
-          <Box sx={{ textAlign: 'center', mt: 3 }}>
-            <Typography variant="body2" color="text.secondary">
-              Don't have a team account yet?{' '}
-              <Link
-                component="button"
-                variant="body2"
-                onClick={() => navigate('/register')}
-                sx={{
-                  textDecoration: 'none',
-                  color: theme.palette.primary.main,
-                  '&:hover': { textDecoration: 'underline' },
+          <button
+            type="submit"
+            disabled={isLoading}
+            style={{
+              width: '100%',
+              background: isLoading 
+                ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)' 
+                : 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '16px 24px',
+              fontSize: '1rem',
+              fontWeight: 600,
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease',
+              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+              boxShadow: isLoading 
+                ? 'none' 
+                : '0 8px 25px rgba(29, 78, 216, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15)',
+              marginTop: '24px',
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onMouseEnter={(e) => {
+              if (!isLoading) {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 12px 35px rgba(29, 78, 216, 0.35), 0 8px 20px rgba(37, 99, 235, 0.25)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isLoading) {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 8px 25px rgba(29, 78, 216, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15)';
+              }
+            }}
+          >
+            {isLoading && (
+              <div
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  border: '2px solid transparent',
+                  borderTop: '2px solid #ffffff',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                  marginRight: '8px',
                 }}
-              >
-                Register here
-              </Link>
-            </Typography>
-          </Box>
-          
-          <Box sx={{ textAlign: 'center', mt: 2 }}>
-            <Link
-              component="button"
-              variant="body2"
-              onClick={() => navigate('/')}
-              sx={{
-                textDecoration: 'none',
-                color: theme.palette.text.secondary,
-                '&:hover': { textDecoration: 'underline' },
+              ></div>
+            )}
+            {isLoading ? 'Logging in...' : 'Login'}
+          </button>
+        </form>
+
+        {/* Footer */}
+        <div style={{ textAlign: 'center', marginTop: '32px' }}>
+          <p style={{ 
+            fontSize: '0.875rem',
+            color: '#6b7280',
+            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+          }}>
+            Don't have a team account yet?{' '}
+            <button
+              type="button"
+              onClick={() => navigate('/register')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#1d4ed8',
+                padding: '0',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#1e40af';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#1d4ed8';
               }}
             >
-              ← Back to Home
-            </Link>
-          </Box>
-        </CardContent>
-      </Card>
-    </Box>
+              Register here
+            </button>
+          </p>
+        </div>
+        
+        <div style={{ textAlign: 'center', marginTop: '16px' }}>
+          <button
+            type="button"
+            onClick={() => navigate('/admin')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#6b7280',
+              padding: '0',
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#374151';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = '#6b7280';
+            }}
+          >
+            Admin Login →
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

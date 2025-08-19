@@ -1,57 +1,11 @@
 /**
- * CS Club Hackathon Platform - Submission Interface Component
- * Phase 5.4: Complete submission workflow with history and verdict tracking
+ * CS Club Hackathon Platform - Submission Interface Component (Modern Admin Style)
+ * Updated to match new design system
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Alert,
-  Chip,
-  LinearProgress,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Tooltip,
-  Badge,
-  Collapse,
-  Card,
-  CardContent,
-  useTheme,
-} from '@mui/material';
-import {
-  Send,
-  History,
-  Code,
-  CheckCircle,
-  Cancel,
-  Schedule,
-  Memory,
-  Error as ErrorIcon,
-  Warning,
-  Refresh,
-  Visibility,
-  ExpandMore,
-  ExpandLess,
-  Timer,
-  PlayArrow,
-} from '@mui/icons-material';
 import { formatDistanceToNow } from 'date-fns';
+import '../../styles/theme.css';
 
 // Supported languages
 const SUPPORTED_LANGUAGES = [
@@ -157,7 +111,6 @@ const SubmissionInterface: React.FC<SubmissionInterfaceProps> = ({
   contestStatus = { isRunning: true, timeRemaining: 3600, canSubmit: true },
   maxFileSize = 64 * 1024, // 64KB default
 }) => {
-  const theme = useTheme();
   const [submissions, setSubmissions] = useState<Submission[]>(mockSubmissions);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -292,25 +245,25 @@ const SubmissionInterface: React.FC<SubmissionInterfaceProps> = ({
   const getVerdictInfo = (status: SubmissionStatus) => {
     switch (status) {
       case 'pending':
-        return { icon: <Schedule />, color: theme.palette.grey[500], text: 'Pending' };
+        return { icon: '⏱', color: '#6b7280', bgColor: '#f3f4f6', text: 'Pending' };
       case 'judging':
-        return { icon: <PlayArrow />, color: theme.palette.info.main, text: 'Judging' };
+        return { icon: '⚡', color: '#1d4ed8', bgColor: '#dbeafe', text: 'Judging' };
       case 'accepted':
-        return { icon: <CheckCircle />, color: theme.palette.success.main, text: 'Accepted' };
+        return { icon: '✅', color: '#16a34a', bgColor: '#dcfce7', text: 'Accepted' };
       case 'wrong_answer':
-        return { icon: <Cancel />, color: theme.palette.error.main, text: 'Wrong Answer' };
+        return { icon: '❌', color: '#dc2626', bgColor: '#fef2f2', text: 'Wrong Answer' };
       case 'time_limit_exceeded':
-        return { icon: <Schedule />, color: theme.palette.warning.main, text: 'Time Limit Exceeded' };
+        return { icon: '⏰', color: '#d97706', bgColor: '#fef3c7', text: 'Time Limit Exceeded' };
       case 'memory_limit_exceeded':
-        return { icon: <Memory />, color: theme.palette.warning.main, text: 'Memory Limit Exceeded' };
+        return { icon: '💾', color: '#d97706', bgColor: '#fef3c7', text: 'Memory Limit Exceeded' };
       case 'runtime_error':
-        return { icon: <ErrorIcon />, color: theme.palette.secondary.main, text: 'Runtime Error' };
+        return { icon: '⚠️', color: '#7c2d12', bgColor: '#fed7aa', text: 'Runtime Error' };
       case 'compilation_error':
-        return { icon: <Code />, color: theme.palette.info.main, text: 'Compilation Error' };
+        return { icon: '🔧', color: '#1d4ed8', bgColor: '#dbeafe', text: 'Compilation Error' };
       case 'presentation_error':
-        return { icon: <Warning />, color: theme.palette.warning.main, text: 'Presentation Error' };
+        return { icon: '📝', color: '#d97706', bgColor: '#fef3c7', text: 'Presentation Error' };
       default:
-        return { icon: <Schedule />, color: theme.palette.grey[500], text: 'Unknown' };
+        return { icon: '❓', color: '#6b7280', bgColor: '#f3f4f6', text: 'Unknown' };
     }
   };
 
@@ -530,111 +483,333 @@ const SubmissionInterface: React.FC<SubmissionInterfaceProps> = ({
         </Card>
       </Collapse>
 
-      {/* Submission Confirmation Dialog */}
-      <Dialog 
-        open={confirmDialogOpen} 
-        onClose={() => setConfirmDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Confirm Submission</DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" gutterBottom>
-            Are you sure you want to submit your solution?
-          </Typography>
-          <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              <strong>Language:</strong> {currentLanguage?.name}
-            </Typography>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              <strong>Code size:</strong> {Math.round(new Blob([code]).size / 1024 * 100) / 100} KB
-            </Typography>
-            <Typography variant="body2">
-              <strong>Time multiplier:</strong> {currentLanguage?.timeMultiplier}x
-            </Typography>
-          </Box>
-          <Alert severity="info" sx={{ mt: 2 }}>
-            Once submitted, you cannot modify your solution. Make sure your code is ready!
-          </Alert>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSubmit} 
-            variant="contained" 
-            disabled={isSubmitting}
-            startIcon={isSubmitting ? <LinearProgress size={16} /> : <Send />}
-          >
-            {isSubmitting ? 'Submitting...' : 'Submit'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Submission Confirmation Modal */}
+      {confirmDialogOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1)',
+            maxWidth: '500px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflow: 'auto',
+          }}>
+            <div style={{
+              padding: '24px',
+              borderBottom: '1px solid #e2e8f0',
+            }}>
+              <h2 style={{
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                color: '#1f2937',
+                margin: 0,
+                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+              }}>
+                Confirm Submission
+              </h2>
+            </div>
+            <div style={{ padding: '24px' }}>
+              <p style={{
+                fontSize: '1rem',
+                color: '#374151',
+                marginBottom: '16px',
+                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+              }}>
+                Are you sure you want to submit your solution?
+              </p>
+              <div style={{
+                backgroundColor: '#f8fafc',
+                padding: '16px',
+                borderRadius: '12px',
+                marginBottom: '16px',
+              }}>
+                <div style={{
+                  fontSize: '0.9rem',
+                  color: '#374151',
+                  marginBottom: '8px',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                }}>
+                  <strong>Language:</strong> {currentLanguage?.name}
+                </div>
+                <div style={{
+                  fontSize: '0.9rem',
+                  color: '#374151',
+                  marginBottom: '8px',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                }}>
+                  <strong>Code size:</strong> {Math.round(new Blob([code]).size / 1024 * 100) / 100} KB
+                </div>
+                <div style={{
+                  fontSize: '0.9rem',
+                  color: '#374151',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                }}>
+                  <strong>Time multiplier:</strong> {currentLanguage?.timeMultiplier}x
+                </div>
+              </div>
+              <div style={{
+                backgroundColor: '#dbeafe',
+                border: '1px solid #93c5fd',
+                borderRadius: '12px',
+                padding: '16px',
+                color: '#1e40af',
+                fontSize: '0.9rem',
+                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+              }}>
+                Once submitted, you cannot modify your solution. Make sure your code is ready!
+              </div>
+            </div>
+            <div style={{
+              padding: '16px 24px',
+              borderTop: '1px solid #e2e8f0',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '12px',
+            }}>
+              <button
+                onClick={() => setConfirmDialogOpen(false)}
+                style={{
+                  background: '#ffffff',
+                  color: '#374151',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#d1d5db';
+                  e.currentTarget.style.backgroundColor = '#f9fafb';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#e5e7eb';
+                  e.currentTarget.style.backgroundColor = '#ffffff';
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                style={{
+                  background: isSubmitting
+                    ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)'
+                    : 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {isSubmitting && (
+                  <div style={{
+                    width: '14px',
+                    height: '14px',
+                    border: '2px solid transparent',
+                    borderTop: '2px solid #ffffff',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                  }} />
+                )}
+                {isSubmitting ? 'Submitting...' : 'Submit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* Submission Details Dialog */}
-      <Dialog 
-        open={!!selectedSubmission} 
-        onClose={() => setSelectedSubmission(null)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          Submission Details - {selectedSubmission && getVerdictInfo(selectedSubmission.status).text}
-        </DialogTitle>
-        <DialogContent>
-          {selectedSubmission && (
-            <Box>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2, mb: 3 }}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">Language</Typography>
-                  <Typography variant="body1">{selectedSubmission.language.toUpperCase()}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">Submission Time</Typography>
-                  <Typography variant="body1">
+      {/* Submission Details Modal */}
+      {selectedSubmission && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1)',
+            maxWidth: '700px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflow: 'auto',
+          }}>
+            <div style={{
+              padding: '24px',
+              borderBottom: '1px solid #e2e8f0',
+            }}>
+              <h2 style={{
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                color: '#1f2937',
+                margin: 0,
+                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+              }}>
+                Submission Details - {getVerdictInfo(selectedSubmission.status).text}
+              </h2>
+            </div>
+            <div style={{ padding: '24px' }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '16px',
+                marginBottom: '24px',
+              }}>
+                <div>
+                  <div style={{
+                    fontSize: '0.8rem',
+                    color: '#6b7280',
+                    fontWeight: 500,
+                    marginBottom: '4px',
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                  }}>Language</div>
+                  <div style={{
+                    fontSize: '1rem',
+                    color: '#1f2937',
+                    fontWeight: 600,
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                  }}>{selectedSubmission.language.toUpperCase()}</div>
+                </div>
+                <div>
+                  <div style={{
+                    fontSize: '0.8rem',
+                    color: '#6b7280',
+                    fontWeight: 500,
+                    marginBottom: '4px',
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                  }}>Submission Time</div>
+                  <div style={{
+                    fontSize: '1rem',
+                    color: '#1f2937',
+                    fontWeight: 600,
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                  }}>
                     {new Date(selectedSubmission.submissionTime).toLocaleString()}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">Execution Time</Typography>
-                  <Typography variant="body1">
+                  </div>
+                </div>
+                <div>
+                  <div style={{
+                    fontSize: '0.8rem',
+                    color: '#6b7280',
+                    fontWeight: 500,
+                    marginBottom: '4px',
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                  }}>Execution Time</div>
+                  <div style={{
+                    fontSize: '1rem',
+                    color: '#1f2937',
+                    fontWeight: 600,
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                  }}>
                     {selectedSubmission.executionTime ? `${selectedSubmission.executionTime}ms` : 'N/A'}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">Memory Used</Typography>
-                  <Typography variant="body1">
+                  </div>
+                </div>
+                <div>
+                  <div style={{
+                    fontSize: '0.8rem',
+                    color: '#6b7280',
+                    fontWeight: 500,
+                    marginBottom: '4px',
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                  }}>Memory Used</div>
+                  <div style={{
+                    fontSize: '1rem',
+                    color: '#1f2937',
+                    fontWeight: 600,
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                  }}>
                     {selectedSubmission.memoryUsed ? `${Math.round(selectedSubmission.memoryUsed / 1024)}KB` : 'N/A'}
-                  </Typography>
-                </Box>
-              </Box>
+                  </div>
+                </div>
+              </div>
 
-              <Typography variant="subtitle2" gutterBottom>Submitted Code:</Typography>
-              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
-                <Box
-                  component="pre"
-                  sx={{
-                    fontFamily: 'monospace',
-                    fontSize: '0.9em',
-                    margin: 0,
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                    maxHeight: 400,
-                    overflow: 'auto',
-                  }}
-                >
+              <div style={{
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                color: '#374151',
+                marginBottom: '12px',
+                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+              }}>Submitted Code:</div>
+              <div style={{
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                backgroundColor: '#f8fafc',
+                padding: '16px',
+              }}>
+                <pre style={{
+                  fontFamily: '"JetBrains Mono", monospace',
+                  fontSize: '0.85rem',
+                  margin: 0,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  maxHeight: '400px',
+                  overflow: 'auto',
+                  color: '#1f2937',
+                  lineHeight: '1.5',
+                }}>
                   {selectedSubmission.code}
-                </Box>
-              </Paper>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSelectedSubmission(null)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+                </pre>
+              </div>
+            </div>
+            <div style={{
+              padding: '16px 24px',
+              borderTop: '1px solid #e2e8f0',
+              display: 'flex',
+              justifyContent: 'flex-end',
+            }}>
+              <button
+                onClick={() => setSelectedSubmission(null)}
+                style={{
+                  background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

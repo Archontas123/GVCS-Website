@@ -1,57 +1,16 @@
 /**
- * CS Club Hackathon Platform - Problem View Page
- * Phase 5.2: Problem Viewing Interface
+ * CS Club Hackathon Platform - Problem View Page (Modern Admin Style)
+ * Updated to match new design system
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Chip,
-  IconButton,
-  Button,
-  Toolbar,
-  AppBar,
-  Container,
-  Paper,
-  Divider,
-  Tooltip,
-  Alert,
-  Collapse,
-  useTheme,
-  useMediaQuery,
-} from '@mui/material';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import 'katex/dist/katex.min.css';
-import {
-  ArrowBack,
-  ArrowForward,
-  Home,
-  ContentCopy,
-  Timer,
-  Memory,
-  Code,
-  ExpandMore,
-  ExpandLess,
-  Fullscreen,
-  FullscreenExit,
-  Refresh,
-} from '@mui/icons-material';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Problem } from '../types';
 import apiService from '../services/api';
 import { useAuth } from '../hooks/useAuth';
-import CodeEditor from '../components/CodeEditor';
-import SubmissionInterface from '../components/SubmissionInterface/SubmissionInterface';
+import '../styles/theme.css';
 
-// Mock problem data for Phase 5.2 - will be replaced with API calls
+// Mock problem data - will be replaced with API calls
 const mockProblem: Problem = {
   id: 1,
   contestId: 1,
@@ -62,798 +21,351 @@ const mockProblem: Problem = {
 ## Problem Description
 
 Matrix multiplication is a fundamental operation in linear algebra. Given two matrices:
-- Matrix $A$ of size $n \\times m$
-- Matrix $B$ of size $m \\times p$
+- Matrix A of size n × m
+- Matrix B of size m × p
 
-The product $C = A \\times B$ will be a matrix of size $n \\times p$ where:
+The product C = A × B will be a matrix of size n × p where:
 
-$$C_{ij} = \\sum_{k=1}^{m} A_{ik} \\times B_{kj}$$
+C[i][j] = sum(A[i][k] × B[k][j]) for k = 1 to m
 
 ## Input Format
-- First line: three integers $n$, $m$, $p$ representing the dimensions
-- Next $n$ lines: each contains $m$ integers representing matrix $A$
-- Next $m$ lines: each contains $p$ integers representing matrix $B$
+- First line: three integers n, m, p representing the dimensions
+- Next n lines: each contains m integers representing matrix A
+- Next m lines: each contains p integers representing matrix B
 
 ## Output Format  
-Output $n$ lines, each containing $p$ integers representing the resulting matrix $C$.
+Output n lines, each containing p integers representing the resulting matrix C.
 
 ## Constraints
-- $1 \\leq n, m, p \\leq 100$
-- $-1000 \\leq A_{ij}, B_{ij} \\leq 1000$
-- All values fit in 32-bit signed integers
+- 1 ≤ n, m, p ≤ 100
+- -1000 ≤ matrix elements ≤ 1000
 
-## Example Explanation
-In the sample input, we multiply a $2 \\times 2$ matrix with another $2 \\times 2$ matrix:
-
-$$\\begin{pmatrix} 1 & 2 \\\\ 3 & 4 \\end{pmatrix} \\times \\begin{pmatrix} 5 & 6 \\\\ 7 & 8 \\end{pmatrix} = \\begin{pmatrix} 19 & 22 \\\\ 43 & 50 \\end{pmatrix}$$
-
-Where:
-- $C_{11} = 1 \\times 5 + 2 \\times 7 = 19$
-- $C_{12} = 1 \\times 6 + 2 \\times 8 = 22$
-- $C_{21} = 3 \\times 5 + 4 \\times 7 = 43$
-- $C_{22} = 3 \\times 6 + 4 \\times 8 = 50$
-
-## Algorithm Implementation
-
-Here's a solution in C++:
-
-\`\`\`cpp
-#include <iostream>
-#include <vector>
-using namespace std;
-
-int main() {
-    int n, m, p;
-    cin >> n >> m >> p;
-    
-    // Read matrix A
-    vector<vector<int>> A(n, vector<int>(m));
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < m; j++) {
-            cin >> A[i][j];
-        }
-    }
-    
-    // Read matrix B
-    vector<vector<int>> B(m, vector<int>(p));
-    for (int i = 0; i < m; i++) {
-        for (int j = 0; j < p; j++) {
-            cin >> B[i][j];
-        }
-    }
-    
-    // Compute matrix multiplication
-    vector<vector<int>> C(n, vector<int>(p, 0));
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < p; j++) {
-            for (int k = 0; k < m; k++) {
-                C[i][j] += A[i][k] * B[k][j];
-            }
-        }
-    }
-    
-    // Output result
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < p; j++) {
-            cout << C[i][j];
-            if (j < p - 1) cout << " ";
-        }
-        cout << endl;
-    }
-    
-    return 0;
-}
+## Sample Input
+\`\`\`
+2 3 2
+1 2 3
+4 5 6
+7 8
+9 10
+11 12
 \`\`\`
 
-## Time Complexity
-The time complexity is $O(n \\times m \\times p)$ for the triple nested loop.
+## Sample Output
+\`\`\`
+58 64
+139 154
+\`\`\`
 
-## Alternative Solutions
-
-Python implementation:
-\`\`\`python
-n, m, p = map(int, input().split())
-
-# Read matrix A
-A = []
-for _ in range(n):
-    row = list(map(int, input().split()))
-    A.append(row)
-
-# Read matrix B
-B = []
-for _ in range(m):
-    row = list(map(int, input().split()))
-    B.append(row)
-
-# Matrix multiplication
-C = [[0] * p for _ in range(n)]
-for i in range(n):
-    for j in range(p):
-        for k in range(m):
-            C[i][j] += A[i][k] * B[k][j]
-
-# Output
-for i in range(n):
-    print(' '.join(map(str, C[i])))
-\`\`\``,
-  inputFormat: 'First line: n m p, then n lines of m integers (matrix A), then m lines of p integers (matrix B)',
-  outputFormat: 'n lines of p integers representing the product matrix',
-  sampleInput: `2 2 2
-1 2
-3 4
-5 6
-7 8`,
-  sampleOutput: `19 22
-43 50`,
-  constraints: '1 ≤ n, m, p ≤ 100; -1000 ≤ matrix elements ≤ 1000',
-  timeLimit: 2000,
-  memoryLimit: 512,
+## Explanation
+Matrix A is 2×3 and Matrix B is 3×2, so the result is 2×2.`,
   difficulty: 'medium',
+  timeLimit: 2000,
+  memoryLimit: 256,
+  sampleInput: '2 3 2\n1 2 3\n4 5 6\n7 8\n9 10\n11 12',
+  sampleOutput: '58 64\n139 154',
+  tags: ['implementation', 'mathematics'],
+  submitCount: 245,
+  acceptedCount: 123,
+  userAttempts: 0,
+  userSolved: false,
+  lastSubmissionVerdict: null,
+  isPublic: true,
+  createdAt: '2024-01-01T00:00:00Z',
+  updatedAt: '2024-01-01T00:00:00Z'
 };
 
 const ProblemViewPage: React.FC = () => {
-  const theme = useTheme();
-  const navigate = useNavigate();
   const { problemId } = useParams<{ problemId: string }>();
-  const { team } = useAuth();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   
-  const [problem, setProblem] = useState<Problem>(mockProblem);
+  const [problem, setProblem] = useState<Problem | null>(mockProblem);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fullscreen, setFullscreen] = useState(false);
-  const [expandedSections, setExpandedSections] = useState({
-    description: true,
-    samples: true,
-    constraints: true,
-  });
-  const [currentProblemIndex, setCurrentProblemIndex] = useState(0);
-  const [totalProblems, setTotalProblems] = useState(4);
-  const [code, setCode] = useState('');
-  const [language, setLanguage] = useState('cpp');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showSolution, setShowSolution] = useState(false);
 
-  // Load problem data
   useEffect(() => {
     if (problemId) {
-      loadProblem(parseInt(problemId));
+      fetchProblem(problemId);
     }
   }, [problemId]);
 
-  const loadProblem = async (id: number) => {
+  const fetchProblem = async (id: string) => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      
-      // TODO: Replace with real API call
-      // const response = await apiService.getProblem(id);
-      // if (response.success && response.data) {
-      //   setProblem(response.data);
-      // }
-      
       // For now, use mock data
-      setProblem(mockProblem);
-      
+      setTimeout(() => {
+        setProblem(mockProblem);
+        setLoading(false);
+      }, 500);
     } catch (err) {
-      console.error('Error loading problem:', err);
-      setError('Failed to load problem. Please try again.');
-    } finally {
+      setError('Failed to load problem');
       setLoading(false);
     }
   };
 
-  // Keyboard navigation
-  const handleKeyNavigation = useCallback((event: KeyboardEvent) => {
-    if (event.ctrlKey) {
-      switch (event.key) {
-        case 'ArrowLeft':
-          event.preventDefault();
-          navigateToProblem('previous');
-          break;
-        case 'ArrowRight':
-          event.preventDefault();
-          navigateToProblem('next');
-          break;
-        case 'h':
-        case 'Home':
-          event.preventDefault();
-          navigate('/dashboard');
-          break;
-        case 'Enter':
-          event.preventDefault();
-          toggleFullscreen();
-          break;
-      }
-    }
-    if (event.key === 'Escape' && fullscreen) {
-      setFullscreen(false);
-    }
-  }, [navigate, fullscreen, currentProblemIndex]);
-
-  useEffect(() => {
-    document.addEventListener('keydown', handleKeyNavigation);
-    return () => document.removeEventListener('keydown', handleKeyNavigation);
-  }, [handleKeyNavigation]);
-
-  const navigateToProblem = (direction: 'next' | 'previous') => {
-    let newIndex = currentProblemIndex;
-    if (direction === 'next' && currentProblemIndex < totalProblems - 1) {
-      newIndex = currentProblemIndex + 1;
-    } else if (direction === 'previous' && currentProblemIndex > 0) {
-      newIndex = currentProblemIndex - 1;
-    }
-    
-    if (newIndex !== currentProblemIndex) {
-      setCurrentProblemIndex(newIndex);
-      const problemLetter = String.fromCharCode(65 + newIndex); // A, B, C...
-      navigate(`/problem/${newIndex + 1}`);
-    }
+  const handleBack = () => {
+    navigate('/dashboard');
   };
 
-  const toggleFullscreen = () => {
-    setFullscreen(!fullscreen);
-  };
-
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
-
-  const copyToClipboard = async (text: string, type: 'input' | 'output') => {
-    try {
-      await navigator.clipboard.writeText(text);
-      // TODO: Show success toast
-      console.log(`${type} copied to clipboard`);
-    } catch (err) {
-      console.error('Failed to copy to clipboard:', err);
-    }
-  };
-
-  // Handle code submission
-  const handleSubmitCode = async (submissionCode: string, submissionLanguage: string) => {
-    try {
-      console.log('Submitting code:', { code: submissionCode, language: submissionLanguage, problemId });
-      // TODO: Implement actual submission
-      // const response = await apiService.submitSolution({
-      //   problemId: parseInt(problemId || '1'),
-      //   language: submissionLanguage as 'cpp' | 'java' | 'python',
-      //   code: submissionCode
-      // });
-      
-      // For demo, just log the submission
-      console.log('Code submitted successfully! (Demo mode)');
-    } catch (error) {
-      console.error('Submission error:', error);
-      throw error; // Re-throw to let SubmissionInterface handle the error
-    }
-  };
-
-  // Handle language changes from SubmissionInterface
-  const handleLanguageChange = (newLanguage: string) => {
-    setLanguage(newLanguage);
-  };
-
-  // Mock contest status
-  const contestStatus = {
-    isRunning: true,
-    timeRemaining: 3600, // 1 hour remaining
-    canSubmit: true,
+  const handleSubmit = () => {
+    navigate(`/problem/${problemId}/submit`);
   };
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'easy': return theme.palette.success.main;
-      case 'medium': return theme.palette.warning.main;
-      case 'hard': return theme.palette.error.main;
-      default: return theme.palette.grey[500];
+      case 'easy': return { bg: '#dcfce7', color: '#166534' };
+      case 'medium': return { bg: '#fef3c7', color: '#a16207' };
+      case 'hard': return { bg: '#fef2f2', color: '#dc2626' };
+      default: return { bg: '#f3f4f6', color: '#6b7280' };
     }
   };
 
-  // Custom components for ReactMarkdown
-  const markdownComponents = {
-    h2: ({ children }: any) => (
-      <Typography variant="h5" sx={{ fontWeight: 600, mt: 3, mb: 2 }}>
-        {children}
-      </Typography>
-    ),
-    h3: ({ children }: any) => (
-      <Typography variant="h6" sx={{ fontWeight: 600, mt: 2, mb: 1 }}>
-        {children}
-      </Typography>
-    ),
-    p: ({ children }: any) => (
-      <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.8 }}>
-        {children}
-      </Typography>
-    ),
-    ul: ({ children }: any) => (
-      <Box component="ul" sx={{ mb: 2, pl: 3 }}>
-        {children}
-      </Box>
-    ),
-    li: ({ children }: any) => (
-      <Box component="li" sx={{ mb: 0.5 }}>
-        <Typography variant="body1">{children}</Typography>
-      </Box>
-    ),
-    ol: ({ children }: any) => (
-      <Box component="ol" sx={{ mb: 2, pl: 3 }}>
-        {children}
-      </Box>
-    ),
-    code: ({ inline, className, children }: any) => {
-      if (inline) {
-        return (
-          <Box
-            component="code"
-            sx={{
-              bgcolor: theme.palette.grey[100],
-              px: 0.5,
-              py: 0.25,
-              borderRadius: 0.5,
-              fontFamily: 'monospace',
-              fontSize: '0.9em',
-              border: `1px solid ${theme.palette.grey[300]}`,
-            }}
-          >
-            {children}
-          </Box>
-        );
-      }
-      
-      const match = /language-(\w+)/.exec(className || '');
-      const language = match ? match[1] : '';
-      
-      return (
-        <Paper
-          variant="outlined"
-          sx={{
-            mb: 2,
-            overflow: 'hidden',
-            '& pre': {
-              margin: '0 !important',
-              borderRadius: '0 !important',
-            }
-          }}
-        >
-          <SyntaxHighlighter
-            style={vscDarkPlus}
-            language={language || 'text'}
-            PreTag="div"
-            customStyle={{
-              margin: 0,
-              borderRadius: 0,
-              fontSize: '0.9em',
-            }}
-          >
-            {String(children).replace(/\n$/, '')}
-          </SyntaxHighlighter>
-        </Paper>
-      );
-    },
-    strong: ({ children }: any) => (
-      <Box component="strong" sx={{ fontWeight: 600 }}>
-        {children}
-      </Box>
-    ),
-    em: ({ children }: any) => (
-      <Box component="em" sx={{ fontStyle: 'italic' }}>
-        {children}
-      </Box>
-    ),
+  const processMarkdown = (content: string): string => {
+    return content
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/`(.*?)`/g, '<code style="background-color: #f3f4f6; padding: 2px 4px; border-radius: 4px; font-size: 0.9em;">$1</code>')
+      .replace(/## (.*?)$/gm, '<h3 style="font-size: 1.25rem; font-weight: 600; margin: 24px 0 12px; color: #1f2937;">$1</h3>')
+      .replace(/^- (.*?)$/gm, '<li style="margin: 4px 0;">$1</li>')
+      .replace(/```([\s\S]*?)```/g, '<pre style="background-color: #1f2937; color: #f8fafc; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 16px 0;"><code>$1</code></pre>')
+      .replace(/\n/g, '<br>');
   };
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="h6">Loading problem...</Typography>
-        </Box>
-      </Container>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '400px',
+        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '4px solid #e5e7eb',
+          borderTop: '4px solid #1d4ed8',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+        }}></div>
+      </div>
     );
   }
 
-  if (error) {
+  if (error || !problem) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="error" action={
-          <Button color="inherit" size="small" onClick={() => loadProblem(parseInt(problemId || '1'))}>
-            <Refresh /> Retry
-          </Button>
-        }>
-          {error}
-        </Alert>
-      </Container>
+      <div style={{
+        padding: '32px',
+        textAlign: 'center',
+        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+      }}>
+        <div style={{
+          backgroundColor: '#fef2f2',
+          border: '1px solid #fecaca',
+          borderRadius: '12px',
+          padding: '24px',
+          maxWidth: '500px',
+          margin: '0 auto',
+        }}>
+          <h2 style={{ 
+            color: '#dc2626', 
+            marginBottom: '16px',
+            fontSize: '1.5rem',
+            fontWeight: 600,
+          }}>
+            Problem Not Found
+          </h2>
+          <p style={{ color: '#6b7280', marginBottom: '24px' }}>
+            {error || 'The requested problem could not be found.'}
+          </p>
+          <button
+            onClick={handleBack}
+            style={{
+              background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 24px',
+              fontSize: '1rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            ← Back to Dashboard
+          </button>
+        </div>
+      </div>
     );
   }
+
+  const difficultyStyle = getDifficultyColor(problem.difficulty);
 
   return (
-    <Box sx={{ 
-      minHeight: '100vh', 
-      bgcolor: fullscreen ? 'background.paper' : 'background.default',
-      position: fullscreen ? 'fixed' : 'relative',
-      top: fullscreen ? 0 : 'auto',
-      left: fullscreen ? 0 : 'auto',
-      right: fullscreen ? 0 : 'auto',
-      bottom: fullscreen ? 0 : 'auto',
-      zIndex: fullscreen ? 9999 : 'auto',
-      overflow: fullscreen ? 'auto' : 'visible',
+    <div style={{
+      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+      minHeight: '100vh',
     }}>
-      {/* Navigation Toolbar */}
-      <AppBar 
-        position={fullscreen ? 'sticky' : 'static'} 
-        color="default" 
-        elevation={1}
-        sx={{ bgcolor: 'background.paper', borderBottom: `1px solid ${theme.palette.divider}` }}
-      >
-        <Toolbar>
-          <Tooltip title="Back to Dashboard (Ctrl+H)">
-            <IconButton onClick={() => navigate('/dashboard')} edge="start">
-              <Home />
-            </IconButton>
-          </Tooltip>
-          
-          <Typography variant="h6" sx={{ flexGrow: 1, ml: 2 }}>
-            Problem {problem.problemLetter}: {problem.title}
-          </Typography>
-          
-          {/* Problem Navigation */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Tooltip title="Previous Problem (Ctrl+←)">
-              <span>
-                <IconButton 
-                  onClick={() => navigateToProblem('previous')}
-                  disabled={currentProblemIndex === 0}
-                >
-                  <ArrowBack />
-                </IconButton>
-              </span>
-            </Tooltip>
-            
-            <Chip 
-              label={`${currentProblemIndex + 1} / ${totalProblems}`}
-              size="small"
-              variant="outlined"
-            />
-            
-            <Tooltip title="Next Problem (Ctrl+→)">
-              <span>
-                <IconButton 
-                  onClick={() => navigateToProblem('next')}
-                  disabled={currentProblemIndex === totalProblems - 1}
-                >
-                  <ArrowForward />
-                </IconButton>
-              </span>
-            </Tooltip>
-            
-            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-            
-            <Tooltip title={fullscreen ? "Exit Fullscreen (Esc)" : "Fullscreen (Ctrl+Enter)"}>
-              <IconButton onClick={toggleFullscreen}>
-                {fullscreen ? <FullscreenExit /> : <Fullscreen />}
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Toolbar>
-      </AppBar>
-
-      {/* Main Content */}
-      <Container 
-        maxWidth={fullscreen ? false : "lg"} 
-        sx={{ 
-          py: fullscreen ? 2 : 4,
-          px: fullscreen ? 3 : undefined,
-          maxWidth: fullscreen ? 'none' : undefined 
-        }}
-      >
-        {/* Problem Header */}
-        <Box sx={{ mb: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-            <Typography 
-              variant="h3" 
-              component="h1" 
-              sx={{ 
-                fontWeight: 'bold',
-                color: theme.palette.primary.main,
-                fontFamily: 'monospace'
-              }}
-            >
-              {problem.problemLetter}
-            </Typography>
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 600, flexGrow: 1 }}>
-              {problem.title}
-            </Typography>
-            <Chip
-              label={problem.difficulty}
-              sx={{
-                bgcolor: getDifficultyColor(problem.difficulty),
-                color: 'white',
-                fontWeight: 500,
-              }}
-            />
-          </Box>
-
-          {/* Technical Details */}
-          <Paper variant="outlined" sx={{ p: 2, bgcolor: theme.palette.grey[50] }}>
-            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Timer color="action" />
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  Time Limit: {problem.timeLimit}ms
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Memory color="action" />
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  Memory Limit: {problem.memoryLimit}MB
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Code color="action" />
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  Languages: C++, Java, Python
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
-        </Box>
-
-        {/* Problem Description */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Box 
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                mb: expandedSections.description ? 2 : 0,
-                cursor: isMobile ? 'pointer' : 'default'
-              }}
-              onClick={isMobile ? () => toggleSection('description') : undefined}
-            >
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Problem Statement
-              </Typography>
-              {isMobile && (
-                <IconButton size="small">
-                  {expandedSections.description ? <ExpandLess /> : <ExpandMore />}
-                </IconButton>
-              )}
-            </Box>
-            
-            <Collapse in={expandedSections.description}>
-              <Box sx={{ 
-                '& .katex': { fontSize: '1em' },
-                '& .katex-display': { margin: '1em 0' },
+      {/* Header */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderBottom: '1px solid #e2e8f0',
+        padding: '16px 24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '16px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button
+            onClick={handleBack}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#6b7280',
+              cursor: 'pointer',
+              fontSize: '1.2rem',
+              padding: '8px',
+              borderRadius: '8px',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#f3f4f6';
+              e.currentTarget.style.color = '#374151';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#6b7280';
+            }}
+          >
+            ←
+          </button>
+          <div>
+            <h1 style={{
+              fontSize: '1.5rem',
+              fontWeight: 700,
+              color: '#1f2937',
+              margin: 0,
+            }}>
+              Problem {problem.problemLetter}: {problem.title}
+            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
+              <span style={{
+                backgroundColor: difficultyStyle.bg,
+                color: difficultyStyle.color,
+                padding: '4px 8px',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                textTransform: 'capitalize',
               }}>
-                <ReactMarkdown
-                  children={problem.description}
-                  remarkPlugins={[remarkGfm, remarkMath]}
-                  rehypePlugins={[rehypeKatex]}
-                  components={markdownComponents}
-                />
-              </Box>
-            </Collapse>
-          </CardContent>
-        </Card>
+                {problem.difficulty}
+              </span>
+              <span style={{ fontSize: '0.9rem', color: '#6b7280' }}>
+                {problem.timeLimit}ms / {problem.memoryLimit}MB
+              </span>
+            </div>
+          </div>
+        </div>
 
-        {/* Sample Input/Output */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Box 
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                mb: expandedSections.samples ? 2 : 0,
-                cursor: isMobile ? 'pointer' : 'default'
-              }}
-              onClick={isMobile ? () => toggleSection('samples') : undefined}
-            >
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Sample Input/Output
-              </Typography>
-              {isMobile && (
-                <IconButton size="small">
-                  {expandedSections.samples ? <ExpandLess /> : <ExpandMore />}
-                </IconButton>
-              )}
-            </Box>
-            
-            <Collapse in={expandedSections.samples}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-                {/* Sample Input */}
-                <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                      Sample Input
-                    </Typography>
-                    <Tooltip title="Copy to clipboard">
-                      <IconButton 
-                        size="small" 
-                        onClick={() => copyToClipboard(problem.sampleInput, 'input')}
-                      >
-                        <ContentCopy fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                  <Paper 
-                    variant="outlined" 
-                    sx={{ 
-                      p: 2, 
-                      bgcolor: theme.palette.grey[50],
-                      border: `2px solid ${theme.palette.primary.light}`,
-                    }}
-                  >
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        fontFamily: 'monospace',
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-all'
-                      }}
-                    >
-                      {problem.sampleInput}
-                    </Typography>
-                  </Paper>
-                </Paper>
+        <button
+          onClick={handleSubmit}
+          style={{
+            background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '12px 24px',
+            fontSize: '1rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 4px 12px rgba(29, 78, 216, 0.25)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%)';
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 8px 20px rgba(29, 78, 216, 0.35)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)';
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(29, 78, 216, 0.25)';
+          }}
+        >
+          Submit Solution
+        </button>
+      </div>
 
-                {/* Sample Output */}
-                <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'success.main' }}>
-                      Sample Output
-                    </Typography>
-                    <Tooltip title="Copy to clipboard">
-                      <IconButton 
-                        size="small" 
-                        onClick={() => copyToClipboard(problem.sampleOutput, 'output')}
-                      >
-                        <ContentCopy fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                  <Paper 
-                    variant="outlined" 
-                    sx={{ 
-                      p: 2, 
-                      bgcolor: theme.palette.grey[50],
-                      border: `2px solid ${theme.palette.success.light}`,
-                    }}
-                  >
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        fontFamily: 'monospace',
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-all'
-                      }}
-                    >
-                      {problem.sampleOutput}
-                    </Typography>
-                  </Paper>
-                </Paper>
-              </Box>
-            </Collapse>
-          </CardContent>
-        </Card>
+      {/* Content */}
+      <div style={{ padding: '32px 24px' }}>
+        <div style={{
+          backgroundColor: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+          padding: '32px',
+        }}>
+          <div
+            style={{
+              fontSize: '1rem',
+              lineHeight: '1.7',
+              color: '#374151',
+            }}
+            dangerouslySetInnerHTML={{
+              __html: processMarkdown(problem.description)
+            }}
+          />
+        </div>
 
-        {/* Constraints */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Box 
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                mb: expandedSections.constraints ? 2 : 0,
-                cursor: isMobile ? 'pointer' : 'default'
-              }}
-              onClick={isMobile ? () => toggleSection('constraints') : undefined}
-            >
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Constraints & Limits
-              </Typography>
-              {isMobile && (
-                <IconButton size="small">
-                  {expandedSections.constraints ? <ExpandLess /> : <ExpandMore />}
-                </IconButton>
-              )}
-            </Box>
-            
-            <Collapse in={expandedSections.constraints}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Paper variant="outlined" sx={{ p: 2, bgcolor: theme.palette.grey[50] }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Input Constraints
-                  </Typography>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      fontFamily: 'monospace',
-                      whiteSpace: 'pre-wrap'
-                    }}
-                  >
-                    {problem.constraints}
-                  </Typography>
-                </Paper>
-                
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-                  <Paper variant="outlined" sx={{ p: 2, bgcolor: theme.palette.warning.light + '20' }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                      Time Limit
-                    </Typography>
-                    <Typography variant="body1" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
-                      {problem.timeLimit} ms
-                    </Typography>
-                  </Paper>
-                  
-                  <Paper variant="outlined" sx={{ p: 2, bgcolor: theme.palette.info.light + '20' }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                      Memory Limit
-                    </Typography>
-                    <Typography variant="body1" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
-                      {problem.memoryLimit} MB
-                    </Typography>
-                  </Paper>
-                </Box>
-              </Box>
-            </Collapse>
-          </CardContent>
-        </Card>
-
-        {/* Code Editor Section */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Code /> Solution Editor
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Write your solution below. Use Ctrl+Enter to submit, or test with custom input first.
-            </Typography>
-            <CodeEditor
-              problemId={problem.id}
-              initialLanguage={language}
-              value={code}
-              onChange={setCode}
-              onLanguageChange={handleLanguageChange}
-              height="400px"
-            />
-          </CardContent>
-        </Card>
-
-        {/* Submission Interface */}
-        <SubmissionInterface
-          problemId={problem.id}
-          code={code}
-          language={language}
-          onLanguageChange={handleLanguageChange}
-          onSubmit={handleSubmitCode}
-          contestStatus={contestStatus}
-          maxFileSize={64 * 1024} // 64KB
-        />
-
-        {/* Keyboard Shortcuts Help */}
-        {!isMobile && (
-          <Paper variant="outlined" sx={{ p: 2, bgcolor: theme.palette.grey[50] }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-              Keyboard Shortcuts
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-              <Typography variant="caption">Ctrl + ← / → : Navigate problems</Typography>
-              <Typography variant="caption">Ctrl + H : Return to dashboard</Typography>
-              <Typography variant="caption">Ctrl + Enter : Submit code / Toggle fullscreen</Typography>
-              <Typography variant="caption">Ctrl + F : Find in code</Typography>
-              <Typography variant="caption">Ctrl + Shift + F : Format code</Typography>
-              <Typography variant="caption">Esc : Exit fullscreen</Typography>
-            </Box>
-          </Paper>
-        )}
-      </Container>
-    </Box>
+        {/* Problem Stats */}
+        <div style={{
+          backgroundColor: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+          padding: '24px',
+          marginTop: '24px',
+        }}>
+          <h3 style={{
+            fontSize: '1.25rem',
+            fontWeight: 600,
+            color: '#1f2937',
+            marginBottom: '16px',
+          }}>
+            Problem Statistics
+          </h3>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '16px',
+          }}>
+            <div>
+              <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Submissions</span>
+              <div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1f2937' }}>
+                {problem.submitCount}
+              </div>
+            </div>
+            <div>
+              <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Accepted</span>
+              <div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#16a34a' }}>
+                {problem.acceptedCount}
+              </div>
+            </div>
+            <div>
+              <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Acceptance Rate</span>
+              <div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1f2937' }}>
+                {((problem.acceptedCount / problem.submitCount) * 100).toFixed(1)}%
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

@@ -5,7 +5,6 @@
 
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { Box, CircularProgress } from '@mui/material';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 
 interface AdminProtectedRouteProps {
@@ -18,17 +17,9 @@ const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ children }) =
 
   if (loading) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100vh',
-          bgcolor: 'background.default',
-        }}
-      >
-        <CircularProgress size={60} />
-      </Box>
+      <div className="flex-center full-height">
+        <div className="spinner spinner-lg"></div>
+      </div>
     );
   }
 

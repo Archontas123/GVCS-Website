@@ -13,8 +13,8 @@ module.exports = {
     client: 'postgresql',
     connection: process.env.DATABASE_URL || defaultConnection,
     pool: {
-      min: 2,
-      max: 10
+      min: 1,
+      max: 5
     },
     migrations: {
       directory: './src/database/migrations',

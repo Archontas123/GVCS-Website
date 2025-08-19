@@ -1,238 +1,116 @@
 /**
  * CS Club Hackathon Platform - Home Page
- * Phase 1.4: Landing page with registration and login options
+ * Phase 1.4: Landing page with registration and login options (CSS-based, removed MUI)
  */
 
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Card,
-  CardContent,
-  useTheme,
-  useMediaQuery,
-} from '@mui/material';
-import {
-  Code,
-  Timer,
-  EmojiEvents,
-  Group,
-} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import '../styles/theme.css';
 
 const HomePage: React.FC = () => {
-  const theme = useTheme();
   const navigate = useNavigate();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const features = [
-    {
-      icon: <Code sx={{ fontSize: 40, color: theme.palette.primary.main }} />,
-      title: 'Multi-Language Support',
-      description: 'Write code in C++, Java, or Python with full compiler support and real-time execution.',
-    },
-    {
-      icon: <Timer sx={{ fontSize: 40, color: theme.palette.secondary.main }} />,
-      title: 'Real-Time Judging',
-      description: 'Get instant feedback on your submissions with comprehensive verdict reporting.',
-    },
-    {
-      icon: <EmojiEvents sx={{ fontSize: 40, color: theme.palette.warning.main }} />,
-      title: 'ICPC-Style Scoring',
-      description: 'Experience authentic competitive programming with penalty-based scoring system.',
-    },
-    {
-      icon: <Group sx={{ fontSize: 40, color: theme.palette.info.main }} />,
-      title: 'Team Collaboration',
-      description: 'Work together with your team using a single shared account and submission history.',
-    },
-  ];
 
   return (
-    <Box sx={{ minHeight: '80vh' }}>
-      {/* Hero Section */}
-      <Box
-        sx={{
-          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
-          color: 'white',
-          py: { xs: 6, md: 10 },
-          px: 2,
-          textAlign: 'center',
-          borderRadius: { xs: 0, md: 2 },
-          mb: 6,
-        }}
-      >
-        <Typography
-          variant="h2"
-          component="h1"
-          gutterBottom
-          sx={{
-            fontWeight: 'bold',
-            fontSize: { xs: '2rem', md: '3rem' },
-            mb: 3,
-          }}
-        >
-          CS Club Hackathon Platform
-        </Typography>
-        
-        <Typography
-          variant="h5"
-          component="p"
-          sx={{
-            mb: 4,
-            opacity: 0.9,
-            fontSize: { xs: '1.1rem', md: '1.5rem' },
-            maxWidth: '600px',
-            mx: 'auto',
-          }}
-        >
-          Experience the thrill of competitive programming with our ICPC-style contest platform
-        </Typography>
-
-        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Button
-            variant="contained"
-            size="large"
-            onClick={() => navigate('/register')}
-            sx={{
-              bgcolor: 'white',
-              color: theme.palette.primary.main,
-              px: 4,
-              py: 1.5,
-              fontSize: '1.1rem',
-              '&:hover': {
-                bgcolor: 'rgba(255,255,255,0.9)',
-              },
+    <div style={{ 
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
+      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+      padding: '32px 16px',
+    }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '48px', textAlign: 'center' }}>
+          <h1 
+            style={{ 
+              fontWeight: 700, 
+              fontSize: '3rem',
+              color: '#1d4ed8',
+              letterSpacing: '-0.02em',
+              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+              marginBottom: '16px',
             }}
           >
-            Register Team
-          </Button>
+            Hack The Valley
+          </h1>
           
-          <Button
-            variant="outlined"
-            size="large"
-            onClick={() => navigate('/login')}
-            sx={{
-              borderColor: 'white',
-              color: 'white',
-              px: 4,
-              py: 1.5,
-              fontSize: '1.1rem',
-              '&:hover': {
-                borderColor: 'white',
-                bgcolor: 'rgba(255,255,255,0.1)',
-              },
-            }}
-          >
-            Team Login
-          </Button>
-        </Box>
-      </Box>
-
-      {/* Features Section */}
-      <Box sx={{ mb: 6 }}>
-        <Typography
-          variant="h3"
-          component="h2"
-          gutterBottom
-          sx={{
-            textAlign: 'center',
-            mb: 4,
-            fontWeight: 600,
-            fontSize: { xs: '2rem', md: '2.5rem' },
-          }}
-        >
-          Platform Features
-        </Typography>
-
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 3 }}>
-          {features.map((feature, index) => (
-            <Box key={index}>
-              <Card
-                sx={{
-                  height: '100%',
-                  textAlign: 'center',
-                  transition: 'transform 0.2s ease-in-out',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: theme.shadows[8],
-                  },
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ mb: 2 }}>
-                    {feature.icon}
-                  </Box>
-                  <Typography variant="h6" component="h3" gutterBottom sx={{ fontWeight: 600 }}>
-                    {feature.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-                    {feature.description}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Box>
-          ))}
-        </Box>
-      </Box>
-
-      {/* Getting Started Section */}
-      <Box
-        sx={{
-          bgcolor: 'background.paper',
-          p: 4,
-          borderRadius: 2,
-          textAlign: 'center',
-          boxShadow: theme.shadows[2],
-        }}
-      >
-        <Typography
-          variant="h4"
-          component="h2"
-          gutterBottom
-          sx={{ fontWeight: 600, mb: 2 }}
-        >
-          Ready to Get Started?
-        </Typography>
-        
-        <Typography
-          variant="body1"
-          color="text.secondary"
-          sx={{ mb: 3, maxWidth: '500px', mx: 'auto' }}
-        >
-          Join your team and start competing in algorithmic challenges. Test your problem-solving skills and climb the leaderboard!
-        </Typography>
-
-        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Button
-            variant="contained"
-            size="large"
-            onClick={() => navigate('/register')}
-            sx={{
-              px: 4,
-              py: 1.5,
-              fontSize: '1.1rem',
-            }}
-          >
-            Register Your Team Now
-          </Button>
           
-          <Button
-            variant="outlined"
-            size="large"
-            onClick={() => navigate('/admin/login')}
-            sx={{
-              px: 4,
-              py: 1.5,
-              fontSize: '1.1rem',
+          <div 
+            style={{
+              width: '120px',
+              height: '4px',
+              background: 'linear-gradient(90deg, #1d4ed8 0%, #2563eb 100%)',
+              margin: '0 auto 32px',
+              borderRadius: '4px',
+              boxShadow: '0 2px 8px rgba(29, 78, 216, 0.3)',
             }}
-          >
-            Admin Panel
-          </Button>
-        </Box>
-      </Box>
-    </Box>
+          ></div>
+
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '48px' }}>
+            <button
+              onClick={() => navigate('/register')}
+              style={{
+                background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '16px 32px',
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                boxShadow: '0 8px 25px rgba(29, 78, 216, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 12px 35px rgba(29, 78, 216, 0.35), 0 8px 20px rgba(37, 99, 235, 0.25)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 8px 25px rgba(29, 78, 216, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15)';
+              }}
+            >
+              Register Team
+            </button>
+            
+            <button
+              onClick={() => navigate('/login')}
+              style={{
+                background: '#ffffff',
+                color: '#374151',
+                border: '2px solid #e5e7eb',
+                borderRadius: '12px',
+                padding: '16px 32px',
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#f8f9fa';
+                e.currentTarget.style.borderColor = '#1d4ed8';
+                e.currentTarget.style.color = '#1d4ed8';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#ffffff';
+                e.currentTarget.style.borderColor = '#e5e7eb';
+                e.currentTarget.style.color = '#374151';
+              }}
+            >
+              Team Login
+            </button>
+          </div>
+        </div>
+
+
+      </div>
+    </div>
   );
 };
 

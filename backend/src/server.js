@@ -45,7 +45,7 @@ const logger = winston.createLogger({
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 1000, // Higher limit for both development and production
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -89,6 +89,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/admin', require('./routes/problems'));
 app.use('/api/timer', require('./routes/timer'));
 app.use('/api/leaderboard', require('./routes/leaderboard'));
+app.use('/api/dashboard', require('./routes/dashboard'));
 
 app.use((err, req, res, next) => {
   logger.error(err.message, {
