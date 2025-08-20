@@ -40,14 +40,28 @@ export const useAuth = () => {
               token: null,
             });
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('Auth verification failed:', error);
-          apiService.removeAuthToken();
-          setAuthState({
-            isAuthenticated: false,
-            team: null,
-            token: null,
-          });
+          
+          // If it's a connection error, don't remove the token immediately
+          // Give the user a chance to retry when the server comes back
+          if (error.code === 'ECONNABORTED' || error.message === 'Network Error') {
+            console.warn('Connection error during auth verification. Keeping token for retry.');
+            // Set auth state to false but keep the token
+            setAuthState({
+              isAuthenticated: false,
+              team: null,
+              token,
+            });
+          } else {
+            // For other errors (invalid token, etc.), remove the token
+            apiService.removeAuthToken();
+            setAuthState({
+              isAuthenticated: false,
+              team: null,
+              token: null,
+            });
+          }
         }
       } else {
         setAuthState({
@@ -70,6 +84,7 @@ export const useAuth = () => {
       team,
       token,
     });
+    setLoading(false); // Ensure loading is false after login
   };
 
   const logout = () => {

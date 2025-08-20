@@ -1,49 +1,37 @@
 /**
- * Hack The Valley - Team Login Page
- * Team authentication for hackathon participation
+ * Join Contest Page - Enter Contest Code
+ * First step in the new team registration flow
  */
 
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import apiService from '../services/api';
-import { LoginFormData } from '../types';
-import { useAuth } from '../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import '../styles/theme.css';
 
-const LoginPage: React.FC = () => {
+const JoinContestPage: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const auth = useAuth();
   
-  const [formData, setFormData] = useState<LoginFormData>({
-    teamName: '',
-    contestCode: '',
-  });
-  
+  const [contestCode, setContestCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-    
-    // Clear error when user starts typing
+    const value = e.target.value.toUpperCase();
+    setContestCode(value);
     if (error) setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.teamName.trim()) {
-      setError('Team name is required');
+    if (!contestCode.trim()) {
+      setError('Contest code is required');
       return;
     }
-    
-    if (!formData.contestCode.trim()) {
-      setError('Contest code is required');
+
+    // Validate contest code format
+    const contestCodeRegex = /^[A-Z0-9]{8}$/;
+    if (!contestCodeRegex.test(contestCode.trim())) {
+      setError('Contest code must be exactly 8 characters containing only uppercase letters and numbers');
       return;
     }
 
@@ -51,41 +39,30 @@ const LoginPage: React.FC = () => {
     setError(null);
 
     try {
-      const response = await apiService.loginTeam(formData);
-      
-      if (response.success && response.data) {
-        // Create team object from login response
-        const team = {
-          id: response.data.teamId,
-          teamName: response.data.teamName,
-          contestCode: response.data.contestCode,
-          sessionToken: '', // Will be set when token is decoded
-          registeredAt: '',
-          lastActivity: response.data.lastActivity || new Date().toISOString(),
-          isActive: true
-        };
-        
-        // Update auth state (this also sets the token)
-        auth.login(team, response.data.token);
-        
-        // Let the App.tsx routing handle the redirect automatically
-        // The /login route will detect auth.isAuthenticated = true and redirect to /dashboard
-        
+      // Check if contest code exists and is valid
+      const response = await fetch(`/api/contests/${contestCode}/validate`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Contest code is valid, proceed to team registration
+        navigate('/team-registration', { 
+          state: { 
+            contestCode: contestCode.trim(),
+            contestName: data.data.contestName 
+          } 
+        });
       } else {
-        setError(response.error || 'Login failed. Please check your credentials.');
+        setError(data.message || 'Invalid contest code or contest not available');
       }
     } catch (err: any) {
-      console.error('Login error:', err);
-      
-      if (err.response?.data?.error) {
-        setError(err.response.data.error);
-      } else if (err.response?.data?.details) {
-        setError(err.response.data.details);
-      } else if (err.message === 'Network Error') {
-        setError('Unable to connect to server. Please check your internet connection.');
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
+      console.error('Contest validation error:', err);
+      setError('Unable to validate contest code. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -109,13 +86,30 @@ const LoginPage: React.FC = () => {
           border: '1px solid #e2e8f0',
           borderRadius: '16px',
           boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)',
-          maxWidth: '480px',
+          maxWidth: '520px',
           width: '100%',
           padding: '48px 40px',
         }}
       >
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div
+            style={{
+              width: '80px',
+              height: '80px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 24px',
+              boxShadow: '0 8px 25px rgba(29, 78, 216, 0.25)',
+              fontSize: '2rem',
+            }}
+          >
+            🎯
+          </div>
           
           <h1 style={{ 
             fontWeight: 700, 
@@ -124,7 +118,7 @@ const LoginPage: React.FC = () => {
             marginBottom: '8px',
             fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
           }}>
-            Hack The Valley
+            Join Contest
           </h1>
           
           <p style={{ 
@@ -132,9 +126,9 @@ const LoginPage: React.FC = () => {
             fontSize: '1rem',
             fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
           }}>
-            Enter your team credentials to join the hackathon
+            Enter your contest code to get started
           </p>
-          </div>
+        </div>
 
         {/* Error Alert */}
         {error && (
@@ -155,46 +149,6 @@ const LoginPage: React.FC = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{
-              display: 'block',
-              marginBottom: '8px',
-              fontWeight: 500,
-              color: '#374151',
-              fontSize: '0.9rem',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-            }}>
-              Team Name
-            </label>
-            <input
-              type="text"
-              name="teamName"
-              value={formData.teamName}
-              onChange={handleChange}
-              required
-              disabled={isLoading}
-              placeholder="Enter your registered team name"
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: '2px solid #e5e7eb',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                transition: 'border-color 0.2s ease',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                backgroundColor: isLoading ? '#f9fafb' : '#ffffff',
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#1d4ed8';
-                e.target.style.boxShadow = '0 0 0 3px rgba(29, 78, 216, 0.1)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#e5e7eb';
-                e.target.style.boxShadow = 'none';
-              }}
-            />
-          </div>
-          
           <div style={{ marginBottom: '24px' }}>
             <label style={{
               display: 'block',
@@ -204,22 +158,38 @@ const LoginPage: React.FC = () => {
               fontSize: '0.9rem',
               fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
             }}>
-              Contest Code
+              Contest Code *
             </label>
+            <div style={{
+              marginBottom: '8px',
+              padding: '12px',
+              backgroundColor: '#f0f9ff',
+              border: '1px solid #bae6fd',
+              borderRadius: '8px',
+              fontSize: '0.85rem',
+              color: '#0c4a6e',
+              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            }}>
+              <strong>Format:</strong> 8 uppercase letters/numbers (e.g., SGY6GPTJ, FU83XKD2)
+            </div>
             <input
               type="text"
-              name="contestCode"
-              value={formData.contestCode}
+              value={contestCode}
               onChange={handleChange}
               required
               disabled={isLoading}
-              placeholder="Enter the contest code"
+              placeholder="e.g., SGY6GPTJ"
+              maxLength={8}
               style={{
                 width: '100%',
                 padding: '12px 16px',
                 border: '2px solid #e5e7eb',
                 borderRadius: '8px',
-                fontSize: '1rem',
+                fontSize: '1.2rem',
+                fontWeight: 600,
+                letterSpacing: '0.1em',
+                textAlign: 'center',
+                textTransform: 'uppercase',
                 transition: 'border-color 0.2s ease',
                 fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
                 backgroundColor: isLoading ? '#f9fafb' : '#ffffff',
@@ -237,10 +207,10 @@ const LoginPage: React.FC = () => {
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || contestCode.length !== 8}
             style={{
               width: '100%',
-              background: isLoading 
+              background: (isLoading || contestCode.length !== 8)
                 ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)' 
                 : 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
               color: 'white',
@@ -249,27 +219,27 @@ const LoginPage: React.FC = () => {
               padding: '16px 24px',
               fontSize: '1rem',
               fontWeight: 600,
-              cursor: isLoading ? 'not-allowed' : 'pointer',
+              cursor: (isLoading || contestCode.length !== 8) ? 'not-allowed' : 'pointer',
               transition: 'all 0.2s ease',
               fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              boxShadow: isLoading 
+              boxShadow: (isLoading || contestCode.length !== 8)
                 ? 'none' 
                 : '0 8px 25px rgba(29, 78, 216, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15)',
-              marginTop: '24px',
+              marginTop: '8px',
               position: 'relative',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
             onMouseEnter={(e) => {
-              if (!isLoading) {
+              if (!isLoading && contestCode.length === 8) {
                 e.currentTarget.style.background = 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%)';
                 e.currentTarget.style.transform = 'translateY(-1px)';
                 e.currentTarget.style.boxShadow = '0 12px 35px rgba(29, 78, 216, 0.35), 0 8px 20px rgba(37, 99, 235, 0.25)';
               }
             }}
             onMouseLeave={(e) => {
-              if (!isLoading) {
+              if (!isLoading && contestCode.length === 8) {
                 e.currentTarget.style.background = 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)';
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.boxShadow = '0 8px 25px rgba(29, 78, 216, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15)';
@@ -289,7 +259,7 @@ const LoginPage: React.FC = () => {
                 }}
               ></div>
             )}
-            {isLoading ? 'Logging in...' : 'Login'}
+            {isLoading ? 'Validating...' : 'Continue'}
           </button>
         </form>
 
@@ -299,11 +269,12 @@ const LoginPage: React.FC = () => {
             fontSize: '0.875rem',
             color: '#6b7280',
             fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            marginBottom: '16px'
           }}>
-            Don't have a team account yet?{' '}
+            Already registered for this contest?{' '}
             <button
               type="button"
-              onClick={() => navigate('/register')}
+              onClick={() => navigate('/login')}
               style={{
                 background: 'none',
                 border: 'none',
@@ -322,15 +293,15 @@ const LoginPage: React.FC = () => {
                 e.currentTarget.style.color = '#1d4ed8';
               }}
             >
-              Register here
+              Login here
             </button>
           </p>
         </div>
         
-        <div style={{ textAlign: 'center', marginTop: '16px' }}>
+        <div style={{ textAlign: 'center' }}>
           <button
             type="button"
-            onClick={() => navigate('/admin')}
+            onClick={() => navigate('/')}
             style={{
               background: 'none',
               border: 'none',
@@ -347,7 +318,7 @@ const LoginPage: React.FC = () => {
               e.currentTarget.style.color = '#6b7280';
             }}
           >
-            Admin Login →
+            ← Back to Home
           </button>
         </div>
       </div>
@@ -355,4 +326,4 @@ const LoginPage: React.FC = () => {
   );
 };
 
-export default LoginPage;
+export default JoinContestPage;

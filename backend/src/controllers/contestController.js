@@ -53,6 +53,17 @@ class Contest {
   }
 
   /**
+   * Generate URL-friendly slug from contest name
+   * Matches frontend logic in contestUtils.ts
+   */
+  static generateSlug(contestName) {
+    return contestName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  /**
    * Validate contest data - Phase 2.4 Enhanced Duration Management
    */
   static validateContestData(data, isUpdate = false) {
@@ -305,6 +316,28 @@ class Contest {
   }
 
   /**
+   * Find contest by name slug
+   */
+  static async findBySlug(slug) {
+    try {
+      // First try to match by generating slug from contest names
+      const contests = await db('contests').select('*');
+      
+      for (const contest of contests) {
+        const generatedSlug = Contest.generateSlug(contest.contest_name);
+        if (generatedSlug === slug) {
+          return new Contest(contest);
+        }
+      }
+
+      throw new NotFoundError('Contest not found');
+    } catch (error) {
+      if (error instanceof NotFoundError) throw error;
+      throw new DatabaseError('Failed to fetch contest by slug', error);
+    }
+  }
+
+  /**
    * Get all contests with optional filtering
    */
   static async findAll(filters = {}) {
@@ -416,7 +449,7 @@ class Contest {
 
     // Validate update data
     if (updateData.contest_name || updateData.start_time || updateData.duration) {
-      this.validateContestData({ ...existingContest, ...updateData });
+      this.validateContestData({ ...existingContest, ...updateData }, true);
     }
 
     try {
@@ -440,13 +473,11 @@ class Contest {
 
       await db('contests')
         .where('id', contestId)
-        .update({
-          ...updateData,
-          updated_at: db.fn.now()
-        });
+        .update(updateData);
 
       return await this.findById(contestId);
     } catch (error) {
+      console.error('Database update error:', error);
       throw new DatabaseError('Failed to update contest', error);
     }
   }

@@ -100,10 +100,6 @@ class MultiLangExecutor {
         return code.includes('class') && code.includes('main');
       case 'python':
         return code.length > 0; // Python is more flexible
-      case 'javascript':
-        return code.length > 0;
-      case 'go':
-        return code.includes('package main') && code.includes('func main');
       default:
         return true;
     }
@@ -160,10 +156,6 @@ class MultiLangExecutor {
    * @returns {Promise} Execution result
    */
   async executeCommand(command, args, options = {}) {
-    // In test environment without Docker/compilers, provide mock responses
-    if (process.env.NODE_ENV === 'test' && this.shouldMockExecution(command)) {
-      return this.getMockExecutionResult(command, args, options);
-    }
     const {
       cwd = process.cwd(),
       input = '',
@@ -441,75 +433,6 @@ class MultiLangExecutor {
     }
   }
 
-  /**
-   * Check if execution should be mocked in test environment
-   * @param {string} command - Command to check
-   * @returns {boolean} True if should be mocked
-   */
-  shouldMockExecution(command) {
-    const compilersAndInterpreters = ['g++', 'gcc', 'javac', 'java', 'python3', 'python', 'node', 'go'];
-    return compilersAndInterpreters.includes(command);
-  }
-
-  /**
-   * Get mock execution result for testing
-   * @param {string} command - Command being mocked
-   * @param {Array} args - Command arguments
-   * @param {Object} options - Execution options
-   * @returns {Object} Mock execution result
-   */
-  getMockExecutionResult(command, args, options) {
-    const startTime = Date.now();
-    
-    // Mock compilation commands (g++, javac, etc.)
-    if (['g++', 'gcc', 'javac', 'go'].includes(command)) {
-      return {
-        success: true,
-        output: '',
-        error: '',
-        executionTime: Date.now() - startTime,
-        exitCode: 0
-      };
-    }
-    
-    // Mock execution commands (java, python3, node, etc.)
-    if (['java', 'python3', 'python', 'node'].includes(command)) {
-      // Simulate code execution with mock outputs based on common test patterns
-      const input = options.input || '';
-      let mockOutput = '';
-      
-      // Simple pattern matching for common test cases
-      if (input.includes('5 3')) {
-        mockOutput = '8\n'; // Addition
-      } else if (input.includes('4 7')) {
-        mockOutput = '28\n'; // Multiplication  
-      } else if (input.includes('10 20')) {
-        mockOutput = '30\n'; // Addition
-      } else if (input.includes('0 0')) {
-        mockOutput = '0\n'; // Zero case
-      } else {
-        mockOutput = 'mock_output\n'; // Default mock
-      }
-      
-      return {
-        success: true,
-        output: mockOutput,
-        error: '',
-        executionTime: Date.now() - startTime + Math.random() * 100, // Simulate variable execution time
-        memoryUsed: Math.random() * 50, // Simulate memory usage 0-50MB
-        exitCode: 0
-      };
-    }
-    
-    // Default mock for other commands
-    return {
-      success: true,
-      output: 'mock_result\n',
-      error: '',
-      executionTime: Date.now() - startTime,
-      exitCode: 0
-    };
-  }
 
   /**
    * Store performance metrics for execution - Phase 4.4 integration

@@ -363,6 +363,110 @@ class Problem {
   }
 
   /**
+   * Get all problems created by an admin (across all contests)
+   */
+  static async findByAdminId(adminId) {
+    try {
+      const problems = await db('problems')
+        .join('contests', 'problems.contest_id', 'contests.id')
+        .select(
+          'problems.*',
+          'contests.contest_name',
+          'contests.created_by'
+        )
+        .where('contests.created_by', adminId)
+        .orderBy('problems.created_at', 'desc');
+
+      const problemInstances = problems.map(problem => {
+        const problemData = { ...problem };
+        delete problemData.contest_name;
+        delete problemData.created_by;
+        return {
+          ...new Problem(problemData),
+          contest_name: problem.contest_name
+        };
+      });
+
+      return problemInstances;
+    } catch (error) {
+      throw new DatabaseError('Failed to fetch problems for admin', error);
+    }
+  }
+
+  /**
+   * Copy a problem to another contest
+   */
+  static async copyToContest(originalProblemId, targetContestId, adminId) {
+    try {
+      // Get original problem
+      const originalProblem = await this.findById(originalProblemId);
+      
+      // Verify admin owns the original problem's contest
+      const originalContest = await Contest.findById(originalProblem.contest_id);
+      if (originalContest.created_by !== adminId) {
+        throw new AuthenticationError('Not authorized to copy this problem');
+      }
+
+      // Verify admin owns the target contest
+      const targetContest = await Contest.findById(targetContestId);
+      if (targetContest.created_by !== adminId) {
+        throw new AuthenticationError('Not authorized to add problems to this contest');
+      }
+
+      // Find next available problem letter for target contest
+      const existingProblems = await this.findByContestId(targetContestId);
+      const usedLetters = existingProblems.map(p => p.problem_letter).sort();
+      
+      let nextLetter = 'A';
+      for (let i = 0; i < 26; i++) {
+        const letter = String.fromCharCode(65 + i); // A-Z
+        if (!usedLetters.includes(letter)) {
+          nextLetter = letter;
+          break;
+        }
+      }
+
+      if (usedLetters.length >= 26) {
+        throw new ValidationError('Contest already has maximum number of problems (26)');
+      }
+
+      // Create new problem data
+      const newProblemData = {
+        title: originalProblem.title,
+        description: originalProblem.description,
+        input_format: originalProblem.input_format,
+        output_format: originalProblem.output_format,
+        sample_input: originalProblem.sample_input,
+        sample_output: originalProblem.sample_output,
+        constraints: originalProblem.constraints,
+        time_limit: originalProblem.time_limit,
+        memory_limit: originalProblem.memory_limit,
+        difficulty: originalProblem.difficulty,
+        problem_letter: nextLetter
+      };
+
+      // Create the copied problem
+      const copiedProblem = await this.create(newProblemData, targetContestId, adminId);
+
+      // Copy test cases
+      const TestCase = require('./testCaseController');
+      const originalTestCases = await TestCase.findByProblemId(originalProblemId);
+      
+      for (const testCase of originalTestCases) {
+        await TestCase.create({
+          input: testCase.input,
+          expected_output: testCase.expected_output,
+          is_sample: testCase.is_sample
+        }, copiedProblem.id, adminId);
+      }
+
+      return copiedProblem;
+    } catch (error) {
+      throw new DatabaseError('Failed to copy problem to contest', error);
+    }
+  }
+
+  /**
    * Get problem statistics
    */
   static async getStatistics(problemId) {

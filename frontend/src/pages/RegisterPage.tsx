@@ -7,16 +7,16 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
 import { RegisterFormData } from '../types';
+import { useAuth } from '../hooks/useAuth';
 import '../styles/theme.css';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const auth = useAuth();
   
   const [formData, setFormData] = useState<RegisterFormData>({
     teamName: '',
     contestCode: '',
-    contactEmail: '',
-    memberNames: ['', '', ''],
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -34,12 +34,6 @@ const RegisterPage: React.FC = () => {
     if (success) setSuccess(null);
   };
 
-  const handleMemberChange = (index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      memberNames: prev.memberNames.map((name, i) => i === index ? value : name),
-    }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,26 +53,65 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
+    // Validate team name format
+    const teamNameRegex = /^[a-zA-Z0-9_]+_[a-zA-Z]+(?:,[a-zA-Z]+)*$/;
+    if (!teamNameRegex.test(formData.teamName)) {
+      setError('Team name must follow format: school_lastname,lastname,lastname (e.g., "MIT_Smith,Johnson,Brown")');
+      return;
+    }
+
+    // Validate contest code format
+    const contestCodeRegex = /^[A-Z0-9]{8}$/;
+    if (!contestCodeRegex.test(formData.contestCode.trim().toUpperCase())) {
+      setError('Contest code must be exactly 8 characters containing only uppercase letters and numbers');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await apiService.registerTeam(formData);
+      const response = await apiService.registerTeam({
+        teamName: formData.teamName,
+        contestCode: formData.contestCode.trim().toUpperCase()
+      });
       
       if (response.success && response.data) {
-        apiService.setAuthToken(response.data.token);
+        // Create team object from registration response
+        const team = {
+          id: response.data.teamId,
+          teamName: response.data.teamName,
+          contestCode: response.data.contestCode,
+          sessionToken: '', // Will be set when token is decoded
+          registeredAt: response.data.registeredAt,
+          lastActivity: new Date().toISOString(),
+          isActive: true
+        };
+        
+        // Update auth state (this also sets the token)
+        auth.login(team, response.data.token);
         setSuccess('Team registered successfully! Redirecting to dashboard...');
         
+        // Let the App.tsx routing handle the redirect automatically
         setTimeout(() => {
-          navigate('/dashboard');
-        }, 2000);
+          // The /register route will detect auth.isAuthenticated = true and redirect to /dashboard
+        }, 1000);
         
       } else {
         setError(response.error || 'Registration failed. Please try again.');
       }
     } catch (err: any) {
       console.error('Registration error:', err);
-      setError('An unexpected error occurred. Please try again.');
+      
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else if (err.response?.status === 400) {
+        setError('Invalid registration data. Please check your team name and contest code format.');
+      } else if (err.response?.status === 409) {
+        setError('Team name already exists for this contest. Please choose a different name.');
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -193,6 +226,20 @@ const RegisterPage: React.FC = () => {
             }}>
               Team Name *
             </label>
+            <div style={{
+              marginBottom: '8px',
+              padding: '12px',
+              backgroundColor: '#f0f9ff',
+              border: '1px solid #bae6fd',
+              borderRadius: '8px',
+              fontSize: '0.85rem',
+              color: '#0c4a6e',
+              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            }}>
+              <strong>Format:</strong> school_lastname,lastname,lastname
+              <br />
+              <strong>Example:</strong> MIT_Smith,Johnson,Brown
+            </div>
             <input
               type="text"
               name="teamName"
@@ -200,7 +247,7 @@ const RegisterPage: React.FC = () => {
               onChange={handleChange}
               required
               disabled={isLoading}
-              placeholder="Enter your team name"
+              placeholder="e.g., MIT_Smith,Johnson,Brown"
               style={{
                 width: '100%',
                 padding: '12px 16px',
@@ -233,6 +280,18 @@ const RegisterPage: React.FC = () => {
             }}>
               Contest Code *
             </label>
+            <div style={{
+              marginBottom: '8px',
+              padding: '12px',
+              backgroundColor: '#f0f9ff',
+              border: '1px solid #bae6fd',
+              borderRadius: '8px',
+              fontSize: '0.85rem',
+              color: '#0c4a6e',
+              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            }}>
+              <strong>Format:</strong> 8 uppercase letters/numbers (e.g., SGY6GPTJ, FU83XKD2)
+            </div>
             <input
               type="text"
               name="contestCode"
@@ -240,7 +299,7 @@ const RegisterPage: React.FC = () => {
               onChange={handleChange}
               required
               disabled={isLoading}
-              placeholder="Enter the contest code"
+              placeholder="e.g., SGY6GPTJ"
               style={{
                 width: '100%',
                 padding: '12px 16px',
@@ -262,86 +321,6 @@ const RegisterPage: React.FC = () => {
             />
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{
-              display: 'block',
-              marginBottom: '8px',
-              fontWeight: 500,
-              color: '#374151',
-              fontSize: '0.9rem',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-            }}>
-              Contact Email
-            </label>
-            <input
-              type="email"
-              name="contactEmail"
-              value={formData.contactEmail || ''}
-              onChange={handleChange}
-              disabled={isLoading}
-              placeholder="team@example.com"
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: '2px solid #e5e7eb',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                transition: 'border-color 0.2s ease',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                backgroundColor: isLoading ? '#f9fafb' : '#ffffff',
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#1d4ed8';
-                e.target.style.boxShadow = '0 0 0 3px rgba(29, 78, 216, 0.1)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#e5e7eb';
-                e.target.style.boxShadow = 'none';
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{
-              display: 'block',
-              marginBottom: '12px',
-              fontWeight: 500,
-              color: '#374151',
-              fontSize: '0.9rem',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-            }}>
-              Team Members
-            </label>
-            {formData.memberNames.map((name, index) => (
-              <input
-                key={index}
-                type="text"
-                value={name}
-                onChange={(e) => handleMemberChange(index, e.target.value)}
-                disabled={isLoading}
-                placeholder={`Member ${index + 1} name`}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  fontSize: '1rem',
-                  transition: 'border-color 0.2s ease',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                  backgroundColor: isLoading ? '#f9fafb' : '#ffffff',
-                  marginBottom: '8px',
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#1d4ed8';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(29, 78, 216, 0.1)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#e5e7eb';
-                  e.target.style.boxShadow = 'none';
-                }}
-              />
-            ))}
-          </div>
 
           <button
             type="submit"

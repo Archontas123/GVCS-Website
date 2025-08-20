@@ -18,12 +18,20 @@ import {
   SubmissionFormData
 } from '../types';
 
+// Utility function to generate contest slug from name (matches contestUtils.ts)
+const generateContestSlug = (contestName: string): string => {
+  return contestName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
+
 class ApiService {
   private api: AxiosInstance;
 
   constructor() {
     this.api = axios.create({
-      baseURL: process.env.REACT_APP_API_URL || '/api',
+      baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3000/api',
       timeout: 30000, // 30 second timeout
       headers: {
         'Content-Type': 'application/json',
@@ -32,17 +40,22 @@ class ApiService {
 
     // Request interceptor to add auth token
     this.api.interceptors.request.use((config) => {
-      // For admin routes, use admin token
-      if (config.url?.startsWith('/admin/')) {
-        const adminToken = localStorage.getItem('hackathon_admin_token');
-        if (adminToken) {
-          config.headers.Authorization = `Bearer ${adminToken}`;
-        }
-      } else {
-        // For team routes, use team token
-        const token = localStorage.getItem('hackathon_token');
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+      // Skip auth for public routes
+      const isPublicRoute = config.url?.includes('/public');
+      
+      if (!isPublicRoute) {
+        // For admin routes, use admin token
+        if (config.url?.startsWith('/admin/')) {
+          const adminToken = localStorage.getItem('hackathon_admin_token');
+          if (adminToken) {
+            config.headers.Authorization = `Bearer ${adminToken}`;
+          }
+        } else {
+          // For team routes, use team token
+          const token = localStorage.getItem('hackathon_token');
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+          }
         }
       }
       return config;
@@ -63,13 +76,24 @@ class ApiService {
   }
 
   // Team authentication endpoints
-  async registerTeam(data: RegisterFormData): Promise<ApiResponse<{ team: Team; token: string }>> {
-    const response = await this.api.post('/team/register', data);
+  async registerTeam(data: RegisterFormData): Promise<ApiResponse<{ teamId: number; teamName: string; contestCode: string; contestName: string; schoolName: string; memberNames: string[]; token: string; registeredAt: string }>> {
+    const payload = {
+      teamName: data.teamName,
+      contestCode: data.contestCode,
+      password: data.password,
+      schoolName: data.schoolName,
+      memberNames: data.memberNames
+    };
+    const response = await this.api.post('/team/register', payload);
     return response.data;
   }
 
-  async loginTeam(data: LoginFormData): Promise<ApiResponse<{ team: Team; token: string }>> {
-    const response = await this.api.post('/team/login', data);
+  async loginTeam(data: LoginFormData): Promise<ApiResponse<{ teamId: number; teamName: string; contestCode: string; contestName: string; schoolName: string; memberNames: string[]; token: string; lastActivity: string }>> {
+    const payload = {
+      teamName: data.teamName,
+      password: data.password
+    };
+    const response = await this.api.post('/team/login', payload);
     return response.data;
   }
 
@@ -97,12 +121,28 @@ class ApiService {
 
   // Public problem endpoints (for viewing problems with sample test cases)
   async getProblemPublic(problemId: number): Promise<ApiResponse<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>> {
-    const response = await this.api.get(`/problems/${problemId}/public`);
+    const response = await this.api.get(`/admin/problems/${problemId}/public`);
     return response.data;
   }
 
   async getContestProblemsPublic(contestId: number): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>>> {
-    const response = await this.api.get(`/contests/${contestId}/problems/public`);
+    const response = await this.api.get(`/admin/contests/${contestId}/problems/public`);
+    return response.data;
+  }
+
+  async getContestProblemsByCode(registrationCode: string): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>>> {
+    const response = await this.api.get(`/contests/${registrationCode}/problems/public`);
+    return response.data;
+  }
+
+  async getContestProblemsBySlug(contestSlug: string): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>>> {
+    const response = await this.api.get(`/contests/${contestSlug}/problems/public`);
+    return response.data;
+  }
+
+  async getContestProblemsByName(contestName: string): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>>> {
+    const slug = generateContestSlug(contestName);
+    const response = await this.api.get(`/contests/${slug}/problems/public`);
     return response.data;
   }
 
@@ -179,6 +219,22 @@ class ApiService {
     return response.data;
   }
 
+  // Dashboard endpoints for teams
+  async getDashboardOverview(): Promise<ApiResponse<any>> {
+    const response = await this.api.get('/dashboard/overview');
+    return response.data;
+  }
+
+  async getDashboardStandings(): Promise<ApiResponse<any[]>> {
+    const response = await this.api.get('/dashboard/standings');
+    return response.data;
+  }
+
+  async getDashboardActivity(limit: number = 15): Promise<ApiResponse<any[]>> {
+    const response = await this.api.get(`/dashboard/activity?limit=${limit}`);
+    return response.data;
+  }
+
   // Health check
   async healthCheck(): Promise<ApiResponse<{ status: string; timestamp: string }>> {
     const response = await this.api.get('/health');
@@ -213,7 +269,18 @@ class ApiService {
   }
 
   async updateAdminContest(contestId: number, data: any): Promise<ApiResponse<any>> {
-    const response = await this.api.put(`/admin/contests/${contestId}`, data);
+    // Transform camelCase to snake_case for backend
+    const transformedData = {
+      contest_name: data.contestName,
+      description: data.description,
+      start_time: data.startTime,
+      duration: data.duration,
+      freeze_time: data.freezeTime,
+      is_registration_open: data.isRegistrationOpen,
+      is_active: data.isActive
+    };
+    
+    const response = await this.api.put(`/admin/contests/${contestId}`, transformedData);
     return response.data;
   }
 
@@ -244,6 +311,11 @@ class ApiService {
   }
 
   // Admin problem management endpoints
+  async getAdminProblems(): Promise<ApiResponse<any[]>> {
+    const response = await this.api.get('/admin/problems');
+    return response.data;
+  }
+
   async getAdminContestProblems(contestId: number): Promise<ApiResponse<any[]>> {
     const response = await this.api.get(`/admin/contests/${contestId}/problems`);
     return response.data;
@@ -251,6 +323,11 @@ class ApiService {
 
   async createProblem(contestId: number, data: any): Promise<ApiResponse<any>> {
     const response = await this.api.post(`/admin/contests/${contestId}/problems`, data);
+    return response.data;
+  }
+
+  async copyProblemToContest(contestId: number, problemId: number): Promise<ApiResponse<any>> {
+    const response = await this.api.post(`/admin/contests/${contestId}/problems/copy`, { problemId });
     return response.data;
   }
 

@@ -1206,4 +1206,69 @@ router.get('/system/logs', verifyAdminToken, async (req, res, next) => {
   }
 });
 
+// =============================================================================
+// PROJECT SUBMISSION ENDPOINTS
+// =============================================================================
+
+/**
+ * GET /api/admin/contests/:id/projects
+ * Get all project submissions for a contest
+ */
+router.get('/contests/:id/projects', verifyAdminToken, requireContestAccess, async (req, res, next) => {
+  try {
+    const { db } = require('../utils/db');
+    const contestId = parseInt(req.params.id);
+
+    const projects = await db('project_submissions as ps')
+      .join('teams as t', 'ps.team_id', 't.id')
+      .where('ps.contest_id', contestId)
+      .select(
+        'ps.*',
+        't.team_name'
+      )
+      .orderBy('ps.submitted_at', 'desc');
+
+    res.success(projects, 'Project submissions retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/admin/projects/:id/download
+ * Download a project submission file
+ */
+router.get('/projects/:id/download', verifyAdminToken, async (req, res, next) => {
+  try {
+    const { db } = require('../utils/db');
+    const fs = require('fs');
+    const path = require('path');
+    const submissionId = parseInt(req.params.id);
+
+    const submission = await db('project_submissions').where('id', submissionId).first();
+    
+    if (!submission) {
+      return res.notFound('Project submission not found');
+    }
+
+    const filePath = path.resolve(submission.file_path);
+    
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.notFound('Project file not found on disk');
+    }
+
+    // Set appropriate headers for file download
+    res.setHeader('Content-Disposition', `attachment; filename="${submission.original_filename}"`);
+    res.setHeader('Content-Type', submission.mime_type || 'application/zip');
+    
+    // Stream the file
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+    
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

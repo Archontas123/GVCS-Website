@@ -6,9 +6,9 @@ An ICPC-style competitive programming platform designed for school hackathons an
 
 - **ICPC Scoring System** - Authentic competitive programming scoring with penalty time
 - **Real-time Leaderboard** - Live rankings with WebSocket updates
-- **Multi-language Support** - C++, Java, Python code execution
+- **Multi-language Support** - Real C++, Java, Python code compilation and execution
 - **Team-based Registration** - Simple team registration with contest codes
-- **Secure Code Execution** - Docker-based sandboxed code execution
+- **Real Code Execution** - Native compiler/interpreter execution (no mocking)
 - **Admin Dashboard** - Contest and problem management interface
 
 ## Quick Start
@@ -47,6 +47,45 @@ postgres=# CREATE USER hackathon_user WITH PASSWORD 'hackathon_password';
 postgres=# CREATE DATABASE hackathon_db OWNER hackathon_user;
 postgres=# GRANT ALL PRIVILEGES ON DATABASE hackathon_db TO hackathon_user;
 postgres=# \q
+```
+
+## Windows Setup (Recommended)
+
+For Windows users, we provide automated setup scripts that install all required compilers and tools:
+
+### Option 1: PowerShell Script (Recommended)
+```powershell
+# Run PowerShell as Administrator, then:
+cd scripts
+.\setup-windows.ps1
+```
+
+### Option 2: Batch Script  
+```cmd
+# Run Command Prompt as Administrator, then:
+cd scripts
+setup-windows.bat
+```
+
+### What Gets Installed:
+- **Chocolatey** - Windows package manager
+- **Node.js & npm** - JavaScript runtime and package manager  
+- **Git** - Version control system
+- **Python 3.x** - Python interpreter for code execution
+- **MinGW (GCC)** - C++ compiler for code compilation
+- **OpenJDK** - Java compiler (javac) for Java code execution
+
+### Manual Installation (Alternative)
+If you prefer manual installation:
+
+```powershell
+# Install Chocolatey first
+Set-ExecutionPolicy Bypass -Scope Process -Force
+[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+
+# Install compilers
+choco install mingw openjdk -y
 ```
 
 ### Environment Configuration

@@ -14,6 +14,8 @@ import { useAdminAuth } from '../../../hooks/useAdminAuth';
 import apiService from '../../../services/api';
 import Breadcrumb from '../../../components/common/Breadcrumb';
 import DateTimePicker from '../../../components/common/DateTimePicker';
+import AddProblemModal from '../../../components/Admin/AddProblemModal';
+import { getContestUrl } from '../../../utils/contestUtils';
 
 interface Contest {
   id: number;
@@ -68,6 +70,7 @@ const ContestDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [addProblemModalOpen, setAddProblemModalOpen] = useState(false);
 
   const breadcrumbItems = [
     { label: 'Administration', href: '/admin' },
@@ -160,14 +163,30 @@ const ContestDetailPage: React.FC = () => {
     }
   };
 
+  const handleProblemAdded = () => {
+    // Refresh the problems list
+    fetchProblems();
+    setAddProblemModalOpen(false);
+  };
+
   const handleSaveChanges = async () => {
     if (!contest) return;
 
     try {
       setSaving(true);
-      const result = await apiService.updateAdminContest(contest.id, contest);
+      // Use updateContest instead of updateAdminContest since contest data is already in snake_case
+      const result = await apiService.updateContest(contest.id, {
+        contest_name: contest.contest_name,
+        description: contest.description,
+        start_time: contest.start_time,
+        duration: contest.duration,
+        freeze_time: contest.freeze_time,
+        is_registration_open: contest.is_registration_open,
+        is_active: contest.is_active
+      });
       if (result.success) {
         console.log('Contest updated successfully');
+        setError(null); // Clear any previous errors
       } else {
         throw new Error(result.message || 'Failed to update contest');
       }
@@ -179,9 +198,9 @@ const ContestDetailPage: React.FC = () => {
     }
   };
 
-  const getContestUrl = () => {
+  const getContestUrlForContest = () => {
     if (!contest) return '';
-    return contest.contest_url || `${window.location.origin}/contest/${contest.registration_code}`;
+    return contest.contest_url || getContestUrl(contest.contest_name);
   };
 
   const getStatusIcon = (status: string) => {
@@ -361,13 +380,13 @@ const ContestDetailPage: React.FC = () => {
                 fontFamily: 'monospace',
               }}
             >
-              {getContestUrl()}
+              {getContestUrlForContest()}
             </p>
           </div>
 
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <button
-              onClick={() => window.open(getContestUrl(), '_blank')}
+              onClick={() => window.open(getContestUrlForContest(), '_blank')}
               style={{
                 background: '#ffffff',
                 border: '2px solid #1d4ed8',
@@ -395,7 +414,7 @@ const ContestDetailPage: React.FC = () => {
               Preview Landing Page
             </button>
             <button
-              onClick={() => window.open(`${getContestUrl()}/problems`, '_blank')}
+              onClick={() => window.open(`${getContestUrlForContest()}/problems`, '_blank')}
               style={{
                 background: '#ffffff',
                 border: '2px solid #1d4ed8',
@@ -609,10 +628,29 @@ const ContestDetailPage: React.FC = () => {
 
                 <TextField
                   fullWidth
-                  label="Contest URL"
-                  value={getContestUrl()}
+                  label="Registration Code"
+                  value={contest.registration_code}
                   InputProps={{ readOnly: true }}
-                  helperText="Auto-generated from registration code"
+                  helperText="Teams use this code to register"
+                  sx={{
+                    '& .MuiInputBase-input': {
+                      fontFamily: 'monospace',
+                      fontSize: '1.1rem',
+                      fontWeight: 600,
+                      color: '#1d4ed8',
+                      letterSpacing: '1px'
+                    }
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <TextField
+                  fullWidth
+                  label="Contest URL"
+                  value={getContestUrlForContest()}
+                  InputProps={{ readOnly: true }}
+                  helperText="Auto-generated from contest name"
                 />
               </div>
 
@@ -725,7 +763,7 @@ const ContestDetailPage: React.FC = () => {
                   Contest Problems
                 </h3>
                 <button
-                  onClick={() => navigate('/admin/problems/new')}
+                  onClick={() => setAddProblemModalOpen(true)}
                   style={{
                     background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
                     color: 'white',
@@ -753,7 +791,7 @@ const ContestDetailPage: React.FC = () => {
                     Add problems to this contest to get started.
                   </p>
                   <button
-                    onClick={() => navigate('/admin/problems/new')}
+                    onClick={() => setAddProblemModalOpen(true)}
                     style={{
                       background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
                       color: 'white',
@@ -767,7 +805,7 @@ const ContestDetailPage: React.FC = () => {
                       fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
                     }}
                   >
-                    Create First Problem
+                    Add First Problem
                   </button>
                 </div>
               ) : (
@@ -924,6 +962,14 @@ const ContestDetailPage: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Add Problem Modal */}
+        <AddProblemModal
+          open={addProblemModalOpen}
+          onClose={() => setAddProblemModalOpen(false)}
+          contestId={parseInt(contestId!)}
+          onProblemAdded={handleProblemAdded}
+        />
       </div>
     </div>
   );

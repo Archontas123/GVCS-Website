@@ -264,6 +264,20 @@ const testCaseUpdateSchema = Joi.object({
 // =============================================================================
 
 /**
+ * GET /api/admin/problems
+ * Get all problems created by the authenticated admin
+ */
+router.get('/problems', verifyAdminToken, async (req, res, next) => {
+  try {
+    const problems = await Problem.findByAdminId(req.admin.id);
+    
+    res.success(problems, 'Admin problems retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /api/admin/contests/:contestId/problems
  * Get all problems for a contest
  */
@@ -291,6 +305,30 @@ router.post('/contests/:contestId/problems', verifyAdminToken, requireContestAcc
       ...problem,
       statistics
     }, 'Problem created successfully');
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/admin/contests/:contestId/problems/copy
+ * Copy an existing problem to this contest
+ */
+router.post('/contests/:contestId/problems/copy', verifyAdminToken, requireContestAccess, async (req, res, next) => {
+  try {
+    const { problemId } = req.body;
+    
+    if (!problemId) {
+      return res.validationError(['Problem ID is required']);
+    }
+
+    const copiedProblem = await Problem.copyToContest(problemId, req.params.contestId, req.admin.id);
+    const statistics = await Problem.getStatistics(copiedProblem.id);
+    
+    res.created({
+      ...copiedProblem,
+      statistics
+    }, 'Problem copied to contest successfully');
   } catch (error) {
     next(error);
   }
@@ -547,10 +585,33 @@ router.get('/problems/:id/public', async (req, res, next) => {
 /**
  * GET /api/contests/:contestId/problems/public
  * Get all problems for a contest (public view for contestants)
+ * Supports both contest ID and contest slug/registration code
  */
 router.get('/contests/:contestId/problems/public', async (req, res, next) => {
   try {
-    const problems = await Problem.findByContestId(req.params.contestId);
+    let contestId = req.params.contestId;
+    
+    // If not a number, try to find contest by slug or registration code
+    if (isNaN(parseInt(contestId))) {
+      const Contest = require('../controllers/contestController');
+      let contest;
+      
+      try {
+        // First try to find by slug (generated from name)
+        contest = await Contest.findBySlug(contestId);
+      } catch (error) {
+        try {
+          // If not found by slug, try registration code
+          contest = await Contest.findByRegistrationCode(contestId);
+        } catch (secondError) {
+          return res.notFound('Contest not found');
+        }
+      }
+      
+      contestId = contest.id;
+    }
+    
+    const problems = await Problem.findByContestId(contestId);
     
     // For each problem, get only sample test cases
     const problemsWithSamples = await Promise.all(

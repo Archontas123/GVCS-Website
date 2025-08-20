@@ -5,12 +5,9 @@
 
 const express = require('express');
 const router = express.Router();
-const DockerExecutor = require('../services/dockerExecutor');
+const multiLangExecutor = require('../services/multiLangExecutor');
 const { authenticateTeam } = require('../middleware/auth');
 const Joi = require('joi');
-
-// Initialize Docker executor
-const dockerExecutor = new DockerExecutor();
 
 // Validation schemas
 const executeSchema = Joi.object({
@@ -31,7 +28,13 @@ const templateSchema = Joi.object({
  */
 router.get('/status', async (req, res) => {
     try {
-        const status = dockerExecutor.getStatus();
+        const status = {
+            activeContainers: 0,
+            maxConcurrentContainers: 10,
+            supportedLanguages: multiLangExecutor.getSupportedLanguages(),
+            systemTime: new Date().toISOString(),
+            uptime: process.uptime()
+        };
         
         res.json({
             success: true,
@@ -66,7 +69,7 @@ router.get('/template/:language', (req, res) => {
             });
         }
 
-        const template = dockerExecutor.getLanguageTemplate(req.params.language);
+        const template = multiLangExecutor.getTemplate(req.params.language);
         
         res.json({
             success: true,
@@ -105,12 +108,14 @@ router.post('/test', async (req, res) => {
         
         console.log(`Test execution request: ${language}, ${code.length} chars`);
         
-        const result = await dockerExecutor.executeCode(
-            language,
+        const result = await multiLangExecutor.executeCode(
             code,
+            language,
             input,
-            timeLimit,
-            memoryLimit
+            {
+                timeLimit: timeLimit * 1000, // Convert to milliseconds
+                memoryLimit: memoryLimit
+            }
         );
 
         res.json({
@@ -191,30 +196,16 @@ router.get('/languages', (req, res) => {
     }
 });
 
-// Initialize Docker executor on module load
-(async () => {
-    try {
-        const initialized = await dockerExecutor.initialize();
-        if (!initialized) {
-            console.log('WARNING: Docker executor failed to initialize!');
-            console.log('Code execution will not work until Docker is properly configured.');
-        }
-    } catch (error) {
-        console.log('INFO: Docker not available - code execution endpoints will be disabled');
-        console.log('This is normal if Docker is not installed on your system');
-    }
-})();
+// MultiLangExecutor is ready to use - no initialization needed
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-    console.log('Received SIGINT, cleaning up Docker containers...');
-    await dockerExecutor.emergencyCleanup();
+// Graceful shutdown - no cleanup needed for multiLangExecutor
+process.on('SIGINT', () => {
+    console.log('Received SIGINT, shutting down...');
     process.exit(0);
 });
 
-process.on('SIGTERM', async () => {
-    console.log('Received SIGTERM, cleaning up Docker containers...');
-    await dockerExecutor.emergencyCleanup();
+process.on('SIGTERM', () => {
+    console.log('Received SIGTERM, shutting down...');
     process.exit(0);
 });
 

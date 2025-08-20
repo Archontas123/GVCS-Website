@@ -17,10 +17,14 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 // Pages
 import HomePage from './pages/HomePage';
+import JoinContestPage from './pages/JoinContestPage';
+import TeamRegistrationPage from './pages/TeamRegistrationPage';
+import TeamLoginPage from './pages/TeamLoginPage';
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ProblemViewPage from './pages/ProblemViewPage';
+import ProblemPreviewPage from './pages/ProblemPreviewPage';
 import CodeEditorTestPage from './pages/CodeEditorTestPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
@@ -31,6 +35,7 @@ import ProblemDetailPage from './pages/ProblemDetailPage';
 import ContestsListPage from './pages/admin/contests/ContestsListPage';
 import ContestDetailPage from './pages/admin/contests/ContestDetailPage';
 import CreateContestPageNew from './pages/admin/contests/CreateContestPage';
+import ContestPage from './pages/ContestPage';
 
 // Admin components
 import AdminProtectedRoute from './components/AdminProtectedRoute';
@@ -152,7 +157,26 @@ function App() {
             element={
               auth.isAuthenticated ? 
               <Navigate to="/dashboard" replace /> : 
-              <Navigate to="/register" replace />
+              <HomePage />
+            } 
+          />
+
+          {/* New team registration flow */}
+          <Route 
+            path="/join-contest" 
+            element={
+              auth.isAuthenticated ? 
+              <Navigate to="/dashboard" replace /> : 
+              <JoinContestPage />
+            } 
+          />
+
+          <Route 
+            path="/team-registration" 
+            element={
+              auth.isAuthenticated ? 
+              <Navigate to="/dashboard" replace /> : 
+              <TeamRegistrationPage />
             } 
           />
           
@@ -161,16 +185,63 @@ function App() {
             element={
               auth.isAuthenticated ? 
               <Navigate to="/dashboard" replace /> : 
-              <LoginPage />
+              <TeamLoginPage />
             } 
           />
-          
+
+          {/* Legacy routes (will be removed) */}
           <Route 
-            path="/register" 
+            path="/register-old" 
             element={
               auth.isAuthenticated ? 
               <Navigate to="/dashboard" replace /> : 
               <RegisterPage />
+            } 
+          />
+          
+          <Route 
+            path="/login-old" 
+            element={
+              auth.isAuthenticated ? 
+              <Navigate to="/dashboard" replace /> : 
+              <LoginPage />
+            } 
+          />
+
+          {/* Public problem preview routes */}
+          <Route 
+            path="/problem/:problemId/preview" 
+            element={<ProblemPreviewPage />} 
+          />
+          
+          <Route 
+            path="/contest/:contestId/problems/preview" 
+            element={<ProblemPreviewPage />} 
+          />
+          
+          <Route 
+            path="/contest/:contestId/problem/:problemId/preview" 
+            element={<ProblemPreviewPage />} 
+          />
+
+          {/* New slug-based preview routes */}
+          <Route 
+            path="/contest/:contestSlug/problems/preview" 
+            element={<ProblemPreviewPage />} 
+          />
+          
+          <Route 
+            path="/contest/:contestSlug/problem/:problemId/preview" 
+            element={<ProblemPreviewPage />} 
+          />
+
+          {/* Contest view route - requires authentication */}
+          <Route 
+            path="/contest/:contestSlug" 
+            element={
+              <ProtectedRoute>
+                <ContestPage />
+              </ProtectedRoute>
             } 
           />
 

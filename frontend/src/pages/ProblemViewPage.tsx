@@ -79,8 +79,8 @@ const ProblemViewPage: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   
-  const [problem, setProblem] = useState<Problem | null>(mockProblem);
-  const [loading, setLoading] = useState(false);
+  const [problem, setProblem] = useState<Problem | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
@@ -95,13 +95,19 @@ const ProblemViewPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      // For now, use mock data
-      setTimeout(() => {
-        setProblem(mockProblem);
-        setLoading(false);
-      }, 500);
-    } catch (err) {
-      setError('Failed to load problem');
+      const response = await apiService.getProblem(parseInt(id));
+      if (response.success) {
+        setProblem(response.data);
+      } else {
+        setError('Problem not found');
+      }
+    } catch (err: any) {
+      if (err.response?.status === 404) {
+        setError('Problem not found');
+      } else {
+        setError(err.response?.data?.message || 'Failed to load problem');
+      }
+    } finally {
       setLoading(false);
     }
   };

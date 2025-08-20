@@ -49,6 +49,14 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  trustProxy: false, // Explicitly set to false for development
+  skip: (req) => {
+    // Skip rate limiting in development for localhost
+    if (process.env.NODE_ENV === 'development' && (req.ip === '::1' || req.ip === '127.0.0.1')) {
+      return true;
+    }
+    return false;
+  }
 });
 
 app.use(helmet());
@@ -90,6 +98,221 @@ app.use('/api/admin', require('./routes/problems'));
 app.use('/api/timer', require('./routes/timer'));
 app.use('/api/leaderboard', require('./routes/leaderboard'));
 app.use('/api/dashboard', require('./routes/dashboard'));
+
+// Contest validation route (public)
+app.get('/api/contests/:contestCode/validate', async (req, res, next) => {
+  try {
+    const { db } = require('./utils/db');
+    const contestCode = req.params.contestCode.toUpperCase();
+    
+    // Validate contest code format
+    const contestCodeRegex = /^[A-Z0-9]{8}$/;
+    if (!contestCodeRegex.test(contestCode)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid contest code format',
+        error: 'INVALID_FORMAT'
+      });
+    }
+    
+    const contest = await db('contests')
+      .where({ registration_code: contestCode })
+      .andWhere({ is_active: true })
+      .andWhere({ is_registration_open: true })
+      .first();
+    
+    if (!contest) {
+      return res.status(404).json({
+        success: false,
+        message: 'Contest not found or registration is closed',
+        error: 'CONTEST_NOT_FOUND'
+      });
+    }
+    
+    // Check if contest has already started
+    const now = new Date();
+    if (contest.start_time && new Date(contest.start_time) <= now) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contest has already started. Registration is closed.',
+        error: 'CONTEST_STARTED'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Contest code is valid',
+      data: {
+        contestId: contest.id,
+        contestName: contest.contest_name,
+        contestCode: contestCode,
+        description: contest.description,
+        startTime: contest.start_time,
+        duration: contest.duration
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Contest validation error:', error);
+    next(error);
+  }
+});
+
+// Utility function to create URL-friendly slugs
+function createSlug(name) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+// Utility function to find contest by slug
+async function findContestBySlug(slug) {
+  const { db } = require('./utils/db');
+  const contests = await db('contests').select('*').where('is_active', true);
+  
+  for (const contest of contests) {
+    if (createSlug(contest.contest_name) === slug) {
+      return contest;
+    }
+  }
+  return null;
+}
+
+// Contest problems route - requires authentication
+app.get('/api/contests/:contestSlug/problems', async (req, res, next) => {
+  try {
+    // Check for authentication token
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+        type: 'authentication_error'
+      });
+    }
+
+    const Problem = require('./controllers/problemController');
+    const TestCase = require('./controllers/testCaseController');
+    let contestId = req.params.contestSlug;
+    
+    // If contestSlug is not a number, treat it as a contest name slug
+    if (isNaN(parseInt(contestId))) {
+      const contest = await findContestBySlug(contestId);
+      if (!contest) {
+        return res.status(404).json({
+          success: false,
+          message: 'Contest not found',
+          type: 'not_found_error'
+        });
+      }
+      contestId = contest.id;
+    }
+    
+    const problems = await Problem.findByContestId(contestId);
+    
+    // For each problem, get only sample test cases
+    const problemsWithSamples = await Promise.all(
+      problems.map(async (problem) => {
+        const sampleTestCases = await TestCase.findByProblemId(problem.id, true);
+        
+        return {
+          id: problem.id,
+          contest_id: problem.contest_id,
+          problemLetter: problem.problem_letter,
+          title: problem.title,
+          description: problem.description,
+          input_format: problem.input_format,
+          output_format: problem.output_format,
+          constraints: problem.constraints,
+          timeLimit: problem.time_limit,
+          memoryLimit: problem.memory_limit,
+          difficulty: problem.difficulty,
+          sample_test_cases: sampleTestCases.map(tc => ({
+            input: tc.input,
+            expected_output: tc.expected_output
+          }))
+        };
+      })
+    );
+    
+    res.status(200).json({
+      success: true,
+      data: problemsWithSamples,
+      message: 'Contest problems retrieved successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Public contest problems route (no authentication required)
+app.get('/api/contests/:contestSlug/problems/public', async (req, res, next) => {
+  try {
+    const Problem = require('./controllers/problemController');
+    const TestCase = require('./controllers/testCaseController');
+    const Contest = require('./controllers/contestController');
+    
+    let contestId = req.params.contestSlug;
+    
+    // If not a number, try to find contest by slug or registration code
+    if (isNaN(parseInt(contestId))) {
+      let contest;
+      
+      try {
+        // First try to find by slug (generated from name)
+        contest = await Contest.findBySlug(contestId);
+      } catch (error) {
+        try {
+          // If not found by slug, try registration code
+          contest = await Contest.findByRegistrationCode(contestId);
+        } catch (secondError) {
+          return res.status(404).json({
+            success: false,
+            message: 'Contest not found'
+          });
+        }
+      }
+      
+      contestId = contest.id;
+    }
+    
+    const problems = await Problem.findByContestId(contestId);
+    
+    // For each problem, get only sample test cases
+    const problemsWithSamples = await Promise.all(
+      problems.map(async (problem) => {
+        const sampleTestCases = await TestCase.findByProblemId(problem.id, true);
+        
+        return {
+          id: problem.id,
+          contest_id: problem.contest_id,
+          problem_letter: problem.problem_letter,
+          title: problem.title,
+          description: problem.description,
+          input_format: problem.input_format,
+          output_format: problem.output_format,
+          constraints: problem.constraints,
+          time_limit: problem.time_limit,
+          memory_limit: problem.memory_limit,
+          difficulty: problem.difficulty,
+          sample_test_cases: sampleTestCases.map(tc => ({
+            input: tc.input,
+            expected_output: tc.expected_output
+          }))
+        };
+      })
+    );
+    
+    res.json({
+      success: true,
+      data: problemsWithSamples,
+      message: 'Contest problems retrieved successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 app.use((err, req, res, next) => {
   logger.error(err.message, {

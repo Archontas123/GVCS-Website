@@ -1,23 +1,23 @@
 /**
- * Hack The Valley - Team Login Page
- * Team authentication for hackathon participation
+ * Team Login Page - Login with Team Name and Password
+ * Updated login system for the new team registration flow
  */
 
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
 import { LoginFormData } from '../types';
 import { useAuth } from '../hooks/useAuth';
+import { createContestSlug } from '../utils/contestUtils';
 import '../styles/theme.css';
 
-const LoginPage: React.FC = () => {
+const TeamLoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const auth = useAuth();
   
   const [formData, setFormData] = useState<LoginFormData>({
     teamName: '',
-    contestCode: '',
+    password: '',
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -42,8 +42,8 @@ const LoginPage: React.FC = () => {
       return;
     }
     
-    if (!formData.contestCode.trim()) {
-      setError('Contest code is required');
+    if (!formData.password.trim()) {
+      setError('Password is required');
       return;
     }
 
@@ -59,6 +59,8 @@ const LoginPage: React.FC = () => {
           id: response.data.teamId,
           teamName: response.data.teamName,
           contestCode: response.data.contestCode,
+          schoolName: response.data.schoolName,
+          memberNames: response.data.memberNames,
           sessionToken: '', // Will be set when token is decoded
           registeredAt: '',
           lastActivity: response.data.lastActivity || new Date().toISOString(),
@@ -68,8 +70,9 @@ const LoginPage: React.FC = () => {
         // Update auth state (this also sets the token)
         auth.login(team, response.data.token);
         
-        // Let the App.tsx routing handle the redirect automatically
-        // The /login route will detect auth.isAuthenticated = true and redirect to /dashboard
+        // Redirect to contest page using contest name slug
+        const contestSlug = createContestSlug(response.data.contestName);
+        navigate(`/contest/${contestSlug}`);
         
       } else {
         setError(response.error || 'Login failed. Please check your credentials.');
@@ -116,6 +119,23 @@ const LoginPage: React.FC = () => {
       >
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div
+            style={{
+              width: '80px',
+              height: '80px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 24px',
+              boxShadow: '0 8px 25px rgba(29, 78, 216, 0.25)',
+              fontSize: '2rem',
+            }}
+          >
+            🔑
+          </div>
           
           <h1 style={{ 
             fontWeight: 700, 
@@ -124,7 +144,7 @@ const LoginPage: React.FC = () => {
             marginBottom: '8px',
             fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
           }}>
-            Hack The Valley
+            Team Login
           </h1>
           
           <p style={{ 
@@ -132,7 +152,7 @@ const LoginPage: React.FC = () => {
             fontSize: '1rem',
             fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
           }}>
-            Enter your team credentials to join the hackathon
+            Enter your team credentials to access your contest
           </p>
           </div>
 
@@ -173,7 +193,7 @@ const LoginPage: React.FC = () => {
               onChange={handleChange}
               required
               disabled={isLoading}
-              placeholder="Enter your registered team name"
+              placeholder="Enter your team name (e.g., MIT_Smith,Johnson)"
               style={{
                 width: '100%',
                 padding: '12px 16px',
@@ -204,16 +224,16 @@ const LoginPage: React.FC = () => {
               fontSize: '0.9rem',
               fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
             }}>
-              Contest Code
+              Password
             </label>
             <input
-              type="text"
-              name="contestCode"
-              value={formData.contestCode}
+              type="password"
+              name="password"
+              value={formData.password}
               onChange={handleChange}
               required
               disabled={isLoading}
-              placeholder="Enter the contest code"
+              placeholder="Enter your team password"
               style={{
                 width: '100%',
                 padding: '12px 16px',
@@ -299,11 +319,12 @@ const LoginPage: React.FC = () => {
             fontSize: '0.875rem',
             color: '#6b7280',
             fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            marginBottom: '16px'
           }}>
             Don't have a team account yet?{' '}
             <button
               type="button"
-              onClick={() => navigate('/register')}
+              onClick={() => navigate('/join-contest')}
               style={{
                 background: 'none',
                 border: 'none',
@@ -327,10 +348,10 @@ const LoginPage: React.FC = () => {
           </p>
         </div>
         
-        <div style={{ textAlign: 'center', marginTop: '16px' }}>
+        <div style={{ textAlign: 'center' }}>
           <button
             type="button"
-            onClick={() => navigate('/admin')}
+            onClick={() => navigate('/')}
             style={{
               background: 'none',
               border: 'none',
@@ -347,7 +368,7 @@ const LoginPage: React.FC = () => {
               e.currentTarget.style.color = '#6b7280';
             }}
           >
-            Admin Login →
+            ← Back to Home
           </button>
         </div>
       </div>
@@ -355,4 +376,4 @@ const LoginPage: React.FC = () => {
   );
 };
 
-export default LoginPage;
+export default TeamLoginPage;

@@ -47,16 +47,16 @@ const HomePage: React.FC = () => {
           ></div>
 
 
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '48px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '48px' }}>
             <button
-              onClick={() => navigate('/register')}
+              onClick={() => navigate('/join-contest')}
               style={{
                 background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
                 color: 'white',
                 border: 'none',
                 borderRadius: '12px',
-                padding: '16px 32px',
-                fontSize: '1.1rem',
+                padding: '20px 48px',
+                fontSize: '1.2rem',
                 fontWeight: 600,
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
@@ -74,38 +74,10 @@ const HomePage: React.FC = () => {
                 e.currentTarget.style.boxShadow = '0 8px 25px rgba(29, 78, 216, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15)';
               }}
             >
-              Register Team
-            </button>
-            
-            <button
-              onClick={() => navigate('/login')}
-              style={{
-                background: '#ffffff',
-                color: '#374151',
-                border: '2px solid #e5e7eb',
-                borderRadius: '12px',
-                padding: '16px 32px',
-                fontSize: '1.1rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#f8f9fa';
-                e.currentTarget.style.borderColor = '#1d4ed8';
-                e.currentTarget.style.color = '#1d4ed8';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#ffffff';
-                e.currentTarget.style.borderColor = '#e5e7eb';
-                e.currentTarget.style.color = '#374151';
-              }}
-            >
-              Team Login
+              Join Contest
             </button>
           </div>
+
         </div>
 
 

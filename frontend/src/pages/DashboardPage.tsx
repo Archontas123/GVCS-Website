@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import apiService from '../services/api';
 import '../styles/theme.css';
 
 interface Contest {
@@ -78,7 +79,14 @@ const DashboardPage: React.FC = () => {
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'problems' | 'standings' | 'activity'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'problems' | 'standings' | 'activity' | 'projects'>('overview');
+  
+  // Project submission state
+  const [projectSubmission, setProjectSubmission] = useState<any>(null);
+  const [projectFile, setProjectFile] = useState<File | null>(null);
+  const [projectTitle, setProjectTitle] = useState('');
+  const [projectDescription, setProjectDescription] = useState('');
+  const [submittingProject, setSubmittingProject] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -86,42 +94,105 @@ const DashboardPage: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (activeTab === 'projects' && dashboardData?.contest?.id && !projectSubmission) {
+      fetchProjectSubmission();
+    }
+  }, [activeTab, dashboardData?.contest?.id]);
+
   const fetchDashboardData = async () => {
     try {
       setError(null);
       
-      // In a real implementation, you would get the token from localStorage or auth context
-      const token = localStorage.getItem('teamToken') || 'dummy-token';
-      
-      const [overviewRes, standingsRes, activityRes] = await Promise.all([
-        fetch('/api/dashboard/overview', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch('/api/dashboard/standings', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch('/api/dashboard/activity?limit=15', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-      ]);
-
-      if (!overviewRes.ok) throw new Error('Failed to fetch dashboard data');
-      if (!standingsRes.ok) throw new Error('Failed to fetch standings');
-      if (!activityRes.ok) throw new Error('Failed to fetch activity');
-
       const [overviewData, standingsData, activityData] = await Promise.all([
-        overviewRes.json(),
-        standingsRes.json(),
-        activityRes.json()
+        apiService.getDashboardOverview(),
+        apiService.getDashboardStandings(),
+        apiService.getDashboardActivity(15)
       ]);
 
       setDashboardData(overviewData.data);
       setStandings(standingsData.data);
       setRecentActivity(activityData.data);
       setLoading(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load dashboard');
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Failed to load dashboard');
       setLoading(false);
+    }
+  };
+
+  const fetchProjectSubmission = async () => {
+    try {
+      if (dashboardData?.contest?.id) {
+        const response = await apiService.getTeamProjectSubmission(dashboardData.contest.id);
+        if (response.success && response.data) {
+          setProjectSubmission(response.data);
+          setProjectTitle(response.data.project_title || '');
+          setProjectDescription(response.data.project_description || '');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch project submission:', err);
+    }
+  };
+
+  const handleProjectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!projectFile && !projectSubmission) {
+      setError('Please select a project file to upload');
+      return;
+    }
+    
+    if (!projectTitle) {
+      setError('Please enter a project title');
+      return;
+    }
+
+    setSubmittingProject(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      
+      if (projectFile) {
+        formData.append('project_file', projectFile);
+      }
+      formData.append('project_title', projectTitle);
+      formData.append('project_description', projectDescription);
+
+      const result = await apiService.submitProject(dashboardData!.contest.id, formData);
+
+      if (result.success) {
+        await fetchProjectSubmission(); // Refresh the project submission data
+        if (projectFile) {
+          setProjectFile(null);
+          // Reset file input
+          const fileInput = document.getElementById('project-file-input') as HTMLInputElement;
+          if (fileInput) fileInput.value = '';
+        }
+      } else {
+        setError(result.message || 'Failed to submit project');
+      }
+    } catch (err) {
+      setError('Failed to submit project. Please try again.');
+    } finally {
+      setSubmittingProject(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type !== 'application/zip' && file.type !== 'application/x-zip-compressed') {
+        setError('Please select a ZIP file');
+        return;
+      }
+      if (file.size > 100 * 1024 * 1024) { // 100MB
+        setError('File size must be less than 100MB');
+        return;
+      }
+      setProjectFile(file);
+      setError(null);
     }
   };
 
@@ -293,6 +364,7 @@ const DashboardPage: React.FC = () => {
           { key: 'problems', label: 'Problems' },
           { key: 'standings', label: 'Standings' },
           { key: 'activity', label: 'Recent Activity' },
+          { key: 'projects', label: 'Project Submission' },
         ].map((tab) => (
           <button 
             key={tab.key}
@@ -785,6 +857,275 @@ const DashboardPage: React.FC = () => {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'projects' && (
+        <div style={{
+          backgroundColor: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            padding: '24px',
+            borderBottom: '1px solid #e2e8f0',
+          }}>
+            <h3 style={{
+              fontSize: '1.5rem',
+              fontWeight: 600,
+              color: '#1f2937',
+              margin: 0,
+              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            }}>
+              Project Submission
+            </h3>
+            <p style={{
+              color: '#6b7280',
+              fontSize: '0.95rem',
+              marginTop: '8px',
+              margin: '8px 0 0 0',
+              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            }}>
+              Upload your hackathon project as a ZIP file. You can update your submission until the contest ends.
+            </p>
+          </div>
+          
+          <div style={{ padding: '24px' }}>
+            {projectSubmission && (
+              <div style={{
+                backgroundColor: '#f0f9ff',
+                border: '1px solid #0ea5e9',
+                borderRadius: '12px',
+                padding: '16px',
+                marginBottom: '24px',
+              }}>
+                <h4 style={{
+                  fontSize: '1.1rem',
+                  fontWeight: 600,
+                  color: '#0c4a6e',
+                  margin: '0 0 8px 0',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                }}>
+                  Current Submission: {projectSubmission.project_title}
+                </h4>
+                <p style={{ margin: '0 0 8px 0', color: '#0c4a6e', fontSize: '0.9rem' }}>
+                  <strong>File:</strong> {projectSubmission.original_filename}
+                </p>
+                <p style={{ margin: '0 0 8px 0', color: '#0c4a6e', fontSize: '0.9rem' }}>
+                  <strong>Size:</strong> {(projectSubmission.file_size / (1024 * 1024)).toFixed(2)} MB
+                </p>
+                <p style={{ margin: '0', color: '#0c4a6e', fontSize: '0.9rem' }}>
+                  <strong>Last Updated:</strong> {new Date(projectSubmission.updated_at || projectSubmission.submitted_at).toLocaleString()}
+                </p>
+                {projectSubmission.project_description && (
+                  <p style={{ margin: '12px 0 0 0', color: '#0c4a6e', fontSize: '0.9rem' }}>
+                    <strong>Description:</strong> {projectSubmission.project_description}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <form onSubmit={handleProjectSubmit}>
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  color: '#374151',
+                  marginBottom: '8px',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                }}>
+                  Project Title *
+                </label>
+                <input
+                  type="text"
+                  value={projectTitle}
+                  onChange={(e) => setProjectTitle(e.target.value)}
+                  placeholder="Enter your project title"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                    transition: 'border-color 0.2s ease',
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#1d4ed8'}
+                  onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                />
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  color: '#374151',
+                  marginBottom: '8px',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                }}>
+                  Project Description
+                </label>
+                <textarea
+                  value={projectDescription}
+                  onChange={(e) => setProjectDescription(e.target.value)}
+                  placeholder="Describe your project, technologies used, and key features"
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                    resize: 'vertical',
+                    transition: 'border-color 0.2s ease',
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#1d4ed8'}
+                  onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                />
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  color: '#374151',
+                  marginBottom: '8px',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                }}>
+                  Project File (ZIP) {!projectSubmission ? '*' : ''}
+                </label>
+                <div style={{
+                  border: '2px dashed #d1d5db',
+                  borderRadius: '8px',
+                  padding: '24px',
+                  textAlign: 'center',
+                  backgroundColor: '#f9fafb',
+                }}>
+                  <input
+                    id="project-file-input"
+                    type="file"
+                    accept=".zip,application/zip,application/x-zip-compressed"
+                    onChange={handleFileChange}
+                    style={{ display: 'none' }}
+                  />
+                  <label
+                    htmlFor="project-file-input"
+                    style={{
+                      cursor: 'pointer',
+                      display: 'inline-block',
+                    }}
+                  >
+                    <div style={{
+                      fontSize: '48px',
+                      color: '#6b7280',
+                      marginBottom: '12px',
+                    }}>
+                      📁
+                    </div>
+                    <div style={{
+                      fontSize: '1.1rem',
+                      fontWeight: 600,
+                      color: '#1d4ed8',
+                      marginBottom: '8px',
+                    }}>
+                      {projectFile ? projectFile.name : 'Click to select ZIP file'}
+                    </div>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      color: '#6b7280',
+                    }}>
+                      {projectFile ? 
+                        `${(projectFile.size / (1024 * 1024)).toFixed(2)} MB` : 
+                        'Maximum file size: 100MB'
+                      }
+                    </div>
+                  </label>
+                  {projectFile && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProjectFile(null);
+                        const fileInput = document.getElementById('project-file-input') as HTMLInputElement;
+                        if (fileInput) fileInput.value = '';
+                      }}
+                      style={{
+                        marginTop: '12px',
+                        background: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '6px 12px',
+                        fontSize: '0.875rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Remove file
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submittingProject || (!projectTitle || (!projectFile && !projectSubmission))}
+                style={{
+                  background: (submittingProject || (!projectTitle || (!projectFile && !projectSubmission))) ? 
+                    '#9ca3af' : 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '14px 28px',
+                  fontSize: '1.1rem',
+                  fontWeight: 600,
+                  cursor: (submittingProject || (!projectTitle || (!projectFile && !projectSubmission))) ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  justifyContent: 'center',
+                  width: '100%',
+                }}
+              >
+                {submittingProject ? (
+                  <>
+                    <div style={{
+                      width: '20px',
+                      height: '20px',
+                      border: '2px solid #ffffff40',
+                      borderTop: '2px solid #ffffff',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                    }} />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    📤 {projectSubmission ? 'Update Project' : 'Submit Project'}
+                  </>
+                )}
+              </button>
+            </form>
+            
+            <div style={{
+              marginTop: '24px',
+              padding: '16px',
+              backgroundColor: '#fef3c7',
+              border: '1px solid #fbbf24',
+              borderRadius: '8px',
+              fontSize: '0.9rem',
+              color: '#92400e',
+            }}>
+              <strong>Note:</strong> Only ZIP files are accepted. Make sure your project includes all necessary files, documentation, and a README file explaining how to run your project.
             </div>
           </div>
         </div>

@@ -13,15 +13,5 @@
     "template": "#!/usr/bin/env python3\n\n# Read input\n\n\n# Process and solve\n\n\n# Output result\n\n",
     "description": "Basic Python template",
     "example": "# Read two integers and output their sum\na, b = map(int, input().split())\nprint(a + b)"
-  },
-  "javascript": {
-    "template": "// Node.js template\nconst readline = require('readline');\nconst rl = readline.createInterface({\n    input: process.stdin,\n    output: process.stdout\n});\n\nrl.on('line', (line) => {\n    // Read input\n    \n    \n    // Process and solve\n    \n    \n    // Output result\n    \n    \n    rl.close();\n});",
-    "description": "Basic Node.js template with readline",
-    "example": "const readline = require('readline');\nconst rl = readline.createInterface({input: process.stdin, output: process.stdout});\n\nrl.on('line', (line) => {\n    const [a, b] = line.split(' ').map(Number);\n    console.log(a + b);\n    rl.close();\n});"
-  },
-  "go": {
-    "template": "package main\n\nimport (\n    \"fmt\"\n    \"bufio\"\n    \"os\"\n    \"strconv\"\n    \"strings\"\n)\n\nfunc main() {\n    scanner := bufio.NewScanner(os.Stdin)\n    \n    // Read input\n    \n    \n    // Process and solve\n    \n    \n    // Output result\n    \n}",
-    "description": "Basic Go template with scanner",
-    "example": "package main\n\nimport \"fmt\"\n\nfunc main() {\n    var a, b int\n    fmt.Scanf(\"%d %d\", &a, &b)\n    fmt.Println(a + b)\n}"
   }
 }

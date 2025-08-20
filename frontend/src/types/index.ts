@@ -8,6 +8,8 @@ export interface Team {
   id: number;
   teamName: string;
   contestCode: string;
+  schoolName?: string;
+  memberNames?: string[];
   sessionToken: string;
   registeredAt: string;
   lastActivity: string;
@@ -147,11 +149,14 @@ export interface WebSocketEvent {
 export interface RegisterFormData {
   teamName: string;
   contestCode: string;
+  password: string;
+  schoolName: string;
+  memberNames: string[];
 }
 
 export interface LoginFormData {
   teamName: string;
-  contestCode: string;
+  password: string;
 }
 
 export interface SubmissionFormData {

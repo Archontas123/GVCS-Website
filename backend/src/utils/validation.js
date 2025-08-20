@@ -5,20 +5,20 @@ const { ValidationError } = require('./errors');
  * Joi Schemas for Request Validation
  */
 const teamRegistrationSchema = Joi.object({
-  team_name: Joi.string()
+  teamName: Joi.string()
     .trim()
     .min(3)
-    .max(50)
-    .pattern(/^[a-zA-Z0-9\s\-_]+$/)
+    .max(100)
+    .pattern(/^[a-zA-Z0-9_\s\-\.\(\)\',]+$/)
     .required()
     .messages({
       'string.min': 'Team name must be at least 3 characters long',
-      'string.max': 'Team name must not exceed 50 characters',
-      'string.pattern.base': 'Team name can only contain letters, numbers, spaces, hyphens, and underscores',
+      'string.max': 'Team name must not exceed 100 characters',
+      'string.pattern.base': 'Team name can only contain letters, numbers, spaces, hyphens, underscores, periods, parentheses, apostrophes, and commas',
       'any.required': 'Team name is required'
     }),
   
-  contest_code: Joi.string()
+  contestCode: Joi.string()
     .trim()
     .length(8)
     .pattern(/^[A-Z0-9]+$/)
@@ -27,30 +27,74 @@ const teamRegistrationSchema = Joi.object({
       'string.length': 'Contest code must be exactly 8 characters',
       'string.pattern.base': 'Contest code must contain only uppercase letters and numbers',
       'any.required': 'Contest code is required'
+    }),
+
+  password: Joi.string()
+    .min(6)
+    .max(128)
+    .required()
+    .messages({
+      'string.min': 'Password must be at least 6 characters long',
+      'string.max': 'Password must not exceed 128 characters',
+      'any.required': 'Password is required'
+    }),
+
+  schoolName: Joi.string()
+    .trim()
+    .min(2)
+    .max(100)
+    .pattern(/^[a-zA-Z0-9\s\-\.'&]+$/)
+    .required()
+    .messages({
+      'string.min': 'School name must be at least 2 characters long',
+      'string.max': 'School name must not exceed 100 characters',
+      'string.pattern.base': 'School name can only contain letters, numbers, spaces, hyphens, apostrophes, periods, and ampersands',
+      'any.required': 'School name is required'
+    }),
+
+  memberNames: Joi.array()
+    .items(
+      Joi.string()
+        .trim()
+        .min(2)
+        .max(50)
+        .pattern(/^[a-zA-Z\s\-\.']+$/)
+        .messages({
+          'string.min': 'Member name must be at least 2 characters long',
+          'string.max': 'Member name must not exceed 50 characters',
+          'string.pattern.base': 'Member names can only contain letters, spaces, hyphens, and apostrophes'
+        })
+    )
+    .min(1)
+    .max(3)
+    .required()
+    .messages({
+      'array.min': 'At least one team member is required',
+      'array.max': 'Maximum of 3 team members allowed',
+      'any.required': 'Team members are required'
     })
 });
 
 const teamLoginSchema = Joi.object({
-  team_name: Joi.string()
+  teamName: Joi.string()
     .trim()
     .min(3)
-    .max(50)
+    .max(100)
     .required()
     .messages({
       'string.min': 'Team name must be at least 3 characters long',
-      'string.max': 'Team name must not exceed 50 characters',
+      'string.max': 'Team name must not exceed 100 characters',
       'any.required': 'Team name is required'
     }),
   
-  contest_code: Joi.string()
-    .trim()
-    .length(8)
-    .pattern(/^[A-Z0-9]+$/)
+  password: Joi.string()
+    .min(6)
+    .max(128)
     .required()
     .messages({
-      'string.length': 'Contest code must be exactly 8 characters',
-      'string.pattern.base': 'Contest code must contain only uppercase letters and numbers',
-      'any.required': 'Contest code is required'
+      'string.min': 'Password must be at least 6 characters long',
+      'string.max': 'Password must not exceed 128 characters',
+      'any.required': 'Password is required'
     })
 });
 
@@ -125,12 +169,12 @@ function validateTeamName(teamName) {
     throw new ValidationError('Team name must be at least 3 characters long');
   }
   
-  if (trimmed.length > 50) {
-    throw new ValidationError('Team name must not exceed 50 characters');
+  if (trimmed.length > 100) {
+    throw new ValidationError('Team name must not exceed 100 characters');
   }
   
-  if (!/^[a-zA-Z0-9\s\-_]+$/.test(trimmed)) {
-    throw new ValidationError('Team name can only contain letters, numbers, spaces, hyphens, and underscores');
+  if (!/^[a-zA-Z0-9_\s\-\.\(\)\',]+$/.test(trimmed)) {
+    throw new ValidationError('Team name can only contain letters, numbers, spaces, hyphens, underscores, periods, parentheses, apostrophes, and commas');
   }
   
   return trimmed;

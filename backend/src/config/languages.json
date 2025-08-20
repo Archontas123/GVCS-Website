@@ -49,37 +49,5 @@
       "NameError:",
       "TypeError:"
     ]
-  },
-  "javascript": {
-    "name": "JavaScript (Node.js)",
-    "extension": ".js",
-    "executeCmd": "node {source}",
-    "compileTimeout": 0,
-    "timeMultiplier": 3.0,
-    "memoryMultiplier": 2.0,
-    "supportsCompilation": false,
-    "mainFile": "solution.js",
-    "errorPatterns": [
-      "SyntaxError:",
-      "ReferenceError:",
-      "TypeError:"
-    ]
-  },
-  "go": {
-    "name": "Go",
-    "extension": ".go",
-    "compileCmd": "go build -o solution {source}",
-    "executeCmd": "./solution",
-    "compileTimeout": 30000,
-    "timeMultiplier": 1.5,
-    "memoryMultiplier": 1.2,
-    "supportsCompilation": true,
-    "mainFile": "solution.go",
-    "outputFile": "solution",
-    "errorPatterns": [
-      "syntax error",
-      "undefined:",
-      "cannot use"
-    ]
   }
 }

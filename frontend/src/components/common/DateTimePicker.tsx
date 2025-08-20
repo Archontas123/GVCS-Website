@@ -51,7 +51,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
       }}
       onFocus={(e) => {
         if (!disabled) {
-          e.currentTarget.style.borderColor = '#28a745';
+          e.currentTarget.style.borderColor = '#1d4ed8';
           e.currentTarget.style.outline = 'none';
         }
       }}

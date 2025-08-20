@@ -486,6 +486,21 @@ const ContestsListPage: React.FC = () => {
                             {contest.duration} minutes
                           </span>
                         </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                          <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Registration Code:</span>
+                          <span style={{ 
+                            color: '#1d4ed8', 
+                            fontSize: '0.875rem', 
+                            fontFamily: 'monospace',
+                            fontWeight: 600,
+                            backgroundColor: '#e0e7ff',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            letterSpacing: '1px'
+                          }}>
+                            {contest.registration_code}
+                          </span>
+                        </div>
                         <div style={{ display: 'flex', gap: '16px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <span style={{ color: '#6b7280', fontSize: '0.875rem', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
