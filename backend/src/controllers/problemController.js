@@ -12,6 +12,7 @@ const {
   DatabaseError 
 } = require('../utils/errors');
 const Contest = require('./contestController');
+const partialScoringService = require('../services/partialScoringService');
 
 /**
  * Problem Model Class
@@ -31,6 +32,7 @@ class Problem {
     this.time_limit = data.time_limit;
     this.memory_limit = data.memory_limit;
     this.difficulty = data.difficulty;
+    this.max_points = data.max_points;
     this.created_at = data.created_at;
   }
 
@@ -90,6 +92,10 @@ class Problem {
 
     if (data.difficulty && !['easy', 'medium', 'hard'].includes(data.difficulty)) {
       errors.push('Difficulty must be easy, medium, or hard');
+    }
+
+    if (data.max_points !== undefined && (data.max_points < 1 || data.max_points > 1000)) {
+      errors.push('Max points must be between 1 and 1000');
     }
 
     if (errors.length > 0) {
@@ -184,7 +190,8 @@ class Problem {
         constraints: problemData.constraints ? problemData.constraints.trim() : null,
         time_limit: problemData.time_limit || 2000,
         memory_limit: problemData.memory_limit || 256,
-        difficulty: problemData.difficulty || 'medium'
+        difficulty: problemData.difficulty || 'medium',
+        max_points: problemData.max_points || 100
       }).returning('id');
       
       const problemId = Array.isArray(result) ? result[0].id || result[0] : result.id || result;
@@ -199,7 +206,12 @@ class Problem {
         });
       }
 
-      return await this.findById(problemId);
+      const createdProblem = await this.findById(problemId);
+      
+      // Calculate test case points distribution
+      await partialScoringService.calculateProblemPoints(problemId);
+      
+      return createdProblem;
     } catch (error) {
       console.error('Problem creation error details:', {
         error: error.message,
@@ -495,6 +507,47 @@ class Problem {
       };
     } catch (error) {
       throw new DatabaseError('Failed to fetch problem statistics', error);
+    }
+  }
+
+  /**
+   * Set problem points and recalculate test case distribution
+   */
+  static async setProblemPoints(problemId, maxPoints, adminId) {
+    const problem = await this.findById(problemId);
+    const contest = await Contest.findById(problem.contest_id);
+    
+    if (contest.created_by !== adminId) {
+      throw new AuthenticationError('Not authorized to update this problem');
+    }
+
+    if (maxPoints < 1 || maxPoints > 1000) {
+      throw new ValidationError('Max points must be between 1 and 1000');
+    }
+
+    try {
+      await partialScoringService.setProblemPoints(problemId, maxPoints);
+      return await this.findById(problemId);
+    } catch (error) {
+      throw new DatabaseError('Failed to set problem points', error);
+    }
+  }
+
+  /**
+   * Get problem scoring statistics
+   */
+  static async getScoringStats(problemId, adminId) {
+    const problem = await this.findById(problemId);
+    const contest = await Contest.findById(problem.contest_id);
+    
+    if (contest.created_by !== adminId) {
+      throw new AuthenticationError('Not authorized to view scoring stats for this problem');
+    }
+
+    try {
+      return await partialScoringService.getProblemScoringStats(problemId);
+    } catch (error) {
+      throw new DatabaseError('Failed to get problem scoring statistics', error);
     }
   }
 

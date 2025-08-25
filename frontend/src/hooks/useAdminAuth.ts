@@ -1,8 +1,3 @@
-/**
- * CS Club Hackathon Platform - Admin Authentication Hook
- * Phase 2.3: Admin authentication and state management
- */
-
 import { useState, useEffect, useCallback } from 'react';
 import apiService from '../services/api';
 
@@ -10,7 +5,7 @@ interface AdminUser {
   id: number;
   username: string;
   email: string;
-  role: 'super_admin' | 'judge';
+  role: 'admin';
 }
 
 interface AdminAuthState {
@@ -25,26 +20,26 @@ export const useAdminAuth = (): AdminAuthState => {
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check for existing admin token on mount
   useEffect(() => {
     const checkAdminAuth = async () => {
       try {
         const token = localStorage.getItem('hackathon_admin_token');
         if (token) {
-          // Set the admin token in API service
           apiService.setAdminToken(token);
-          // TODO: Add admin profile endpoint to verify token
-          // For now, we'll assume token is valid
-          const mockAdmin: AdminUser = {
-            id: 1,
-            username: 'admin',
-            email: 'admin@example.com',
-            role: 'super_admin'
-          };
-          setAdmin(mockAdmin);
+          const response = await apiService.getAdminProfile();
+          if (response.success && response.data) {
+            const adminData: AdminUser = {
+              id: response.data.id,
+              username: response.data.username,
+              email: response.data.email,
+              role: 'admin' as const
+            };
+            setAdmin(adminData);
+          } else {
+            throw new Error('Failed to verify admin token');
+          }
         }
       } catch (error) {
-        // Token is invalid, clear it
         localStorage.removeItem('hackathon_admin_token');
         apiService.removeAdminToken();
       } finally {
@@ -62,7 +57,6 @@ export const useAdminAuth = (): AdminAuthState => {
       if (response.success && response.data) {
         const { admin: adminData, token } = response.data;
         
-        // Store token and admin data
         localStorage.setItem('hackathon_admin_token', token);
         apiService.setAdminToken(token);
         setAdmin(adminData);
@@ -70,7 +64,6 @@ export const useAdminAuth = (): AdminAuthState => {
         throw new Error(response.message || 'Login failed');
       }
     } catch (error: any) {
-      // Clear any existing auth state
       localStorage.removeItem('hackathon_admin_token');
       apiService.removeAdminToken();
       setAdmin(null);

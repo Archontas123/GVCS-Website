@@ -1,9 +1,5 @@
-/**
- * CS Club Hackathon Platform - WebSocket Service
- * Phase 5.5: Real-time Updates with Connection Management
- */
 
-import { io, Socket } from 'socket.io-client';
+import io, { Socket } from 'socket.io-client';
 import { formatDistanceToNow } from 'date-fns';
 
 // WebSocket event types
@@ -27,8 +23,6 @@ export interface WebSocketEvents {
   submissionUpdate: (data: SubmissionStatusUpdate) => void;
   submissionJudged: (data: JudgedSubmission) => void;
   
-  // Balloon events
-  balloonAwarded: (data: BalloonAward) => void;
   firstSolve: (data: FirstSolveNotification) => void;
   
   // System events
@@ -50,6 +44,7 @@ export interface LeaderboardTeam {
   rank: number;
   problemsSolved: number;
   penaltyTime: number;
+  totalPoints: number;
   lastSubmissionTime: string | null;
   problems: ProblemStatus[];
 }
@@ -60,6 +55,11 @@ export interface ProblemStatus {
   attempts: number;
   solveTime: number | null;
   firstToSolve: boolean;
+  pointsEarned?: number;
+  totalPoints?: number;
+  testCasesPassed?: number;
+  totalTestCases?: number;
+  partialCredit?: boolean;
 }
 
 export interface SubmissionStatusUpdate {
@@ -76,6 +76,7 @@ export interface JudgedSubmission {
   submissionId: number;
   teamId: number;
   problemId: number;
+  status: 'judged';
   verdict: string;
   executionTime: number;
   memoryUsed: number;
@@ -83,13 +84,6 @@ export interface JudgedSubmission {
   isAccepted: boolean;
 }
 
-export interface BalloonAward {
-  teamId: number;
-  teamName: string;
-  problemLetter: string;
-  awardTime: string;
-  balloonColor: string;
-}
 
 export interface FirstSolveNotification {
   teamName: string;
@@ -330,8 +324,6 @@ class WebSocketService {
     this.socket.on('submissionUpdate', (data) => this.emitEvent('submissionUpdate', data));
     this.socket.on('submissionJudged', (data) => this.emitEvent('submissionJudged', data));
 
-    // Balloon events
-    this.socket.on('balloonAwarded', (data) => this.emitEvent('balloonAwarded', data));
     this.socket.on('firstSolve', (data) => this.emitEvent('firstSolve', data));
 
     // System events

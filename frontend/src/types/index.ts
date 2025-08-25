@@ -1,9 +1,4 @@
-/**
- * CS Club Hackathon Platform - TypeScript Type Definitions
- * Phase 1.4: Frontend type definitions
- */
 
-// Team types
 export interface Team {
   id: number;
   teamName: string;
@@ -16,20 +11,17 @@ export interface Team {
   isActive: boolean;
 }
 
-// Contest types
 export interface Contest {
   id: number;
   contestName: string;
   description: string;
   registrationCode: string;
   startTime: string;
-  duration: number; // in minutes
-  freezeTime: number; // minutes before end to freeze leaderboard
+  duration: number; 
+  freezeTime: number; 
   isActive: boolean;
-  isRegistrationOpen: boolean;
 }
 
-// Problem types
 export interface Problem {
   id: number;
   contestId: number;

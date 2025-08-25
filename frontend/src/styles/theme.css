@@ -1,4 +1,3 @@
-/* Hack The Valley - CSS Theme (Navy school colors) */
 
 :root {
   /* Primary Colors - Navy Theme */
@@ -45,7 +44,6 @@
   --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Global Reset */
 * {
   box-sizing: border-box;
 }

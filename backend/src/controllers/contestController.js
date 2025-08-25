@@ -31,7 +31,6 @@ class Contest {
     this.freeze_time = data.freeze_time;
     this.created_by = data.created_by;
     this.is_active = data.is_active;
-    this.is_registration_open = data.is_registration_open;
     this.is_frozen = data.is_frozen;
     this.frozen_at = data.frozen_at;
     this.ended_at = data.ended_at;
@@ -240,7 +239,6 @@ class Contest {
         freeze_time: contestData.freeze_time || 60,
         created_by: adminId,
         is_active: contestData.is_active !== undefined ? contestData.is_active : true,
-        is_registration_open: contestData.is_registration_open !== undefined ? contestData.is_registration_open : true
       }).returning('id');
 
       const createdContest = await this.findById(result.id);
@@ -350,9 +348,6 @@ class Contest {
       if (filters.isActive !== undefined) {
         query = query.where('is_active', filters.isActive);
       }
-      if (filters.isRegistrationOpen !== undefined) {
-        query = query.where('is_registration_open', filters.isRegistrationOpen);
-      }
 
       const contests = await query.orderBy('created_at', 'desc');
       return contests.map(contest => new Contest(contest));
@@ -369,7 +364,6 @@ class Contest {
           freeze_time: 30,
           created_by: 1,
           is_active: true,
-          is_registration_open: true,
           is_frozen: false,
           frozen_at: null,
           created_at: new Date().toISOString(),
@@ -387,7 +381,6 @@ class Contest {
           freeze_time: 15,
           created_by: 1,
           is_active: false,
-          is_registration_open: false,
           is_frozen: false,
           frozen_at: null,
           created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
@@ -760,8 +753,7 @@ class Contest {
       await db('contests')
         .where('id', contestId)
         .update({ 
-          duration: actualDuration,
-          is_registration_open: false 
+          duration: actualDuration
         });
 
       const updatedContest = await this.findById(contestId);

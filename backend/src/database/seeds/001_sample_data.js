@@ -24,7 +24,7 @@ exports.seed = async function(knex) {
       username: 'admin',
       email: 'admin@school.edu',
       password_hash: passwordHash,
-      role: 'super_admin'
+      role: 'admin'
     }
   ]);
 };

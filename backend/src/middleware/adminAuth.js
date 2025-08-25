@@ -49,37 +49,16 @@ const verifyAdminToken = async (req, res, next) => {
 };
 
 /**
- * Middleware to check if admin has required role
+ * Middleware to check if user is admin (simplified - only admin role exists now)
  */
-const requireRole = (requiredRole) => {
-  return (req, res, next) => {
-    try {
-      if (!req.admin) {
-        throw new AuthenticationError('Admin authentication required');
-      }
-
-      if (req.admin.role !== requiredRole && req.admin.role !== 'super_admin') {
-        throw new AuthorizationError(`${requiredRole} role required`);
-      }
-
-      next();
-    } catch (error) {
-      next(error);
-    }
-  };
-};
-
-/**
- * Middleware to check if admin is super admin
- */
-const requireSuperAdmin = (req, res, next) => {
+const requireAdmin = (req, res, next) => {
   try {
     if (!req.admin) {
       throw new AuthenticationError('Admin authentication required');
     }
 
-    if (req.admin.role !== 'super_admin') {
-      throw new AuthorizationError('Super admin role required');
+    if (req.admin.role !== 'admin') {
+      throw new AuthorizationError('Admin role required');
     }
 
     next();
@@ -89,8 +68,13 @@ const requireSuperAdmin = (req, res, next) => {
 };
 
 /**
+ * Middleware to check if admin can access resource (same as requireAdmin now since there's only one admin role)
+ */
+const requireSuperAdmin = requireAdmin;
+
+/**
  * Middleware to check if admin can access contest
- * (either created by them or they are super admin)
+ * (all admins can access any contest now)
  */
 const requireContestAccess = async (req, res, next) => {
   try {
@@ -98,25 +82,8 @@ const requireContestAccess = async (req, res, next) => {
       throw new AuthenticationError('Admin authentication required');
     }
 
-    const contestId = req.params.id || req.params.contestId;
-    if (!contestId) {
-      throw new ValidationError('Contest ID is required');
-    }
-
-    // Super admin can access any contest
-    if (req.admin.role === 'super_admin') {
-      return next();
-    }
-
-    // Check if admin created this contest
-    const { db } = require('../utils/db');
-    const contest = await db('contests')
-      .where('id', contestId)
-      .where('created_by', req.admin.id)
-      .first();
-
-    if (!contest) {
-      throw new AuthorizationError('Access denied to this contest');
+    if (req.admin.role !== 'admin') {
+      throw new AuthorizationError('Admin role required');
     }
 
     next();
@@ -168,7 +135,8 @@ const optionalAdminAuth = async (req, res, next) => {
 
 module.exports = {
   verifyAdminToken,
-  requireRole,
+  requireAdmin,
+  requireRole: requireAdmin, // Backward compatibility
   requireSuperAdmin,
   requireContestAccess,
   optionalAdminAuth

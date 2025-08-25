@@ -44,25 +44,16 @@ router.post('/register', validate(teamRegistrationSchema), async (req, res, next
     const contest = await db('contests')
       .where({ registration_code: contestCode })
       .andWhere({ is_active: true })
-      .andWhere({ is_registration_open: true })
       .first();
     
     if (!contest) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid contest code or registration is closed',
+        message: 'Invalid contest code',
         error: 'INVALID_CONTEST_CODE'
       });
     }
     
-    const now = new Date();
-    if (contest.start_time && new Date(contest.start_time) <= now) {
-      return res.status(400).json({
-        success: false,
-        message: 'Contest has already started. Registration is closed.',
-        error: 'CONTEST_STARTED'
-      });
-    }
     
     const existingTeam = await db('teams')
       .where({ team_name: teamName })

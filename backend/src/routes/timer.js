@@ -101,7 +101,7 @@ router.get('/contest/:contestCode/status', authenticateTeam, async (req, res, ne
       permissions: {
         can_submit: status.status === 'running',
         can_view_problems: ['running', 'frozen'].includes(status.status),
-        can_register: status.status === 'not_started' && contest.is_registration_open
+        can_register: true
       }
     }, 'Detailed contest status retrieved successfully');
 

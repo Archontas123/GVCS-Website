@@ -70,10 +70,10 @@ const adminRegistrationSchema = Joi.object({
     }),
   
   role: Joi.string()
-    .valid('super_admin', 'judge')
-    .default('judge')
+    .valid('admin')
+    .default('admin')
     .messages({
-      'any.only': 'Role must be either super_admin or judge'
+      'any.only': 'Role must be admin'
     })
 });
 
@@ -126,7 +126,6 @@ const contestCreateSchema = Joi.object({
       'number.max': 'Freeze time cannot exceed contest duration'
     }),
   
-  is_registration_open: Joi.boolean().default(true),
   is_active: Joi.boolean().default(true)
 });
 
@@ -169,7 +168,6 @@ const contestUpdateSchema = Joi.object({
       'number.min': 'Freeze time must be 0 or greater'
     }),
   
-  is_registration_open: Joi.boolean(),
   is_active: Joi.boolean()
 });
 
@@ -281,10 +279,7 @@ router.get('/contests', verifyAdminToken, async (req, res, next) => {
   try {
     const filters = {};
     
-    // Super admin can see all contests, others only their own
-    if (req.admin.role !== 'super_admin') {
-      filters.adminId = req.admin.id;
-    }
+    // All admins can see all contests now (simplified role structure)
     
     if (req.query.active !== undefined) {
       filters.isActive = req.query.active === 'true';

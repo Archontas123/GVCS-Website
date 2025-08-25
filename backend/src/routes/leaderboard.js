@@ -1,11 +1,11 @@
 /**
- * Leaderboard API Routes - Phase 3.1
- * ICPC scoring and leaderboard endpoints
+ * Leaderboard API Routes - Updated for Hackathon Scoring
+ * Unified scoring and leaderboard endpoints
  */
 
 const express = require('express');
 const router = express.Router();
-const icpcScoring = require('../services/icpcScoring');
+const scoringService = require('../services/scoringService');
 const submissionController = require('../controllers/submissionController');
 const websocketService = require('../services/websocketService');
 const { authenticateTeam } = require('../middleware/auth');
@@ -39,8 +39,8 @@ router.get('/:contestId', async (req, res) => {
       });
     }
 
-    // Get leaderboard
-    const leaderboard = await icpcScoring.getLeaderboard(contestId);
+    // Get leaderboard using unified scoring service
+    const leaderboard = await scoringService.getLeaderboard(contestId);
 
     // Get contest statistics
     const submissionStats = await submissionController.getContestSubmissionStats(contestId);
@@ -81,14 +81,14 @@ router.get('/:contestId/team/:teamId', authenticateTeam, async (req, res) => {
       });
     }
 
-    // Get team statistics
-    const teamStats = await icpcScoring.getTeamStatistics(teamId, contestId);
+    // Get team statistics using unified scoring service
+    const teamStats = await scoringService.getTeamStatistics(teamId, contestId);
     
     // Get team submissions
     const submissions = await submissionController.getTeamSubmissions(teamId, contestId, 20);
 
-    // Get team's solved problems details
-    const teamScore = await icpcScoring.calculateTeamScore(teamId, contestId);
+    // Get team's score details
+    const teamScore = await scoringService.calculateTeamScore(teamId, contestId);
 
     res.json({
       success: true,
@@ -97,7 +97,8 @@ router.get('/:contestId/team/:teamId', authenticateTeam, async (req, res) => {
         statistics: teamStats,
         recent_submissions: submissions,
         solved_problems: teamScore.solved_problems,
-        total_penalty_time: teamScore.penalty_time
+        total_points: teamScore.total_points || 0,
+        total_penalty_time: teamScore.penalty_time || 0
       }
     });
   } catch (error) {
@@ -120,8 +121,11 @@ router.post('/:contestId/recalculate', verifyAdminToken, async (req, res) => {
     
     console.log(`Admin ${req.admin.username} requested score recalculation for contest ${contestId}`);
     
-    // Recalculate all scores and ranks
-    const results = await icpcScoring.updateContestResults(contestId);
+    // Get scoring service and recalculate scores
+    const scoring = await scoringService.getScoringService(contestId);
+    const results = await scoring.updateContestResults ? 
+      await scoring.updateContestResults(contestId) : 
+      await scoring.updateAllRanks(contestId);
 
     res.json({
       success: true,

@@ -37,7 +37,7 @@ describe('Phase 2.1 - Contest Creation System', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data.token).toBeDefined();
       expect(response.body.data.admin.username).toBe('admin');
-      expect(response.body.data.admin.role).toBe('super_admin');
+      expect(response.body.data.admin.role).toBe('admin');
 
       adminToken = response.body.data.token;
     });

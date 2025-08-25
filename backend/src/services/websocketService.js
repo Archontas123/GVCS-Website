@@ -336,10 +336,10 @@ class WebSocketService {
   async getOptimizedLeaderboardData(contestId) {
     try {
       // Lazy import to avoid circular dependency
-      const icpcScoring = require('./icpcScoring');
+      const scoringService = require('./scoringService');
       
-      // Get leaderboard from ICPC scoring service
-      const leaderboard = await icpcScoring.getLeaderboard(contestId);
+      // Get leaderboard from unified scoring service
+      const leaderboard = await scoringService.getLeaderboard(contestId);
       
       // Get contest info
       const contest = await db('contests')
@@ -677,121 +677,8 @@ class WebSocketService {
     }
   }
 
-  /**
-   * Broadcast balloon award notification - Phase 3.5
-   */
-  async broadcastBalloonAward(contestId, balloonData) {
-    try {
-      if (!this.io) {
-        console.warn('WebSocket service not initialized');
-        return;
-      }
 
-      const roomName = `contest_${contestId}`;
-      
-      // Get team and problem details
-      const team = await db('teams').where('id', balloonData.team_id).first();
-      const problem = await db('problems').where('id', balloonData.problem_id).first();
-      
-      const awardData = {
-        type: 'balloon_awarded',
-        contestId: contestId,
-        message: `🎈 ${team?.team_name || 'Team'} wins ${balloonData.color} balloon for problem ${balloonData.problem_letter}!`,
-        balloon: {
-          id: balloonData.balloon?.id,
-          team_id: balloonData.team_id,
-          team_name: team?.team_name,
-          problem_id: balloonData.problem_id,
-          problem_letter: balloonData.problem_letter,
-          problem_title: problem?.title,
-          color: balloonData.color,
-          awarded_at: new Date().toISOString()
-        },
-        timestamp: new Date().toISOString()
-      };
 
-      this.io.to(roomName).emit('balloon_award', awardData);
-      
-      // Also broadcast to admin room for monitoring
-      this.io.to('admin_room').emit('admin_notification', {
-        type: 'balloon_awarded',
-        contestId: contestId,
-        message: `Balloon awarded: ${balloonData.color} to ${team?.team_name} for ${balloonData.problem_letter}`,
-        timestamp: new Date().toISOString()
-      });
-
-      console.log(`🎈 Broadcasted balloon award for contest ${contestId}: ${balloonData.color} balloon to team ${balloonData.team_id} for problem ${balloonData.problem_letter}`);
-    } catch (error) {
-      console.error('Error broadcasting balloon award:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Broadcast balloon celebration - Phase 3.5
-   */
-  async broadcastBalloonCelebration(contestId, balloonData, celebrationType = 'first_solve') {
-    try {
-      if (!this.io) {
-        console.warn('WebSocket service not initialized');
-        return;
-      }
-
-      const roomName = `contest_${contestId}`;
-      
-      const celebrationData = {
-        type: 'balloon_celebration',
-        contestId: contestId,
-        celebration_type: celebrationType,
-        message: `🎉 First solve celebration! Problem ${balloonData.problem_letter} solved!`,
-        balloon: {
-          problem_letter: balloonData.problem_letter,
-          color: balloonData.color,
-          team_id: balloonData.team_id
-        },
-        timestamp: new Date().toISOString()
-      };
-
-      this.io.to(roomName).emit('balloon_celebration', celebrationData);
-
-      console.log(`🎉 Broadcasted balloon celebration for contest ${contestId}: problem ${balloonData.problem_letter}`);
-    } catch (error) {
-      console.error('Error broadcasting balloon celebration:', error);
-    }
-  }
-
-  /**
-   * Broadcast balloon statistics update - Phase 3.5
-   */
-  async broadcastBalloonStats(contestId) {
-    try {
-      if (!this.io) {
-        console.warn('WebSocket service not initialized');
-        return;
-      }
-
-      const balloonService = require('./balloonService');
-      const stats = await balloonService.getBalloonStats(contestId);
-      const balloons = await balloonService.getContestBalloons(contestId);
-
-      const roomName = `contest_${contestId}`;
-      
-      const statsData = {
-        type: 'balloon_stats_update',
-        contestId: contestId,
-        stats: stats,
-        recent_balloons: balloons.slice(-5), // Last 5 balloons
-        timestamp: new Date().toISOString()
-      };
-
-      this.io.to(roomName).emit('balloon_stats', statsData);
-      this.io.to('admin_room').emit('balloon_stats', statsData);
-
-      console.log(`📊 Broadcasted balloon stats for contest ${contestId}`);
-    } catch (error) {
-      console.error('Error broadcasting balloon stats:', error);
-    }
-  }
 
   // ===================================================================
   // PHASE 4.5 - VERDICT COMMUNICATION METHODS

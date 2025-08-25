@@ -1,10 +1,10 @@
 /**
- * Submission Controller - Phase 3.1 Integration
- * Handles code submissions and integrates with ICPC scoring system
+ * Submission Controller - Updated for Hackathon Scoring
+ * Handles code submissions and integrates with unified scoring system
  */
 
 const { db } = require('../utils/db');
-const icpcScoring = require('../services/icpcScoring');
+const scoringService = require('../services/scoringService');
 
 class SubmissionController {
   /**
@@ -54,15 +54,15 @@ class SubmissionController {
 
       console.log(`Updated submission ${submissionId} with status: ${status}`);
 
-      // Update ICPC scores if this affects scoring
+      // Update scores using unified scoring service
       if (status !== 'compilation_error') {
-        await icpcScoring.updateTeamScoreOnSubmission(
+        await scoringService.updateTeamScoreOnSubmission(
           updatedSubmission.team_id, 
           updatedSubmission.problem_id, 
           status
         );
         
-        console.log(`Updated ICPC scores for team ${updatedSubmission.team_id}`);
+        console.log(`Updated scores for team ${updatedSubmission.team_id}`);
       }
 
       return updatedSubmission;

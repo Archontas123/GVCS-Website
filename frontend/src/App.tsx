@@ -1,21 +1,10 @@
-/**
- * Hack The Valley - Main App Component
- * React Router setup with authentication for school hackathon
- */
-
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-
-// Theme and services
 import './styles/theme.css';
 import { useAuth } from './hooks/useAuth';
-
-// Layout components
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
-
-// Pages
 import HomePage from './pages/HomePage';
 import JoinContestPage from './pages/JoinContestPage';
 import TeamRegistrationPage from './pages/TeamRegistrationPage';
@@ -30,38 +19,56 @@ import AdminLoginPage from './pages/AdminLoginPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import CreateProblemPage from './pages/CreateProblemPage';
 import ProblemDetailPage from './pages/ProblemDetailPage';
-
-// New simplified contest pages
 import ContestsListPage from './pages/admin/contests/ContestsListPage';
 import ContestDetailPage from './pages/admin/contests/ContestDetailPage';
 import CreateContestPageNew from './pages/admin/contests/CreateContestPage';
 import ContestPage from './pages/ContestPage';
-
-// Admin components
+import LeaderboardPage from './pages/LeaderboardPage';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 
 function App() {
   const auth = useAuth();
   const [contestTimer, setContestTimer] = useState<number | undefined>(undefined);
 
-  // Mock contest timer (will be replaced with real data)
   useEffect(() => {
-    if (auth.isAuthenticated) {
-      // Mock: Contest ends in 2 hours for demo
-      const endTime = Date.now() + (2 * 60 * 60 * 1000);
-      
-      const updateTimer = () => {
-        const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
-        setContestTimer(remaining);
+    if (auth.isAuthenticated && auth.team?.contestCode) {
+      const fetchContestTimer = async () => {
+        try {
+          const response = await fetch(`/api/timer/contest/${auth.team.contestCode}/status`, {
+            headers: {
+              'Authorization': `Bearer ${auth.token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data.timing) {
+              setContestTimer(data.data.timing.time_remaining_seconds);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch contest timer:', error);
+        }
       };
 
-      updateTimer();
-      const interval = setInterval(updateTimer, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [auth.isAuthenticated]);
+      const updateTimer = () => {
+        setContestTimer(prev => prev !== undefined ? Math.max(0, prev - 1) : undefined);
+      };
 
-  // Loading screen
+      fetchContestTimer();
+      
+      const timerInterval = setInterval(updateTimer, 1000);
+      
+      const syncInterval = setInterval(fetchContestTimer, 30000);
+
+      return () => {
+        clearInterval(timerInterval);
+        clearInterval(syncInterval);
+      };
+    }
+  }, [auth.isAuthenticated, auth.team?.contestCode, auth.token]);
+
   if (auth.loading) {
     return (
       <div className="flex-center full-height">
@@ -74,7 +81,6 @@ function App() {
     <ErrorBoundary>
       <Router>
         <Routes>
-          {/* Admin routes - no layout wrapper */}
           <Route
             path="/admin/login"
             element={<AdminLoginPage />}
@@ -151,7 +157,6 @@ function App() {
             }
           />
 
-          {/* Public routes without layout */}
           <Route 
             path="/" 
             element={
@@ -161,7 +166,6 @@ function App() {
             } 
           />
 
-          {/* New team registration flow */}
           <Route 
             path="/join-contest" 
             element={
@@ -189,42 +193,12 @@ function App() {
             } 
           />
 
-          {/* Legacy routes (will be removed) */}
-          <Route 
-            path="/register-old" 
-            element={
-              auth.isAuthenticated ? 
-              <Navigate to="/dashboard" replace /> : 
-              <RegisterPage />
-            } 
-          />
-          
-          <Route 
-            path="/login-old" 
-            element={
-              auth.isAuthenticated ? 
-              <Navigate to="/dashboard" replace /> : 
-              <LoginPage />
-            } 
-          />
 
-          {/* Public problem preview routes */}
           <Route 
             path="/problem/:problemId/preview" 
             element={<ProblemPreviewPage />} 
           />
           
-          <Route 
-            path="/contest/:contestId/problems/preview" 
-            element={<ProblemPreviewPage />} 
-          />
-          
-          <Route 
-            path="/contest/:contestId/problem/:problemId/preview" 
-            element={<ProblemPreviewPage />} 
-          />
-
-          {/* New slug-based preview routes */}
           <Route 
             path="/contest/:contestSlug/problems/preview" 
             element={<ProblemPreviewPage />} 
@@ -235,7 +209,6 @@ function App() {
             element={<ProblemPreviewPage />} 
           />
 
-          {/* Contest view route - requires authentication */}
           <Route 
             path="/contest/:contestSlug" 
             element={
@@ -245,7 +218,6 @@ function App() {
             } 
           />
 
-          {/* Regular app routes with layout */}
           <Route path="/*" element={
             <Layout
               teamName={auth.team?.teamName}
@@ -255,7 +227,6 @@ function App() {
               onLogout={auth.logout}
             >
               <Routes>
-            {/* Protected routes */}
             <Route
               path="/dashboard"
               element={
@@ -265,7 +236,6 @@ function App() {
               }
             />
 
-            {/* Problem viewing route */}
             <Route
               path="/problem/:problemId"
               element={
@@ -275,7 +245,6 @@ function App() {
               }
             />
 
-            {/* Code Editor Test Page */}
             <Route
               path="/editor-test"
               element={
@@ -289,15 +258,11 @@ function App() {
               path="/leaderboard"
               element={
                 <ProtectedRoute>
-                  <div className="p-4 text-center">
-                    <h2>Leaderboard</h2>
-                    <p>This page will be implemented in Phase 3 (ICCP Scoring System)</p>
-                  </div>
+                  <LeaderboardPage />
                 </ProtectedRoute>
               }
             />
 
-                {/* 404 fallback */}
                 <Route
                   path="*"
                   element={

@@ -181,7 +181,6 @@ const ContestDetailPage: React.FC = () => {
         start_time: contest.start_time,
         duration: contest.duration,
         freeze_time: contest.freeze_time,
-        is_registration_open: contest.is_registration_open,
         is_active: contest.is_active
       });
       if (result.success) {

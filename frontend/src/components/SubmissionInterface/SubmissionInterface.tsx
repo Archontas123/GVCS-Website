@@ -809,7 +809,7 @@ const SubmissionInterface: React.FC<SubmissionInterfaceProps> = ({
           </div>
         </div>
       )}
-    </div>
+    </Box>
   );
 };
 

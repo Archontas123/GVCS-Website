@@ -461,7 +461,7 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
             
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <EmojiEvents color="primary" />
-              <Typography variant="body2">Balloon awards and achievements</Typography>
+              <Typography variant="body2">Contest achievements and milestones</Typography>
             </Box>
             
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

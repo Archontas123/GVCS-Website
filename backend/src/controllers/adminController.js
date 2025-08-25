@@ -56,8 +56,8 @@ class Admin {
       errors.push('Password must not exceed 128 characters');
     }
 
-    if (data.role && !['super_admin', 'judge'].includes(data.role)) {
-      errors.push('Role must be either super_admin or judge');
+    if (data.role && data.role !== 'admin') {
+      errors.push('Role must be admin');
     }
 
     if (errors.length > 0) {
@@ -136,7 +136,7 @@ class Admin {
         username: adminData.username.trim(),
         email: adminData.email.trim().toLowerCase(),
         password_hash: hashedPassword,
-        role: adminData.role || 'judge'
+        role: 'admin'
       }).returning('id');
 
       const createdAdmin = await this.findById(result.id);
@@ -160,7 +160,7 @@ class Admin {
         id: 1,
         username: 'admin',
         email: 'admin@hackathon.local',
-        role: 'super_admin',
+        role: 'admin',
         created_at: new Date().toISOString()
       };
 
@@ -211,7 +211,7 @@ class Admin {
           id: 1,
           username: 'admin',
           email: 'admin@hackathon.local',
-          role: 'super_admin',
+          role: 'admin',
           created_at: new Date().toISOString()
         };
 
@@ -250,7 +250,7 @@ class Admin {
           username: 'admin',
           email: 'admin@hackathon.local',
           password_hash: null,
-          role: 'super_admin',
+          role: 'admin',
           created_at: new Date().toISOString()
         };
         return new Admin(mockAdmin);

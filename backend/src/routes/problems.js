@@ -128,6 +128,16 @@ const problemCreateSchema = Joi.object({
     .messages({
       'string.length': 'Problem letter must be exactly 1 character',
       'string.pattern.base': 'Problem letter must be a single uppercase letter'
+    }),
+
+  max_points: Joi.number()
+    .integer()
+    .min(1)
+    .max(1000)
+    .default(100)
+    .messages({
+      'number.min': 'Max points must be at least 1',
+      'number.max': 'Max points must not exceed 1000'
     })
 });
 
@@ -219,6 +229,15 @@ const problemUpdateSchema = Joi.object({
     .messages({
       'string.length': 'Problem letter must be exactly 1 character',
       'string.pattern.base': 'Problem letter must be a single uppercase letter'
+    }),
+
+  max_points: Joi.number()
+    .integer()
+    .min(1)
+    .max(1000)
+    .messages({
+      'number.min': 'Max points must be at least 1',
+      'number.max': 'Max points must not exceed 1000'
     })
 });
 
@@ -345,7 +364,7 @@ router.get('/problems/:id', verifyAdminToken, async (req, res, next) => {
     // Check admin access to this problem's contest
     const Contest = require('../controllers/contestController');
     const contest = await Contest.findById(problem.contest_id);
-    if (contest.created_by !== req.admin.id && req.admin.role !== 'super_admin') {
+    if (req.admin.role !== 'admin') {
       return res.forbidden('Access denied to this problem');
     }
 
@@ -388,6 +407,72 @@ router.delete('/problems/:id', verifyAdminToken, async (req, res, next) => {
   try {
     const result = await Problem.delete(req.params.id, req.admin.id);
     res.success(result, 'Problem deleted successfully');
+  } catch (error) {
+    next(error);
+  }
+});
+
+// =============================================================================
+// PROBLEM POINTS MANAGEMENT ROUTES
+// =============================================================================
+
+/**
+ * PUT /api/admin/problems/:id/points
+ * Set maximum points for a problem and recalculate test case distribution
+ */
+router.put('/problems/:id/points', verifyAdminToken, async (req, res, next) => {
+  try {
+    const { max_points } = req.body;
+    
+    if (!max_points || max_points < 1 || max_points > 1000) {
+      return res.validationError(['Max points must be between 1 and 1000']);
+    }
+    
+    const updatedProblem = await Problem.setProblemPoints(req.params.id, max_points, req.admin.id);
+    const statistics = await Problem.getScoringStats(req.params.id, req.admin.id);
+    
+    res.success({
+      problem: updatedProblem,
+      scoring_statistics: statistics
+    }, 'Problem points updated successfully');
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/admin/problems/:id/scoring-stats
+ * Get detailed scoring statistics for a problem
+ */
+router.get('/problems/:id/scoring-stats', verifyAdminToken, async (req, res, next) => {
+  try {
+    const statistics = await Problem.getScoringStats(req.params.id, req.admin.id);
+    
+    res.success(statistics, 'Problem scoring statistics retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * PUT /api/admin/contests/:contestId/problems/bulk-points
+ * Set points for all problems in a contest
+ */
+router.put('/contests/:contestId/problems/bulk-points', verifyAdminToken, requireContestAccess, async (req, res, next) => {
+  try {
+    const { points_per_problem } = req.body;
+    
+    if (!points_per_problem || points_per_problem < 1 || points_per_problem > 1000) {
+      return res.validationError(['Points per problem must be between 1 and 1000']);
+    }
+    
+    const partialScoringService = require('../services/partialScoringService');
+    const result = await partialScoringService.updateContestPointsDistribution(
+      req.params.contestId, 
+      points_per_problem
+    );
+    
+    res.success(result, 'Contest points distribution updated successfully');
   } catch (error) {
     next(error);
   }

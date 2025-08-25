@@ -149,15 +149,25 @@ const RealTimeLeaderboard: React.FC<RealTimeLeaderboardProps> = ({
       return {
         icon: <CheckCircle />,
         color: theme.palette.success.main,
-        text: `✓ ${problem.attempts}`,
-        tooltip: `Solved in ${problem.solveTime} minutes (${problem.attempts} attempts)`,
+        text: problem.totalPoints ? `${problem.pointsEarned || problem.totalPoints}` : `✓`,
+        tooltip: `Fully solved: ${problem.pointsEarned || problem.totalPoints}/${problem.totalPoints || 1} points`,
+      };
+    } else if (problem.partialCredit && (problem.pointsEarned || 0) > 0) {
+      // Partial credit - show points earned
+      const percentage = problem.totalTestCases ? 
+        Math.round(((problem.testCasesPassed || 0) / problem.totalTestCases) * 100) : 0;
+      return {
+        icon: <CheckCircle sx={{ opacity: 0.7 }} />,
+        color: theme.palette.warning.main,
+        text: `${problem.pointsEarned || 0}/${problem.totalPoints || 1}`,
+        tooltip: `Partial credit: ${problem.testCasesPassed || 0}/${problem.totalTestCases || 0} test cases (${percentage}%)`,
       };
     } else if (problem.attempts > 0) {
       return {
         icon: <Cancel />,
         color: theme.palette.error.main,
-        text: `✗ ${problem.attempts}`,
-        tooltip: `${problem.attempts} failed attempts`,
+        text: `0/${problem.totalPoints || 1}`,
+        tooltip: `${problem.attempts} failed attempts - 0 points earned`,
       };
     } else {
       return {
@@ -169,11 +179,9 @@ const RealTimeLeaderboard: React.FC<RealTimeLeaderboardProps> = ({
     }
   };
 
-  // Format penalty time
-  const formatPenaltyTime = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}:${mins.toString().padStart(2, '0')}` : `${mins}`;
+  // Format points with thousands separator
+  const formatPoints = (points: number): string => {
+    return points.toLocaleString();
   };
 
   // Get display teams (with limit if specified)
@@ -299,7 +307,7 @@ const RealTimeLeaderboard: React.FC<RealTimeLeaderboardProps> = ({
               <TableCell sx={{ color: 'white', fontWeight: 600 }}>Rank</TableCell>
               <TableCell sx={{ color: 'white', fontWeight: 600 }}>Team</TableCell>
               <TableCell sx={{ color: 'white', fontWeight: 600 }} align="center">Solved</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600 }} align="center">Penalty</TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 600 }} align="center">Points</TableCell>
               
               {showProblemMatrix && problemLetters.map(letter => (
                 <TableCell 
@@ -403,10 +411,10 @@ const RealTimeLeaderboard: React.FC<RealTimeLeaderboardProps> = ({
                       </Typography>
                     </TableCell>
 
-                    {/* Penalty Time */}
+                    {/* Total Points */}
                     <TableCell align="center">
-                      <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
-                        {formatPenaltyTime(teamData.penaltyTime)}
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                        {formatPoints(teamData.totalPoints || 0)}
                       </Typography>
                     </TableCell>
 

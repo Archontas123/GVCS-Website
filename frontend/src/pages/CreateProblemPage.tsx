@@ -16,6 +16,7 @@ interface ProblemFormData {
   inputFormat: string;
   constraints: string;
   outputFormat: string;
+  points: number;
 }
 
 const CreateProblemPage: React.FC = () => {
@@ -27,6 +28,7 @@ const CreateProblemPage: React.FC = () => {
     inputFormat: '',
     constraints: '',
     outputFormat: '',
+    points: 1,
   });
   const [saving, setSaving] = useState(false);
 
@@ -68,7 +70,8 @@ const CreateProblemPage: React.FC = () => {
         sample_output: '', // Can be added later via test cases
         time_limit: 2000, // Default 2 seconds
         memory_limit: 256, // Default 256MB
-        difficulty: 'medium' // Default difficulty
+        difficulty: 'medium', // Default difficulty
+        points_value: formData.points // Custom points for hackathon scoring
       };
 
       // Create the problem using API service
@@ -264,6 +267,59 @@ const CreateProblemPage: React.FC = () => {
                 placeholder="List the constraints..."
                 minRows={4}
               />
+            </div>
+
+            {/* Points Value */}
+            <div>
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
+                color: '#374151',
+                fontSize: '1rem',
+                fontWeight: 600,
+                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+              }}>
+                Points Value
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="1000"
+                value={formData.points}
+                onChange={(e) => setFormData(prev => ({ ...prev, points: parseInt(e.target.value) || 1 }))}
+                placeholder="Enter points for this problem"
+                style={{
+                  width: '100%',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '12px',
+                  fontSize: '1rem',
+                  padding: '16px 18px',
+                  transition: 'all 0.2s ease',
+                  backgroundColor: '#ffffff',
+                  color: '#1f2937',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                  boxSizing: 'border-box',
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#1d4ed8';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(29, 78, 216, 0.1)';
+                  e.target.style.outline = 'none';
+                  e.target.style.backgroundColor = '#dbeafe';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb';
+                  e.target.style.boxShadow = 'none';
+                  e.target.style.backgroundColor = '#ffffff';
+                }}
+              />
+              <p style={{
+                fontSize: '0.875rem',
+                color: '#6b7280',
+                marginTop: '4px',
+                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+              }}>
+                Teams will earn partial points based on test cases passed (e.g., 10/15 test cases = {formData.points * (10/15)} points)
+              </p>
             </div>
 
             {/* Output Format */}

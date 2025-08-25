@@ -132,11 +132,10 @@ class ICPCJudge {
         judgeResult.accepted = true;
         judgeResult.score = this.scoring.AC_POINTS;
         
-        // Check if this is the first solve for virtual balloon
+        // Check if this is the first solve
         const isFirstSolve = await this.checkFirstSolve(problemId, contestId, teamId);
         if (isFirstSolve) {
           judgeResult.firstSolve = true;
-          await this.awardVirtualBalloon(problemId, contestId, teamId);
         }
         
         // Update team score
@@ -385,19 +384,6 @@ class ICPCJudge {
     }
   }
 
-  /**
-   * Award virtual balloon for first solve
-   */
-  async awardVirtualBalloon(problemId, contestId, teamId) {
-    try {
-      // Use balloon service if available
-      const BalloonService = require('./balloonService');
-      const balloonService = new BalloonService();
-      await balloonService.awardBalloon(problemId, contestId, teamId, 'first_solve');
-    } catch (error) {
-      console.error('Error awarding balloon:', error);
-    }
-  }
 
   /**
    * Update team score after accepted submission

@@ -799,29 +799,21 @@ class ICPCScoring {
   }
 
   /**
-   * Enhanced leaderboard with attempt tracking details and balloons - Phase 3.5
+   * Enhanced leaderboard with attempt tracking details
    */
   async getEnhancedLeaderboard(contestId) {
     try {
       const basicLeaderboard = await this.getLeaderboard(contestId);
       const enhancedLeaderboard = [];
       
-      // Get balloon data for all teams
-      const balloonService = require('./balloonService');
-      const balloonsForLeaderboard = await balloonService.getBalloonsForLeaderboard(contestId);
-      
       for (const teamEntry of basicLeaderboard) {
         const problemMatrix = await this.getTeamProblemMatrix(teamEntry.team_id, contestId);
-        const teamBalloons = balloonsForLeaderboard[teamEntry.team_id] || { balloons: [], balloon_count: 0, colors: [] };
         
         enhancedLeaderboard.push({
           ...teamEntry,
           problem_matrix: problemMatrix.problems,
           total_attempts: problemMatrix.problems.reduce((sum, p) => sum + p.total_attempts, 0),
-          problems_attempted: problemMatrix.problems.filter(p => p.total_attempts > 0).length,
-          balloons: teamBalloons.balloons,
-          balloon_count: teamBalloons.balloon_count,
-          balloon_colors: teamBalloons.colors
+          problems_attempted: problemMatrix.problems.filter(p => p.total_attempts > 0).length
         });
       }
 
@@ -900,64 +892,8 @@ class ICPCScoring {
     }
   }
 
-  /**
-   * Process submission for balloon award - Phase 3.5
-   * Called when a submission is judged as accepted
-   */
-  async processSubmissionForBalloon(submission) {
-    try {
-      const balloonService = require('./balloonService');
-      const balloon = await balloonService.processSubmissionForBalloon(submission);
-      
-      if (balloon) {
-        // Trigger leaderboard update to show new balloon
-        const problem = await db('problems').where('id', submission.problem_id).first();
-        if (problem) {
-          this.triggerLeaderboardUpdate(problem.contest_id);
-        }
-      }
-      
-      return balloon;
-    } catch (error) {
-      console.error('Error processing submission for balloon:', error);
-      return null;
-    }
-  }
 
-  /**
-   * Get balloon information for contest - Phase 3.5
-   */
-  async getContestBalloonInfo(contestId) {
-    try {
-      const balloonService = require('./balloonService');
-      
-      const balloonStats = await balloonService.getBalloonStats(contestId);
-      const contestBalloons = await balloonService.getContestBalloons(contestId);
-      const firstSolveStatus = await balloonService.getFirstSolveStatus(contestId);
-      
-      return {
-        stats: balloonStats,
-        balloons: contestBalloons,
-        first_solve_status: firstSolveStatus
-      };
-    } catch (error) {
-      console.error('Error getting contest balloon info:', error);
-      throw error;
-    }
-  }
 
-  /**
-   * Get team balloon collection - Phase 3.5
-   */
-  async getTeamBalloonCollection(teamId, contestId) {
-    try {
-      const balloonService = require('./balloonService');
-      return await balloonService.getTeamBalloons(teamId, contestId);
-    } catch (error) {
-      console.error('Error getting team balloon collection:', error);
-      return [];
-    }
-  }
 }
 
 module.exports = new ICPCScoring();

@@ -1,8 +1,3 @@
-/**
- * CS Club Hackathon Platform - WebSocket Hook
- * Phase 5.5: React Hook for WebSocket Integration
- */
-
 import { useEffect, useState, useCallback, useRef } from 'react';
 import webSocketService, { 
   ConnectionStatus, 
@@ -13,7 +8,6 @@ import webSocketService, {
 } from '../services/websocket';
 import { useAuth } from './useAuth';
 
-// Hook return type
 interface UseWebSocketReturn {
   connectionStatus: ConnectionStatus;
   connectionHealth: {
@@ -34,7 +28,6 @@ interface UseWebSocketReturn {
   emit: (event: string, data?: any) => void;
 }
 
-// Real-time data hook
 interface UseRealTimeDataReturn {
   leaderboard: LeaderboardData | null;
   lastLeaderboardUpdate: Date | null;
@@ -46,16 +39,13 @@ interface UseRealTimeDataReturn {
   markNotificationRead: (index: number) => void;
 }
 
-/**
- * Main WebSocket hook for connection management
- */
+
 export const useWebSocket = (): UseWebSocketReturn => {
   const { team } = useAuth();
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [connectionHealth, setConnectionHealth] = useState(webSocketService.getConnectionHealth());
-  const handlersRef = useRef<Map<string, Function>>(new Map());
+  const handlersRef = useRef<Map<string, any>>(new Map());
 
-  // Update connection status
   useEffect(() => {
     const updateStatus = () => {
       setConnectionStatus(webSocketService.getConnectionStatus());
@@ -66,14 +56,12 @@ export const useWebSocket = (): UseWebSocketReturn => {
     return () => clearInterval(interval);
   }, []);
 
-  // Auto-connect when authenticated
   useEffect(() => {
     if (team && team.sessionToken && connectionStatus === 'disconnected') {
       webSocketService.connect(team.sessionToken);
     }
   }, [team, connectionStatus]);
 
-  // Connection management
   const connect = useCallback(() => {
     const token = team?.sessionToken;
     webSocketService.connect(token);
@@ -83,7 +71,6 @@ export const useWebSocket = (): UseWebSocketReturn => {
     webSocketService.disconnect();
   }, []);
 
-  // Contest room management
   const joinContest = useCallback((contestId: number) => {
     webSocketService.joinContest(contestId);
   }, []);
@@ -92,7 +79,6 @@ export const useWebSocket = (): UseWebSocketReturn => {
     webSocketService.leaveContest(contestId);
   }, []);
 
-  // Data requests
   const requestLeaderboardUpdate = useCallback((contestId: number) => {
     webSocketService.requestLeaderboardUpdate(contestId);
   }, []);
@@ -101,7 +87,6 @@ export const useWebSocket = (): UseWebSocketReturn => {
     webSocketService.requestSubmissionStatus(submissionId);
   }, []);
 
-  // Event handling with cleanup tracking
   const on = useCallback(<K extends keyof WebSocketEvents>(
     event: K, 
     handler: WebSocketEvents[K]
@@ -121,12 +106,11 @@ export const useWebSocket = (): UseWebSocketReturn => {
     webSocketService.emit(event, data);
   }, []);
 
-  // Cleanup handlers on unmount
   useEffect(() => {
     return () => {
       handlersRef.current.forEach((handler, key) => {
         const [event] = key.split('_');
-        webSocketService.off(event as keyof WebSocketEvents, handler);
+        webSocketService.off(event as keyof WebSocketEvents, handler as any);
       });
       handlersRef.current.clear();
     };
@@ -147,9 +131,7 @@ export const useWebSocket = (): UseWebSocketReturn => {
   };
 };
 
-/**
- * Hook for managing real-time data (leaderboard, submissions, notifications)
- */
+
 export const useRealTimeData = (contestId?: number): UseRealTimeDataReturn => {
   const { connectionStatus, on, off, joinContest, leaveContest } = useWebSocket();
   const [leaderboard, setLeaderboard] = useState<LeaderboardData | null>(null);
@@ -157,7 +139,6 @@ export const useRealTimeData = (contestId?: number): UseRealTimeDataReturn => {
   const [submissionUpdates, setSubmissionUpdates] = useState<SubmissionStatusUpdate[]>([]);
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
 
-  // Join/leave contest room when contestId changes
   useEffect(() => {
     if (contestId && connectionStatus === 'connected') {
       joinContest(contestId);
@@ -165,28 +146,22 @@ export const useRealTimeData = (contestId?: number): UseRealTimeDataReturn => {
     }
   }, [contestId, connectionStatus, joinContest, leaveContest]);
 
-  // Setup event handlers
   useEffect(() => {
-    // Leaderboard updates
     const handleLeaderboardUpdate = (data: LeaderboardData) => {
       setLeaderboard(data);
       setLastLeaderboardUpdate(new Date());
     };
 
-    // Submission updates
     const handleSubmissionUpdate = (data: SubmissionStatusUpdate) => {
       setSubmissionUpdates(prev => {
-        // Keep only the latest 50 updates
         const updated = [data, ...prev.filter(s => s.submissionId !== data.submissionId)];
         return updated.slice(0, 50);
       });
     };
 
-    // System notifications
     const handleSystemNotification = (data: SystemNotification) => {
       setNotifications(prev => [data, ...prev]);
       
-      // Auto-remove notifications after 5 minutes if autoClose is true
       if (data.autoClose !== false) {
         setTimeout(() => {
           setNotifications(prev => prev.filter(n => n.timestamp !== data.timestamp));
@@ -194,7 +169,6 @@ export const useRealTimeData = (contestId?: number): UseRealTimeDataReturn => {
       }
     };
 
-    // Time warnings
     const handleTimeWarning = (data: { timeRemaining: number; message: string }) => {
       const notification: SystemNotification = {
         type: 'warning',
@@ -206,7 +180,6 @@ export const useRealTimeData = (contestId?: number): UseRealTimeDataReturn => {
       handleSystemNotification(notification);
     };
 
-    // Contest events
     const handleContestStarted = (data: { contestId: number; startTime: string }) => {
       const notification: SystemNotification = {
         type: 'success',
@@ -240,19 +213,7 @@ export const useRealTimeData = (contestId?: number): UseRealTimeDataReturn => {
       handleSystemNotification(notification);
     };
 
-    // Balloon awards
-    const handleBalloonAwarded = (data: any) => {
-      const notification: SystemNotification = {
-        type: 'success',
-        title: 'Balloon Awarded! 🎈',
-        message: `${data.teamName} was first to solve Problem ${data.problemLetter}!`,
-        timestamp: new Date().toISOString(),
-        autoClose: true,
-      };
-      handleSystemNotification(notification);
-    };
 
-    // Register handlers
     on('leaderboardUpdate', handleLeaderboardUpdate);
     on('submissionUpdate', handleSubmissionUpdate);
     on('systemNotification', handleSystemNotification);
@@ -260,9 +221,7 @@ export const useRealTimeData = (contestId?: number): UseRealTimeDataReturn => {
     on('contestStarted', handleContestStarted);
     on('contestEnded', handleContestEnded);
     on('contestFrozen', handleContestFrozen);
-    on('balloonAwarded', handleBalloonAwarded);
 
-    // Cleanup
     return () => {
       off('leaderboardUpdate', handleLeaderboardUpdate);
       off('submissionUpdate', handleSubmissionUpdate);
@@ -271,11 +230,9 @@ export const useRealTimeData = (contestId?: number): UseRealTimeDataReturn => {
       off('contestStarted', handleContestStarted);
       off('contestEnded', handleContestEnded);
       off('contestFrozen', handleContestFrozen);
-      off('balloonAwarded', handleBalloonAwarded);
     };
   }, [on, off]);
 
-  // Notification management
   const clearNotifications = useCallback(() => {
     setNotifications([]);
   }, []);
@@ -296,9 +253,6 @@ export const useRealTimeData = (contestId?: number): UseRealTimeDataReturn => {
   };
 };
 
-/**
- * Hook specifically for submission status tracking
- */
 export const useSubmissionTracking = (submissionIds: number[]) => {
   const { on, off, requestSubmissionStatus } = useWebSocket();
   const [submissionStatuses, setSubmissionStatuses] = useState<Map<number, SubmissionStatusUpdate>>(new Map());
@@ -313,7 +267,6 @@ export const useSubmissionTracking = (submissionIds: number[]) => {
     on('submissionUpdate', handleSubmissionUpdate);
     on('submissionJudged', handleSubmissionUpdate);
 
-    // Request status for all tracked submissions
     submissionIds.forEach(id => requestSubmissionStatus(id));
 
     return () => {

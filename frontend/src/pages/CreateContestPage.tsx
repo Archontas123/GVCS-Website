@@ -42,7 +42,6 @@ interface ContestFormData {
   duration: number;
   freeze_time: number;
   is_active: boolean;
-  is_registration_open: boolean;
 }
 
 const CreateContestPage: React.FC = () => {
@@ -56,7 +55,6 @@ const CreateContestPage: React.FC = () => {
     duration: 180, // Default: 3 hours
     freeze_time: 30, // Default: 30 minutes before end
     is_active: true,
-    is_registration_open: true,
   });
   
   const [errors, setErrors] = useState<string[]>([]);
@@ -142,7 +140,6 @@ const CreateContestPage: React.FC = () => {
         duration: formData.duration,
         freeze_time: formData.freeze_time,
         is_active: formData.is_active,
-        is_registration_open: formData.is_registration_open,
       };
 
       const response = await apiService.createContest(contestData);

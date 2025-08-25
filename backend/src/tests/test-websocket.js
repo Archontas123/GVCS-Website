@@ -56,7 +56,7 @@ class WebSocketTester {
         username: 'test_admin',
         email: 'admin@test.com',
         password_hash: 'hashed_password',
-        role: 'judge'
+        role: 'admin'
       };
 
       const [adminId] = await db('admins').insert(adminData).returning('id');

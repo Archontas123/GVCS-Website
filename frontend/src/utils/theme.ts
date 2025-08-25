@@ -1,9 +1,3 @@
-/**
- * CS Club Hackathon Platform - Theme Configuration (CSS-based, replacing MUI)
- * Phase 1.4: Custom theme with ICPC-style colors and responsive design
- */
-
-// CSS Custom Properties (defined in theme.css)
 export const theme = {
   palette: {
     primary: {
@@ -48,7 +42,6 @@ export const theme = {
   },
 };
 
-// Contest-specific color utilities
 export const getVerdictColor = (verdict: string): string => {
   switch (verdict.toLowerCase()) {
     case 'accepted':
