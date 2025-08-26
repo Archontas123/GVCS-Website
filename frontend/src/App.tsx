@@ -20,6 +20,7 @@ import ProblemDetailPage from './pages/ProblemDetailPage';
 import ContestsListPage from './pages/admin/contests/ContestsListPage';
 import ContestDetailPage from './pages/admin/contests/ContestDetailPage';
 import CreateContestPageNew from './pages/admin/contests/CreateContestPage';
+import ProblemsListPage from './pages/admin/problems/ProblemsListPage';
 import ContestPage from './pages/ContestPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
@@ -131,6 +132,15 @@ function App() {
             element={
               <AdminProtectedRoute>
                 <ContestDetailPage />
+              </AdminProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/admin/problems"
+            element={
+              <AdminProtectedRoute>
+                <ProblemsListPage />
               </AdminProtectedRoute>
             }
           />

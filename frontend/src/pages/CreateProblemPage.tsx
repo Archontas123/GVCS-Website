@@ -28,7 +28,8 @@ const CreateProblemPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   const breadcrumbItems = [
-    { label: 'Manage Problems', href: '/admin' },
+    { label: 'Administration', href: '/admin' },
+    { label: 'Manage Problems', href: '/admin/problems' },
     { label: 'Create' },
   ];
 

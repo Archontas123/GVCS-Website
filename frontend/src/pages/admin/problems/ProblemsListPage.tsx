@@ -1,6 +1,6 @@
 /**
- * Hack The Valley - Manage Contests
- * Contest management interface using custom styles to match problems section
+ * Hack The Valley - Manage Problems
+ * Problem management interface using custom styles to match contests section
  */
 
 import React, { useState, useEffect } from 'react';
@@ -10,92 +10,76 @@ import { useAdminAuth } from '../../../hooks/useAdminAuth';
 import apiService from '../../../services/api';
 import Breadcrumb from '../../../components/common/Breadcrumb';
 
-interface Contest {
+interface Problem {
   id: number;
-  contest_name: string;
+  title: string;
   description: string;
-  start_time: string;
-  duration: number;
-  status: 'not_started' | 'running' | 'frozen' | 'ended';
-  is_active: boolean;
-  registration_code: string;
-  problems_count?: number;
-  teams_count?: number;
+  difficulty: 'easy' | 'medium' | 'hard';
+  points_value: number;
+  time_limit: number;
+  memory_limit: number;
+  contest_id: number;
+  contest_name?: string;
 }
 
-const ContestsListPage: React.FC = () => {
+const ProblemsListPage: React.FC = () => {
   const navigate = useNavigate();
   useAdminAuth();
   
-  const [contests, setContests] = useState<Contest[]>([]);
+  const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const breadcrumbItems = [
     { label: 'Administration', href: '/admin' },
-    { label: 'Manage Contests', href: '/admin/contests' }
+    { label: 'Manage Problems', href: '/admin/problems' }
   ];
 
   useEffect(() => {
-    fetchContests();
+    fetchProblems();
   }, []);
 
-  const fetchContests = async () => {
+  const fetchProblems = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const result = await apiService.getAdminContests();
+      const result = await apiService.getAdminProblems();
       if (result.success && result.data) {
-        setContests(result.data);
+        setProblems(result.data);
       } else {
-        throw new Error(result.message || 'Failed to fetch contests');
+        throw new Error(result.message || 'Failed to fetch problems');
       }
     } catch (error) {
-      console.error('Failed to fetch contests:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load contests');
+      console.error('Failed to fetch problems:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load problems');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateContest = () => {
-    navigate('/admin/contests/new');
+  const handleCreateProblem = () => {
+    navigate('/admin/problems/new');
   };
 
-  const handleManageProblems = () => {
-    navigate('/admin/problems');
+  const handleManageContests = () => {
+    navigate('/admin/contests');
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'running': return '#28a745';
-      case 'frozen': return '#ffc107';
-      case 'ended': return '#6c757d';
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'easy': return '#28a745';
+      case 'medium': return '#ffc107';
+      case 'hard': return '#dc3545';
       default: return '#007bff';
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'running': return '';
-      case 'frozen': return '';
-      case 'ended': return '';
-      default: return '';
-    }
+  const getDifficultyText = (difficulty: string) => {
+    return difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'not_started': return 'Not Started';
-      case 'running': return 'Running';
-      case 'frozen': return 'Frozen';
-      case 'ended': return 'Ended';
-      default: return status;
-    }
-  };
-
-  const EmptyState: React.FC<{ type: 'contests', onCreate: () => void }> = ({ type, onCreate }) => (
+  const EmptyState: React.FC<{ type: 'problems', onCreate: () => void }> = ({ type, onCreate }) => (
     <div
       style={{
         display: 'flex',
@@ -107,7 +91,7 @@ const ContestsListPage: React.FC = () => {
         padding: '48px 40px',
       }}
     >
-      <div style={{ fontSize: '64px', marginBottom: '16px', color: '#6b7280' }}>Contests</div>
+      <div style={{ fontSize: '64px', marginBottom: '16px', color: '#6b7280' }}>Problems</div>
       <p
         style={{
           fontSize: '1.1rem',
@@ -149,7 +133,7 @@ const ContestsListPage: React.FC = () => {
         }}
       >
         <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>+</span>
-        Create {type === 'contests' ? 'Contest' : 'Contest'}
+        Create {type === 'problems' ? 'Problem' : 'Problem'}
       </button>
     </div>
   );
@@ -216,7 +200,7 @@ const ContestsListPage: React.FC = () => {
           >
             <span><strong>Error:</strong> {error}</span>
             <button
-              onClick={fetchContests}
+              onClick={fetchProblems}
               style={{
                 background: 'none',
                 border: 'none',
@@ -274,7 +258,7 @@ const ContestsListPage: React.FC = () => {
               marginBottom: '16px',
             }}
           >
-            Manage Contests
+            Manage Problems
           </h2>
           
           <div 
@@ -302,25 +286,7 @@ const ContestsListPage: React.FC = () => {
         >
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
-              onClick={() => navigate('/admin/contests')}
-              style={{
-                background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '12px 20px',
-                fontSize: '1rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                boxShadow: '0 4px 12px rgba(29, 78, 216, 0.25)',
-              }}
-            >
-              Manage Contests
-            </button>
-            <button
-              onClick={handleManageProblems}
+              onClick={handleManageContests}
               style={{
                 background: '#ffffff',
                 color: '#374151',
@@ -343,12 +309,30 @@ const ContestsListPage: React.FC = () => {
                 e.currentTarget.style.color = '#374151';
               }}
             >
+              Manage Contests
+            </button>
+            <button
+              onClick={() => navigate('/admin/problems')}
+              style={{
+                background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '12px 20px',
+                fontSize: '1rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                boxShadow: '0 4px 12px rgba(29, 78, 216, 0.25)',
+              }}
+            >
               Manage Problems
             </button>
           </div>
 
           <button
-            onClick={handleCreateContest}
+            onClick={handleCreateProblem}
             style={{
               background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
               color: 'white',
@@ -377,7 +361,7 @@ const ContestsListPage: React.FC = () => {
             }}
           >
             <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>+</span>
-            Create Contest
+            Create Problem
           </button>
         </div>
 
@@ -391,15 +375,15 @@ const ContestsListPage: React.FC = () => {
             minHeight: '500px',
           }}
         >
-          {contests.length === 0 ? (
-            <EmptyState type="contests" onCreate={handleCreateContest} />
+          {problems.length === 0 ? (
+            <EmptyState type="problems" onCreate={handleCreateProblem} />
           ) : (
             <div style={{ padding: '48px 40px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {contests.map((contest) => (
+                {problems.map((problem) => (
                   <div
-                    key={contest.id}
-                    onClick={() => navigate(`/admin/contests/${contest.id}`)}
+                    key={problem.id}
+                    onClick={() => navigate(`/admin/problems/${problem.id}`)}
                     style={{
                       padding: '24px',
                       border: '2px solid #e5e7eb',
@@ -420,7 +404,7 @@ const ContestsListPage: React.FC = () => {
                     }}
                   >
                     <div>
-                      {/* Contest Header */}
+                      {/* Problem Header */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                         <h3 style={{ 
                           fontSize: '1.2rem', 
@@ -429,25 +413,40 @@ const ContestsListPage: React.FC = () => {
                           color: '#1f2937',
                           fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
                         }}>
-                          {contest.contest_name}
+                          {problem.title}
                         </h3>
-                        <span
-                          style={{
-                            backgroundColor: getStatusColor(contest.status) + '20',
-                            color: getStatusColor(contest.status),
-                            padding: '6px 12px',
-                            borderRadius: '8px',
-                            fontSize: '0.8rem',
-                            fontWeight: 600,
-                            textTransform: 'capitalize',
-                            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
-                        >
-                          {getStatusIcon(contest.status)} {getStatusText(contest.status)}
-                        </span>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <span
+                            style={{
+                              backgroundColor: getDifficultyColor(problem.difficulty) + '20',
+                              color: getDifficultyColor(problem.difficulty),
+                              padding: '6px 12px',
+                              borderRadius: '8px',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              textTransform: 'capitalize',
+                              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            {getDifficultyText(problem.difficulty)}
+                          </span>
+                          <span
+                            style={{
+                              backgroundColor: '#f3f4f6',
+                              color: '#374151',
+                              padding: '6px 12px',
+                              borderRadius: '8px',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                            }}
+                          >
+                            {problem.points_value} pts
+                          </span>
+                        </div>
                       </div>
 
                       {/* Description */}
@@ -468,51 +467,37 @@ const ContestsListPage: React.FC = () => {
                             em: ({ children }) => <em>{children}</em>,
                           }}
                         >
-                          {contest.description || 'No description provided'}
+                          {problem.description || 'No description provided'}
                         </ReactMarkdown>
                       </div>
 
-                      {/* Contest Stats */}
+                      {/* Problem Stats */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Start:</span>
+                          <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Time Limit:</span>
                           <span style={{ color: '#6b7280', fontSize: '0.875rem', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                            {new Date(contest.start_time).toLocaleDateString()}
+                            {problem.time_limit}ms
                           </span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Duration:</span>
+                          <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Memory Limit:</span>
                           <span style={{ color: '#6b7280', fontSize: '0.875rem', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                            {contest.duration} minutes
+                            {problem.memory_limit}MB
                           </span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                          <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Registration Code:</span>
-                          <span style={{ 
-                            color: '#1d4ed8', 
-                            fontSize: '0.875rem', 
-                            fontFamily: 'monospace',
-                            fontWeight: 600,
-                            backgroundColor: '#e0e7ff',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            letterSpacing: '1px'
-                          }}>
-                            {contest.registration_code}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', gap: '16px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{ color: '#6b7280', fontSize: '0.875rem', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                              {contest.teams_count || 0} teams
+                        {problem.contest_name && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Contest:</span>
+                            <span style={{ 
+                              color: '#1d4ed8', 
+                              fontSize: '0.875rem', 
+                              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                              fontWeight: 600,
+                            }}>
+                              {problem.contest_name}
                             </span>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{ color: '#6b7280', fontSize: '0.875rem', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                              {contest.problems_count || 0} problems
-                            </span>
-                          </div>
-                        </div>
+                        )}
                       </div>
                     </div>
 
@@ -520,7 +505,7 @@ const ContestsListPage: React.FC = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/admin/contests/${contest.id}`);
+                          navigate(`/admin/problems/${problem.id}`);
                         }}
                         style={{
                           background: '#ffffff',
@@ -551,7 +536,7 @@ const ContestsListPage: React.FC = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/admin/contests/${contest.id}`);
+                          navigate(`/admin/problems/${problem.id}`);
                         }}
                         style={{
                           background: '#1d4ed8',
@@ -564,7 +549,7 @@ const ContestsListPage: React.FC = () => {
                           transition: 'all 0.2s ease',
                           fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
                         }}
-                        title="Edit Contest"
+                        title="Edit Problem"
                         onMouseEnter={(e) => {
                           e.currentTarget.style.background = '#1e40af';
                         }}
@@ -626,4 +611,4 @@ const ContestsListPage: React.FC = () => {
   );
 };
 
-export default ContestsListPage;
+export default ProblemsListPage;
