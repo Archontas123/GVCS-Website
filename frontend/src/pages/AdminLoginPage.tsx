@@ -1,8 +1,3 @@
-/**
- * Hack The Valley - Admin Login Page
- * Admin authentication interface for hackathon management
- */
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../hooks/useAdminAuth';
@@ -25,7 +20,6 @@ const AdminLoginPage: React.FC = () => {
       ...prev,
       [name]: value
     }));
-    // Clear error when user starts typing
     if (error) setError(null);
   };
 
@@ -41,7 +35,8 @@ const AdminLoginPage: React.FC = () => {
 
     try {
       await login(formData.username.trim(), formData.password);
-      navigate('/admin/dashboard');
+      // Use replace to prevent going back to login page
+      navigate('/admin/dashboard', { replace: true });
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
@@ -79,7 +74,6 @@ const AdminLoginPage: React.FC = () => {
         }}
       >
         <div className="card-content" style={{ padding: '48px 40px' }}>
-          {/* Header */}
           <div className="text-center mb-5">
             <h1 
               className="mb-2" 
@@ -120,7 +114,6 @@ const AdminLoginPage: React.FC = () => {
             ></div>
           </div>
 
-          {/* Error Alert */}
           {error && (
             <div 
               style={{ 
@@ -138,7 +131,6 @@ const AdminLoginPage: React.FC = () => {
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '24px' }}>
               <label 
@@ -286,7 +278,6 @@ const AdminLoginPage: React.FC = () => {
             </button>
           </form>
 
-          {/* Footer */}
           <div style={{ textAlign: 'center', marginTop: '32px' }}>
             <div 
               style={{

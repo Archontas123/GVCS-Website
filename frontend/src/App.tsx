@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './styles/theme.css';
 import { useAuth } from './hooks/useAuth';
+import { useAdminAuth } from './hooks/useAdminAuth';
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -9,11 +10,8 @@ import HomePage from './pages/HomePage';
 import JoinContestPage from './pages/JoinContestPage';
 import TeamRegistrationPage from './pages/TeamRegistrationPage';
 import TeamLoginPage from './pages/TeamLoginPage';
-import RegisterPage from './pages/RegisterPage';
-import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ProblemViewPage from './pages/ProblemViewPage';
-import ProblemPreviewPage from './pages/ProblemPreviewPage';
 import CodeEditorTestPage from './pages/CodeEditorTestPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
@@ -28,6 +26,7 @@ import AdminProtectedRoute from './components/AdminProtectedRoute';
 
 function App() {
   const auth = useAuth();
+  const adminAuth = useAdminAuth();
   const [contestTimer, setContestTimer] = useState<number | undefined>(undefined);
 
   useEffect(() => {
@@ -69,7 +68,7 @@ function App() {
     }
   }, [auth.isAuthenticated, auth.team?.contestCode, auth.token]);
 
-  if (auth.loading) {
+  if (auth.loading || adminAuth.loading) {
     return (
       <div className="flex-center full-height">
         <div className="spinner spinner-lg"></div>
@@ -81,14 +80,23 @@ function App() {
     <ErrorBoundary>
       <Router>
         <Routes>
+          {/* Admin Routes - Must be first and separate from team routes */}
           <Route
             path="/admin/login"
-            element={<AdminLoginPage />}
+            element={
+              adminAuth.isAuthenticated ? 
+              <Navigate to="/admin/dashboard" replace /> : 
+              <AdminLoginPage />
+            }
           />
           
           <Route
             path="/admin"
-            element={<Navigate to="/admin/login" replace />}
+            element={
+              adminAuth.isAuthenticated ? 
+              <Navigate to="/admin/dashboard" replace /> : 
+              <Navigate to="/admin/login" replace />
+            }
           />
           
           <Route
@@ -157,6 +165,7 @@ function App() {
             }
           />
 
+          {/* Public Routes */}
           <Route 
             path="/" 
             element={
@@ -193,22 +202,6 @@ function App() {
             } 
           />
 
-
-          <Route 
-            path="/problem/:problemId/preview" 
-            element={<ProblemPreviewPage />} 
-          />
-          
-          <Route 
-            path="/contest/:contestSlug/problems/preview" 
-            element={<ProblemPreviewPage />} 
-          />
-          
-          <Route 
-            path="/contest/:contestSlug/problem/:problemId/preview" 
-            element={<ProblemPreviewPage />} 
-          />
-
           <Route 
             path="/contest/:contestSlug" 
             element={
@@ -218,6 +211,7 @@ function App() {
             } 
           />
 
+          {/* Team Routes wrapped in Layout */}
           <Route path="/*" element={
             <Layout
               teamName={auth.team?.teamName}

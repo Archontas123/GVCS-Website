@@ -27,20 +27,6 @@ import {
   Card,
   CardContent,
 } from '@mui/material';
-import {
-  Refresh,
-  TrendingUp,
-  TrendingDown,
-  Remove,
-  EmojiEvents,
-  Timer,
-  CheckCircle,
-  Cancel,
-  Schedule,
-  Visibility,
-  VisibilityOff,
-  Leaderboard as LeaderboardIcon,
-} from '@mui/icons-material';
 import { formatDistanceToNow } from 'date-fns';
 import { useRealTimeData } from '../../hooks/useWebSocket';
 import { useAuth } from '../../hooks/useAuth';
@@ -147,7 +133,7 @@ const RealTimeLeaderboard: React.FC<RealTimeLeaderboardProps> = ({
   const getProblemStatusInfo = (problem: ProblemStatus) => {
     if (problem.solved) {
       return {
-        icon: <CheckCircle />,
+        icon: '✓',
         color: theme.palette.success.main,
         text: problem.totalPoints ? `${problem.pointsEarned || problem.totalPoints}` : `✓`,
         tooltip: `Fully solved: ${problem.pointsEarned || problem.totalPoints}/${problem.totalPoints || 1} points`,
@@ -157,21 +143,22 @@ const RealTimeLeaderboard: React.FC<RealTimeLeaderboardProps> = ({
       const percentage = problem.totalTestCases ? 
         Math.round(((problem.testCasesPassed || 0) / problem.totalTestCases) * 100) : 0;
       return {
-        icon: <CheckCircle sx={{ opacity: 0.7 }} />,
+        icon: '✓',
+        opacity: 0.7,
         color: theme.palette.warning.main,
         text: `${problem.pointsEarned || 0}/${problem.totalPoints || 1}`,
         tooltip: `Partial credit: ${problem.testCasesPassed || 0}/${problem.totalTestCases || 0} test cases (${percentage}%)`,
       };
     } else if (problem.attempts > 0) {
       return {
-        icon: <Cancel />,
+        icon: '×',
         color: theme.palette.error.main,
         text: `0/${problem.totalPoints || 1}`,
         tooltip: `${problem.attempts} failed attempts - 0 points earned`,
       };
     } else {
       return {
-        icon: <Remove />,
+        icon: '—',
         color: theme.palette.grey[400],
         text: '—',
         tooltip: 'Not attempted',
@@ -199,7 +186,7 @@ const RealTimeLeaderboard: React.FC<RealTimeLeaderboardProps> = ({
   // Don't show if frozen and hideWhenFrozen is true
   if (hideWhenFrozen && leaderboard?.isFrozen) {
     return (
-      <Alert severity="info" icon={<Schedule />}>
+      <Alert severity="info" icon={'🕰'}>
         Leaderboard is frozen. Rankings will be revealed after the contest ends.
       </Alert>
     );
@@ -237,14 +224,14 @@ const RealTimeLeaderboard: React.FC<RealTimeLeaderboardProps> = ({
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Typography variant="h5" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <LeaderboardIcon />
+            <Typography>🏆</Typography>
             Live Leaderboard
             {leaderboard.isFrozen && (
               <Chip 
                 label="FROZEN" 
                 size="small" 
                 color="warning" 
-                icon={<Schedule />}
+startIcon="🕰"
               />
             )}
           </Typography>
@@ -266,7 +253,7 @@ const RealTimeLeaderboard: React.FC<RealTimeLeaderboardProps> = ({
               size="small" 
               onClick={() => setShowRankingChanges(!showRankingChanges)}
             >
-              {showRankingChanges ? <VisibilityOff /> : <Visibility />}
+              {showRankingChanges ? '🙈' : '👁'}
             </IconButton>
           </Tooltip>
         </Box>
@@ -278,7 +265,7 @@ const RealTimeLeaderboard: React.FC<RealTimeLeaderboardProps> = ({
           <Alert 
             severity="info" 
             sx={{ mb: 2 }}
-            icon={<TrendingUp />}
+icon="📈"
             onClose={() => setRankingChanges([])}
           >
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -291,7 +278,7 @@ const RealTimeLeaderboard: React.FC<RealTimeLeaderboardProps> = ({
               return (
                 <Typography key={index} variant="caption" display="block">
                   {team.teamName}: #{change.oldRank} → #{change.newRank}
-                  {change.newRank < change.oldRank ? ' 📈' : ' 📉'}
+                  {change.newRank < change.oldRank ? ' ↗' : ' ↘'}
                 </Typography>
               );
             })}
@@ -353,21 +340,22 @@ const RealTimeLeaderboard: React.FC<RealTimeLeaderboardProps> = ({
                         
                         {rankChange && (
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            {rankChange.newRank < rankChange.oldRank ? (
-                              <TrendingUp color="success" fontSize="small" />
-                            ) : (
-                              <TrendingDown color="error" fontSize="small" />
-                            )}
+                            <Typography sx={{ color: rankChange.newRank < rankChange.oldRank ? 'success.main' : 'error.main' }}>
+                              {rankChange.newRank < rankChange.oldRank ? '↗' : '↘'}
+                            </Typography>
                           </Box>
                         )}
                         
                         {teamData.rank <= 3 && (
-                          <EmojiEvents 
+                          <Typography
                             sx={{ 
                               color: teamData.rank === 1 ? '#FFD700' : 
-                                     teamData.rank === 2 ? '#C0C0C0' : '#CD7F32' 
-                            }} 
-                          />
+                                     teamData.rank === 2 ? '#C0C0C0' : '#CD7F32',
+                              fontSize: 18 
+                            }}
+                          >
+                            🏆
+                          </Typography>
                         )}
                       </Box>
                     </TableCell>
@@ -424,7 +412,7 @@ const RealTimeLeaderboard: React.FC<RealTimeLeaderboardProps> = ({
                       if (!problem) {
                         return (
                           <TableCell key={letter} align="center">
-                            <Remove sx={{ color: 'grey.400' }} />
+                            <Typography sx={{ color: 'grey.400' }}>—</Typography>
                           </TableCell>
                         );
                       }
@@ -447,7 +435,7 @@ const RealTimeLeaderboard: React.FC<RealTimeLeaderboardProps> = ({
                               </Typography>
                               {problem.firstToSolve && (
                                 <Badge
-                                  badgeContent="🥇"
+                                  badgeContent="1st"
                                   sx={{
                                     position: 'absolute',
                                     top: -8,

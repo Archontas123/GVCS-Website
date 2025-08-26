@@ -107,7 +107,7 @@ const ContestsListPage: React.FC = () => {
         padding: '48px 40px',
       }}
     >
-      <div style={{ fontSize: '64px', marginBottom: '16px', color: '#6b7280' }}>⚡</div>
+      <div style={{ fontSize: '64px', marginBottom: '16px', color: '#6b7280' }}>Contests</div>
       <p
         style={{
           fontSize: '1.1rem',

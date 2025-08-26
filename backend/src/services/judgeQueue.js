@@ -427,10 +427,10 @@ class JudgeQueueService {
       console.log(`Worker ${workerId} processing submission ${submissionData.submissionId}`);
       
       // Use existing execution services
-      const ICPCJudge = require('./icpcJudge');
-      const judge = new ICPCJudge();
+      const JudgeEngine = require('./judgeEngine');
+      const judge = new JudgeEngine();
       
-      // Process submission through ICPC judge
+      // Process submission through judge engine
       const result = await judge.judgeSubmission(
         submissionData.submissionId,
         submissionData.teamId,

@@ -1,5 +1,5 @@
 /**
- * ICPC-style Judging Engine - Phase 4.2
+ * Hackathon Judging Engine - Phase 4.2
  * Handles test case execution, verdict determination, and output comparison
  */
 
@@ -9,7 +9,7 @@ const { db } = require('../utils/db');
 const fs = require('fs').promises;
 const path = require('path');
 
-class ICPCJudge {
+class JudgeEngine {
   constructor() {
     // Initialize performance monitor
     this.performanceMonitor = new ExecutionMonitor();
@@ -27,13 +27,12 @@ class ICPCJudge {
     
     this.scoring = {
       AC_POINTS: 1,
-      PENALTY_MINUTES: 20,
       FIRST_SOLVE_BONUS: true
     };
   }
 
   /**
-   * Judge a submission with ICPC-style all-or-nothing evaluation
+   * Judge a submission with partial credit evaluation
    * @param {Object} submission - Submission details
    * @param {Array} testCases - Array of test cases
    * @param {Object} problem - Problem configuration
@@ -103,7 +102,7 @@ class ICPCJudge {
           language
         });
         
-        // CE doesn't count as attempt in ICPC
+        // CE doesn't count as attempt
         await this.updateSubmissionResult(submissionId, judgeResult, false);
         return judgeResult;
       }
@@ -191,7 +190,7 @@ class ICPCJudge {
   }
 
   /**
-   * Run all test cases with ICPC all-or-nothing evaluation
+   * Run all test cases with all-or-nothing evaluation
    */
   async runAllTestCases(code, language, testCases, timeLimit, memoryLimit) {
     let result = {
@@ -203,7 +202,7 @@ class ICPCJudge {
       details: []
     };
 
-    // ICPC: Run all test cases, stop on first failure
+    // Run all test cases, stop on first failure
     for (let i = 0; i < testCases.length; i++) {
       const testCase = testCases[i];
       result.testCasesRun++;
@@ -253,7 +252,7 @@ class ICPCJudge {
         if (testVerdict === this.verdicts.AC) {
           result.testCasesPassed++;
         } else {
-          // ICPC: Stop on first failure
+          // Stop on first failure
           result.verdict = testVerdict;
           break;
         }
@@ -320,14 +319,14 @@ class ICPCJudge {
   }
 
   /**
-   * Compare program output with expected output (ICPC-style exact matching)
+   * Compare program output with expected output (exact matching)
    */
   compareOutputs(actualOutput, expectedOutput) {
     // Normalize both outputs
     const normalizedActual = this.normalizeOutput(actualOutput);
     const normalizedExpected = this.normalizeOutput(expectedOutput);
     
-    // ICPC uses exact string matching after normalization
+    // Use exact string matching after normalization
     return normalizedActual === normalizedExpected;
   }
 
@@ -670,4 +669,4 @@ class ICPCJudge {
   }
 }
 
-module.exports = ICPCJudge;
+module.exports = JudgeEngine;

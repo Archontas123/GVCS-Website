@@ -1,8 +1,3 @@
-/**
- * Join Contest Page - Enter Contest Code
- * First step in the new team registration flow
- */
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/theme.css';
@@ -28,7 +23,6 @@ const JoinContestPage: React.FC = () => {
       return;
     }
 
-    // Validate contest code format
     const contestCodeRegex = /^[A-Z0-9]{8}$/;
     if (!contestCodeRegex.test(contestCode.trim())) {
       setError('Contest code must be exactly 8 characters containing only uppercase letters and numbers');
@@ -39,7 +33,6 @@ const JoinContestPage: React.FC = () => {
     setError(null);
 
     try {
-      // Check if contest code exists and is valid
       const response = await fetch(`/api/contests/${contestCode}/validate`, {
         method: 'GET',
         headers: {
@@ -50,7 +43,6 @@ const JoinContestPage: React.FC = () => {
       const data = await response.json();
 
       if (data.success) {
-        // Contest code is valid, proceed to team registration
         navigate('/team-registration', { 
           state: { 
             contestCode: contestCode.trim(),
@@ -91,7 +83,6 @@ const JoinContestPage: React.FC = () => {
           padding: '48px 40px',
         }}
       >
-        {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div
             style={{
@@ -108,7 +99,7 @@ const JoinContestPage: React.FC = () => {
               fontSize: '2rem',
             }}
           >
-            🎯
+            Join
           </div>
           
           <h1 style={{ 
@@ -130,7 +121,6 @@ const JoinContestPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Error Alert */}
         {error && (
           <div style={{
             padding: '16px 20px',
@@ -147,7 +137,6 @@ const JoinContestPage: React.FC = () => {
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '24px' }}>
             <label style={{

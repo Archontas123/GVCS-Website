@@ -16,9 +16,9 @@ exports.up = function(knex) {
       table.integer('points_value').defaultTo(100); // Base points for solving
     })
     
-    // Add scoring_type to contests table to choose between ICPC vs Hackathon scoring
+    // Add scoring_type to contests table (hackathon scoring only)
     .table('contests', function(table) {
-      table.enum('scoring_type', ['icpc', 'hackathon']).defaultTo('hackathon');
+      table.enum('scoring_type', ['hackathon']).defaultTo('hackathon');
     });
 };
 

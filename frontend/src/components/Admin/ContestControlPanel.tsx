@@ -31,24 +31,6 @@ import {
   FormControl,
   InputLabel,
 } from '@mui/material';
-import {
-  PlayArrow,
-  Pause,
-  Stop,
-  Emergency,
-  Refresh,
-  Settings,
-  Speed,
-  Storage,
-  Memory,
-  NetworkCheck,
-  CheckCircle,
-  Warning,
-  Error,
-  Schedule,
-  Timer,
-  EmojiEvents,
-} from '@mui/icons-material';
 
 interface Contest {
   id: number;
@@ -331,10 +313,9 @@ const ContestControlPanel: React.FC = () => {
                 </Typography>
                 <Button
                   size="small"
-                  startIcon={<Refresh />}
                   onClick={fetchContests}
                 >
-                  Refresh
+                  ↻ Refresh
                 </Button>
               </Box>
 
@@ -369,11 +350,10 @@ const ContestControlPanel: React.FC = () => {
                               <Button
                                 variant="contained"
                                 color="success"
-                                startIcon={<PlayArrow />}
                                 onClick={() => handleContestAction(contest, 'start')}
                                 size="small"
                               >
-                                Start
+                                ▶ Start
                               </Button>
                             )}
                             
@@ -382,20 +362,18 @@ const ContestControlPanel: React.FC = () => {
                                 <Button
                                   variant="outlined"
                                   color="warning"
-                                  startIcon={<Pause />}
                                   onClick={() => handleContestAction(contest, 'freeze')}
                                   size="small"
                                 >
-                                  Freeze
+                                  ⏸ Freeze
                                 </Button>
                                 <Button
                                   variant="outlined"
                                   color="error"
-                                  startIcon={<Stop />}
                                   onClick={() => handleContestAction(contest, 'end')}
                                   size="small"
                                 >
-                                  End
+                                  ⏹ End
                                 </Button>
                               </>
                             )}
@@ -404,11 +382,10 @@ const ContestControlPanel: React.FC = () => {
                               <Button
                                 variant="outlined"
                                 color="error"
-                                startIcon={<Stop />}
                                 onClick={() => handleContestAction(contest, 'end')}
                                 size="small"
                               >
-                                End
+                                ⏹ End
                               </Button>
                             )}
 
@@ -418,7 +395,7 @@ const ContestControlPanel: React.FC = () => {
                                 onClick={() => handleContestAction(contest, 'emergency_stop')}
                                 size="small"
                               >
-                                <Emergency />
+                                ⚠
                               </IconButton>
                             </Tooltip>
                           </Box>
@@ -472,7 +449,7 @@ const ContestControlPanel: React.FC = () => {
                 {/* Judge Queue Status */}
                 <ListItem>
                   <ListItemIcon>
-                    <Speed color={systemStatus.judge_queue.pending > 20 ? 'error' : 'success'} />
+                    <Typography sx={{ color: systemStatus.judge_queue.pending > 20 ? 'error.main' : 'success.main' }}>⏱</Typography>
                   </ListItemIcon>
                   <ListItemText
                     primary="Judge Queue"
@@ -483,7 +460,7 @@ const ContestControlPanel: React.FC = () => {
                 {/* Database Status */}
                 <ListItem>
                   <ListItemIcon>
-                    <Storage color={systemStatus.database.status === 'connected' ? 'success' : 'error'} />
+                    <Typography sx={{ color: systemStatus.database.status === 'connected' ? 'success.main' : 'error.main' }}>💾</Typography>
                   </ListItemIcon>
                   <ListItemText
                     primary="Database"
@@ -494,7 +471,7 @@ const ContestControlPanel: React.FC = () => {
                 {/* Server Resources */}
                 <ListItem>
                   <ListItemIcon>
-                    <Memory color={systemStatus.server.memory_usage > 80 ? 'warning' : 'success'} />
+                    <Typography sx={{ color: systemStatus.server.memory_usage > 80 ? 'warning.main' : 'success.main' }}>📊</Typography>
                   </ListItemIcon>
                   <ListItemText
                     primary="Server Resources"
@@ -517,7 +494,7 @@ const ContestControlPanel: React.FC = () => {
                 {/* Contest Scheduler */}
                 <ListItem>
                   <ListItemIcon>
-                    <Schedule color={systemStatus.contests_scheduler.status === 'running' ? 'success' : 'error'} />
+                    <Typography sx={{ color: systemStatus.contests_scheduler.status === 'running' ? 'success.main' : 'error.main' }}>🕰</Typography>
                   </ListItemIcon>
                   <ListItemText
                     primary="Contest Scheduler"
@@ -530,7 +507,7 @@ const ContestControlPanel: React.FC = () => {
                 {/* System Uptime */}
                 <ListItem>
                   <ListItemIcon>
-                    <Timer />
+                    <Typography>⏲</Typography>
                   </ListItemIcon>
                   <ListItemText
                     primary="System Uptime"
@@ -544,18 +521,16 @@ const ContestControlPanel: React.FC = () => {
                 <Button
                   size="small"
                   variant="outlined"
-                  startIcon={<Refresh />}
                   onClick={fetchSystemStatus}
                 >
-                  Refresh Status
+                  ↻ Refresh Status
                 </Button>
                 <Button
                   size="small"
                   variant="outlined"
-                  startIcon={<Settings />}
                   disabled
                 >
-                  System Config
+                  ⚙ System Config
                 </Button>
               </Box>
             </CardContent>

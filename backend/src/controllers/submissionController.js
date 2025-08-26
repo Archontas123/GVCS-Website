@@ -33,7 +33,7 @@ class SubmissionController {
   }
 
   /**
-   * Update submission status after judging and update ICPC scores
+   * Update submission status after judging and update hackathon scores
    */
   async updateSubmissionResult(submissionId, status, executionTime = null, memoryUsed = null, judgedAt = null) {
     try {

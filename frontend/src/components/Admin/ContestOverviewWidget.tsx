@@ -23,19 +23,6 @@ import {
   ListItemText,
   ListItemSecondaryAction,
 } from '@mui/material';
-import {
-  EmojiEvents,
-  Timer,
-  People,
-  Assessment,
-  PlayArrow,
-  Pause,
-  Stop,
-  Visibility,
-  Refresh,
-  TrendingUp,
-  Schedule,
-} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 interface ContestStats {
@@ -215,7 +202,7 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
           </Typography>
           <Tooltip title="Refresh">
             <IconButton size="small" onClick={fetchActiveContests}>
-              <Refresh />
+              ↻
             </IconButton>
           </Tooltip>
         </Box>
@@ -224,7 +211,9 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
       {activeContests.length === 0 ? (
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 4 }}>
-            <EmojiEvents sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h3" color="text.secondary" sx={{ mb: 2 }}>
+              🏆
+            </Typography>
             <Typography variant="h6" color="text.secondary" gutterBottom>
               No active contests
             </Typography>
@@ -266,7 +255,7 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
                       size="small"
                       onClick={() => navigate(`/admin/contests/${contest.id}`)}
                     >
-                      <Visibility />
+                      👁
                     </IconButton>
                   </Box>
 
@@ -299,7 +288,7 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
                   <Stack direction="row" spacing={2}>
                     <Paper sx={{ p: 1.5, textAlign: 'center', backgroundColor: 'background.default', flex: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
-                        <People sx={{ fontSize: 18, mr: 0.5, color: 'primary.main' }} />
+                        <Typography sx={{ fontSize: 18, mr: 0.5, color: 'primary.main' }}>👥</Typography>
                         <Typography variant="h6" sx={{ fontWeight: 600 }}>
                           {contest.teams_count}
                         </Typography>
@@ -310,7 +299,7 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
                     </Paper>
                     <Paper sx={{ p: 1.5, textAlign: 'center', backgroundColor: 'background.default', flex: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
-                        <Assessment sx={{ fontSize: 18, mr: 0.5, color: 'secondary.main' }} />
+                        <Typography sx={{ fontSize: 18, mr: 0.5, color: 'secondary.main' }}>📊</Typography>
                         <Typography variant="h6" sx={{ fontWeight: 600 }}>
                           {contest.submissions_count}
                         </Typography>
@@ -330,7 +319,7 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
                       <ListItem>
                         <ListItemAvatar>
                           <Avatar sx={{ width: 24, height: 24, bgcolor: 'success.main' }}>
-                            <TrendingUp sx={{ fontSize: 14 }} />
+                            <Typography sx={{ fontSize: 14 }}>📈</Typography>
                           </Avatar>
                         </ListItemAvatar>
                         <ListItemText 
@@ -346,7 +335,7 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
                       <ListItem>
                         <ListItemAvatar>
                           <Avatar sx={{ width: 24, height: 24, bgcolor: 'info.main' }}>
-                            <Schedule sx={{ fontSize: 14 }} />
+                            <Typography sx={{ fontSize: 14 }}>⏱</Typography>
                           </Avatar>
                         </ListItemAvatar>
                         <ListItemText 

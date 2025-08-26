@@ -43,7 +43,6 @@ export interface LeaderboardTeam {
   teamName: string;
   rank: number;
   problemsSolved: number;
-  penaltyTime: number;
   totalPoints: number;
   lastSubmissionTime: string | null;
   problems: ProblemStatus[];

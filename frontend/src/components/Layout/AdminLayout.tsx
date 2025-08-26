@@ -29,23 +29,6 @@ import {
   Paper,
   alpha,
 } from '@mui/material';
-import {
-  Menu as MenuIcon,
-  AdminPanelSettings,
-  Dashboard,
-  EmojiEvents,
-  Quiz,
-  People,
-  Assessment,
-  Settings,
-  Logout,
-  PlayArrow,
-  Pause,
-  Stop,
-  MonitorHeart,
-  Notifications,
-  ChevronLeft,
-} from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 
@@ -94,35 +77,35 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
     {
       label: 'Dashboard',
       path: '/admin/dashboard',
-      icon: <Dashboard />,
+      icon: '📈',
     },
     {
       label: 'Contests',
       path: '/admin/contests',
-      icon: <EmojiEvents />,
+      icon: '🏆',
       badge: systemStatus.contests_running
     },
     {
       label: 'Problems',
       path: '/admin/problems',
-      icon: <Quiz />,
+      icon: '❓',
     },
     {
       label: 'Teams',
       path: '/admin/teams',
-      icon: <People />,
+      icon: '👥',
       badge: systemStatus.active_teams
     },
     {
       label: 'Submissions',
       path: '/admin/submissions',
-      icon: <Assessment />,
+      icon: '📊',
       badge: systemStatus.pending_submissions
     },
     {
       label: 'System Monitor',
       path: '/admin/monitor',
-      icon: <MonitorHeart />,
+      icon: '💻',
     },
   ];
 
@@ -185,7 +168,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
               boxShadow: '0 4px 8px rgba(59, 130, 246, 0.3)'
             }}
           >
-            <AdminPanelSettings sx={{ color: 'white', fontSize: 18 }} />
+            <Typography sx={{ color: 'white', fontSize: 18 }}>⚙</Typography>
           </Box>
           <Typography 
             variant="h6" 
@@ -249,14 +232,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
                         }}
                         max={99}
                       >
-                        {React.cloneElement(item.icon as React.ReactElement, {
-                          sx: { fontSize: 20 }
-                        })}
+                        <Typography sx={{ fontSize: 20 }}>{item.icon}</Typography>
                       </Badge>
                     ) : (
-                      React.cloneElement(item.icon as React.ReactElement, {
-                        sx: { fontSize: 20 }
-                      })
+                      <Typography sx={{ fontSize: 20 }}>{item.icon}</Typography>
                     )}
                   </ListItemIcon>
                   <ListItemText 
@@ -291,7 +270,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
           }}
         >
           <ListItemIcon sx={{ minWidth: 40, color: 'rgba(255, 255, 255, 0.8)' }}>
-            <Settings sx={{ fontSize: 20 }} />
+            <Typography sx={{ fontSize: 20 }}>⚙</Typography>
           </ListItemIcon>
           <ListItemText 
             primary="Settings"
@@ -337,7 +316,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
               }
             }}
           >
-            <MenuIcon />
+            ☰
           </IconButton>
           
           <Typography 
@@ -389,7 +368,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
               }}
               max={99}
             >
-              <Notifications sx={{ fontSize: 20 }} />
+              <Typography sx={{ fontSize: 20 }}>🔔</Typography>
             </Badge>
           </IconButton>
 
@@ -451,12 +430,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
             }}
           >
             <MenuItem onClick={() => { navigate('/admin/settings'); handleMenuClose(); }}>
-              <Settings sx={{ mr: 1.5, fontSize: 18 }} />
+              <Typography sx={{ mr: 1.5, fontSize: 18 }}>⚙</Typography>
               <Typography sx={{ fontSize: '0.9rem' }}>Settings</Typography>
             </MenuItem>
             <Divider sx={{ borderColor: 'rgba(59, 130, 246, 0.3)' }} />
             <MenuItem onClick={handleLogout}>
-              <Logout sx={{ mr: 1.5, fontSize: 18 }} />
+              <Typography sx={{ mr: 1.5, fontSize: 18 }}>→</Typography>
               <Typography sx={{ fontSize: '0.9rem' }}>Logout</Typography>
             </MenuItem>
           </Menu>
@@ -485,7 +464,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
         >
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
             <IconButton onClick={handleDrawerToggle}>
-              <ChevronLeft />
+              ←
             </IconButton>
           </Box>
           <Divider />

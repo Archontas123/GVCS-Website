@@ -4,14 +4,6 @@
  */
 
 import React from 'react';
-import {
-  Container,
-  Typography,
-  Paper,
-  Box,
-  Alert,
-} from '@mui/material';
-import { Code } from '@mui/icons-material';
 import CodeEditor from '../components/CodeEditor';
 
 const CodeEditorTestPage: React.FC = () => {
@@ -26,20 +18,22 @@ const CodeEditorTestPage: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Code /> Monaco Code Editor Demo
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          This page demonstrates the Monaco Editor integration with competitive programming features.
-        </Typography>
-      </Paper>
+    <div className="container" style={{ paddingTop: '32px', paddingBottom: '32px' }}>
+      <div className="card mb-4">
+        <div className="card-content">
+          <h1 className="flex align-center" style={{ gap: '8px', marginBottom: '16px' }}>
+            Monaco Code Editor Demo
+          </h1>
+          <p className="text-secondary">
+            This page demonstrates the Monaco Editor integration with competitive programming features.
+          </p>
+        </div>
+      </div>
 
-      <Alert severity="info" sx={{ mb: 3 }}>
-        <Typography variant="body2">
+      <div className="alert alert-info mb-4">
+        <p style={{ margin: '0 0 8px 0' }}>
           <strong>Features to test:</strong>
-        </Typography>
+        </p>
         <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
           <li>Switch between C++, Java, and Python languages</li>
           <li>Use keyboard shortcuts: Ctrl+Enter (submit), Ctrl+Shift+F (format), Ctrl+F (find)</li>
@@ -48,32 +42,38 @@ const CodeEditorTestPage: React.FC = () => {
           <li>Try the code snippets dialog (find/replace icon)</li>
           <li>Test with custom input using the test panel</li>
         </ul>
-      </Alert>
+      </div>
 
-      <Box sx={{ height: '600px' }}>
+      <div style={{ height: '600px' }}>
         <CodeEditor
           onSubmit={handleSubmit}
           onTest={handleTest}
           height="100%"
         />
-      </Box>
+      </div>
 
-      <Paper variant="outlined" sx={{ p: 2, mt: 3, bgcolor: 'grey.50' }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-          Available Keyboard Shortcuts:
-        </Typography>
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 1 }}>
-          <Typography variant="caption">Ctrl + Enter: Submit code</Typography>
-          <Typography variant="caption">Ctrl + F: Find in code</Typography>
-          <Typography variant="caption">Ctrl + H: Find and replace</Typography>
-          <Typography variant="caption">Ctrl + Shift + F: Format code</Typography>
-          <Typography variant="caption">Ctrl + /: Toggle comment</Typography>
-          <Typography variant="caption">Alt + Click: Multiple cursors</Typography>
-          <Typography variant="caption">Ctrl + D: Select next occurrence</Typography>
-          <Typography variant="caption">F11: Toggle fullscreen</Typography>
-        </Box>
-      </Paper>
-    </Container>
+      <div className="card border mt-4" style={{ backgroundColor: '#f8f9fa' }}>
+        <div className="card-content">
+          <h3 style={{ fontWeight: 600, marginBottom: '8px', fontSize: '1rem' }}>
+            Available Keyboard Shortcuts:
+          </h3>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+            gap: '8px' 
+          }}>
+            <small className="text-secondary">Ctrl + Enter: Submit code</small>
+            <small className="text-secondary">Ctrl + F: Find in code</small>
+            <small className="text-secondary">Ctrl + H: Find and replace</small>
+            <small className="text-secondary">Ctrl + Shift + F: Format code</small>
+            <small className="text-secondary">Ctrl + /: Toggle comment</small>
+            <small className="text-secondary">Alt + Click: Multiple cursors</small>
+            <small className="text-secondary">Ctrl + D: Select next occurrence</small>
+            <small className="text-secondary">F11: Toggle fullscreen</small>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

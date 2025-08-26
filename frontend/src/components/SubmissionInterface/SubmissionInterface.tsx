@@ -245,21 +245,21 @@ const SubmissionInterface: React.FC<SubmissionInterfaceProps> = ({
   const getVerdictInfo = (status: SubmissionStatus) => {
     switch (status) {
       case 'pending':
-        return { icon: '⏱', color: '#6b7280', bgColor: '#f3f4f6', text: 'Pending' };
+        return { icon: 'PENDING', color: '#6b7280', bgColor: '#f3f4f6', text: 'Pending' };
       case 'judging':
-        return { icon: '⚡', color: '#1d4ed8', bgColor: '#dbeafe', text: 'Judging' };
+        return { icon: 'JUDGING', color: '#1d4ed8', bgColor: '#dbeafe', text: 'Judging' };
       case 'accepted':
-        return { icon: '✅', color: '#16a34a', bgColor: '#dcfce7', text: 'Accepted' };
+        return { icon: 'AC', color: '#16a34a', bgColor: '#dcfce7', text: 'Accepted' };
       case 'wrong_answer':
-        return { icon: '❌', color: '#dc2626', bgColor: '#fef2f2', text: 'Wrong Answer' };
+        return { icon: 'WA', color: '#dc2626', bgColor: '#fef2f2', text: 'Wrong Answer' };
       case 'time_limit_exceeded':
-        return { icon: '⏰', color: '#d97706', bgColor: '#fef3c7', text: 'Time Limit Exceeded' };
+        return { icon: 'TLE', color: '#d97706', bgColor: '#fef3c7', text: 'Time Limit Exceeded' };
       case 'memory_limit_exceeded':
-        return { icon: '💾', color: '#d97706', bgColor: '#fef3c7', text: 'Memory Limit Exceeded' };
+        return { icon: 'MLE', color: '#d97706', bgColor: '#fef3c7', text: 'Memory Limit Exceeded' };
       case 'runtime_error':
-        return { icon: '⚠️', color: '#7c2d12', bgColor: '#fed7aa', text: 'Runtime Error' };
+        return { icon: 'RTE', color: '#7c2d12', bgColor: '#fed7aa', text: 'Runtime Error' };
       case 'compilation_error':
-        return { icon: '🔧', color: '#1d4ed8', bgColor: '#dbeafe', text: 'Compilation Error' };
+        return { icon: 'CE', color: '#1d4ed8', bgColor: '#dbeafe', text: 'Compilation Error' };
       case 'presentation_error':
         return { icon: '📝', color: '#d97706', bgColor: '#fef3c7', text: 'Presentation Error' };
       default:
@@ -340,7 +340,7 @@ const SubmissionInterface: React.FC<SubmissionInterfaceProps> = ({
 
         {contestStatus.timeRemaining < 300 && contestStatus.isRunning && (
           <Alert severity="warning" sx={{ mb: 2 }}>
-            ⚠️ Less than 5 minutes remaining in the contest!
+            Warning: Less than 5 minutes remaining in the contest!
           </Alert>
         )}
 

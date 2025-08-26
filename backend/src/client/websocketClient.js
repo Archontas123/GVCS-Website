@@ -388,10 +388,10 @@ class TeamLeaderboardComponent {
       solvedCell.textContent = team.problems_solved;
       row.appendChild(solvedCell);
       
-      // Penalty time
-      const penaltyCell = document.createElement('td');
-      penaltyCell.textContent = team.penalty_time;
-      row.appendChild(penaltyCell);
+      // Total points
+      const pointsCell = document.createElement('td');
+      pointsCell.textContent = team.total_points || 0;
+      row.appendChild(pointsCell);
       
       // Problem status
       data.problems.forEach(problem => {

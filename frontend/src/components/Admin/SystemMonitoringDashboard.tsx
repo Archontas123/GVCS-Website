@@ -37,26 +37,6 @@ import {
   FormControl,
   InputLabel,
 } from '@mui/material';
-import {
-  Speed,
-  Storage,
-  Memory,
-  NetworkCheck,
-  Timer,
-  Error,
-  Warning,
-  CheckCircle,
-  Refresh,
-  Settings,
-  ViewList,
-  Timeline,
-  Computer,
-  CloudQueue,
-  Visibility,
-  Download,
-  DeleteForever,
-  MonitorHeart,
-} from '@mui/icons-material';
 
 interface SystemMetrics {
   cpu: {
@@ -297,8 +277,8 @@ const SystemMonitoringDashboard: React.FC = () => {
           <Chip
             label={`System ${healthStatus.status}`}
             color={healthStatus.color as any}
-            icon={healthStatus.status === 'healthy' ? <CheckCircle /> : 
-                  healthStatus.status === 'warning' ? <Warning /> : <Error />}
+icon={healthStatus.status === 'healthy' ? '✓' : 
+                  healthStatus.status === 'warning' ? '!' : '!'}
             sx={{ textTransform: 'capitalize' }}
           />
           <FormControlLabel
@@ -312,7 +292,7 @@ const SystemMonitoringDashboard: React.FC = () => {
             label="Auto-refresh"
           />
           <IconButton onClick={fetchMetrics} disabled={autoRefresh}>
-            <Refresh />
+            ↻
           </IconButton>
         </Box>
       </Box>
@@ -327,7 +307,7 @@ const SystemMonitoringDashboard: React.FC = () => {
         <Card>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <Computer sx={{ mr: 1, color: 'primary.main' }} />
+              <Typography sx={{ mr: 1, color: 'primary.main' }}>💻</Typography>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 CPU Usage
               </Typography>
@@ -350,7 +330,7 @@ const SystemMonitoringDashboard: React.FC = () => {
         <Card>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <Memory sx={{ mr: 1, color: 'secondary.main' }} />
+              <Typography sx={{ mr: 1, color: 'secondary.main' }}>💾</Typography>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Memory Usage
               </Typography>
@@ -373,7 +353,7 @@ const SystemMonitoringDashboard: React.FC = () => {
         <Card>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <Storage sx={{ mr: 1, color: 'info.main' }} />
+              <Typography sx={{ mr: 1, color: 'info.main' }}>💾</Typography>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Disk Usage
               </Typography>
@@ -396,7 +376,7 @@ const SystemMonitoringDashboard: React.FC = () => {
         <Card>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <Timer sx={{ mr: 1, color: 'success.main' }} />
+              <Typography sx={{ mr: 1, color: 'success.main' }}>⏲</Typography>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Uptime
               </Typography>
@@ -502,7 +482,7 @@ const SystemMonitoringDashboard: React.FC = () => {
                   <List>
                     <ListItem>
                       <ListItemIcon>
-                        <NetworkCheck color={dbStatus.status === 'connected' ? 'success' : 'error'} />
+                        <Typography sx={{ color: dbStatus.status === 'connected' ? 'success.main' : 'error.main' }}>🔗</Typography>
                       </ListItemIcon>
                       <ListItemText
                         primary="Connection Status"
@@ -520,7 +500,7 @@ const SystemMonitoringDashboard: React.FC = () => {
 
                     <ListItem>
                       <ListItemIcon>
-                        <Speed />
+                        <Typography>📊</Typography>
                       </ListItemIcon>
                       <ListItemText
                         primary="Response Time"
@@ -530,7 +510,7 @@ const SystemMonitoringDashboard: React.FC = () => {
 
                     <ListItem>
                       <ListItemIcon>
-                        <CloudQueue />
+                        <Typography>☁</Typography>
                       </ListItemIcon>
                       <ListItemText
                         primary="Active Connections"
@@ -547,7 +527,7 @@ const SystemMonitoringDashboard: React.FC = () => {
 
                     <ListItem>
                       <ListItemIcon>
-                        <Timeline />
+                        <Typography>📈</Typography>
                       </ListItemIcon>
                       <ListItemText
                         primary="Queries per Second"
@@ -587,8 +567,8 @@ const SystemMonitoringDashboard: React.FC = () => {
                       <MenuItem value="info">Info</MenuItem>
                     </Select>
                   </FormControl>
-                  <Button size="small" startIcon={<Download />}>Export</Button>
-                  <Button size="small" startIcon={<DeleteForever />} color="error">Clear</Button>
+                  <Button size="small">↓ Export</Button>
+                  <Button size="small" color="error">🗑 Clear</Button>
                 </Box>
               </Box>
 
@@ -631,7 +611,7 @@ const SystemMonitoringDashboard: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <IconButton size="small">
-                            <Visibility />
+                            👁
                           </IconButton>
                         </TableCell>
                       </TableRow>

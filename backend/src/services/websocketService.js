@@ -1,6 +1,6 @@
 /**
- * Phase 3.2 - Real-time Leaderboard WebSocket Service
- * Handles WebSocket connections for real-time leaderboard updates
+ * Real-time Leaderboard WebSocket Service
+ * Handles WebSocket connections for hackathon-style real-time leaderboard updates
  */
 
 const socketIo = require('socket.io');
@@ -38,7 +38,7 @@ class WebSocketService {
       this.startUpdateBatcher();
     }
     
-    console.log('✅ WebSocket server initialized for real-time leaderboard');
+    console.log('✅ WebSocket server initialized for hackathon real-time leaderboard');
   }
 
   /**

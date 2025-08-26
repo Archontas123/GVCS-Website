@@ -171,7 +171,9 @@
       "Bash(NODE_ENV=development node -e \"const {db} = require(''./backend/src/utils/db''); db(''contests'').select(''id'', ''contest_name'', ''registration_code'', ''is_active'', ''is_registration_open'', ''start_time'').then(result => {console.log(''Available contests:'', JSON.stringify(result, null, 2)); process.exit(0);}).catch(err => {console.error(''Error:'', err.message); process.exit(1);})\")",
       "Bash(NODE_ENV=development node:*)",
       "Bash(NODE_ENV=development timeout 5s node backend/src/server.js)",
-      "Bash(NODE_ENV=development timeout 10s node backend/src/server.js)"
+      "Bash(NODE_ENV=development timeout 10s node backend/src/server.js)",
+      "Bash(git checkout:*)",
+      "Bash(sed:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

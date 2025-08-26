@@ -1,6 +1,6 @@
 /**
  * Migration: Add judging system columns to submissions table
- * Phase 4.2: ICPC-style Judging Engine
+ * Phase 4.2: Hackathon Judging Engine
  */
 
 exports.up = function(knex) {

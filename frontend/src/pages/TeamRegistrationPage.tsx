@@ -1,8 +1,3 @@
-/**
- * Team Registration Page - School and Team Member Information
- * Second step in the new team registration flow
- */
-
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import apiService from '../services/api';
@@ -24,11 +19,9 @@ const TeamRegistrationPage: React.FC = () => {
   const location = useLocation();
   const auth = useAuth();
   
-  // Get contest code from previous page
   const contestCode = location.state?.contestCode;
   const contestName = location.state?.contestName;
 
-  // Redirect if no contest code
   React.useEffect(() => {
     if (!contestCode) {
       navigate('/join-contest');
@@ -71,7 +64,6 @@ const TeamRegistrationPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
     if (!formData.schoolName.trim()) {
       setError('School name is required');
       return;
@@ -97,7 +89,6 @@ const TeamRegistrationPage: React.FC = () => {
       return;
     }
 
-    // Validate names (only letters)
     const nameRegex = /^[a-zA-Z]+$/;
     const names = [formData.member1LastName, formData.member2LastName, formData.member3LastName]
       .filter(name => name.trim());
@@ -134,22 +125,19 @@ const TeamRegistrationPage: React.FC = () => {
       });
       
       if (response.success && response.data) {
-        // Create team object from registration response
         const team = {
           id: response.data.teamId,
           teamName: response.data.teamName,
           contestCode: response.data.contestCode,
-          sessionToken: '', // Will be set when token is decoded
+          sessionToken: '', 
           registeredAt: response.data.registeredAt,
           lastActivity: new Date().toISOString(),
           isActive: true
         };
         
-        // Update auth state (this also sets the token)
         auth.login(team, response.data.token);
         setSuccess('Team registered successfully! Redirecting to contest...');
         
-        // Redirect to contest page using contest name slug
         setTimeout(() => {
           const contestSlug = createContestSlug(response.data.contestName);
           navigate(`/contest/${contestSlug}`);
@@ -166,7 +154,7 @@ const TeamRegistrationPage: React.FC = () => {
       } else if (err.response?.status === 400) {
         setError('Invalid registration data. Please check your information.');
       } else if (err.response?.status === 409) {
-        setError('Team name already exists for this contest. Please try different member names.');
+        setError('Team name already exists for this contest. Please try to login instead if you have already registered.');
       } else {
         setError('An unexpected error occurred. Please try again.');
       }
@@ -176,7 +164,7 @@ const TeamRegistrationPage: React.FC = () => {
   };
 
   if (!contestCode) {
-    return null; // Will redirect in useEffect
+    return null; 
   }
 
   const previewTeamName = generateTeamName();
@@ -204,7 +192,6 @@ const TeamRegistrationPage: React.FC = () => {
           padding: '48px 40px',
         }}
       >
-        {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div
             style={{
@@ -221,7 +208,7 @@ const TeamRegistrationPage: React.FC = () => {
               fontSize: '2rem',
             }}
           >
-            👥
+            Team
           </div>
           
           <h1 style={{ 
@@ -257,7 +244,6 @@ const TeamRegistrationPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Team Name Preview */}
         {previewTeamName && (
           <div style={{
             padding: '12px 16px',
@@ -273,7 +259,6 @@ const TeamRegistrationPage: React.FC = () => {
           </div>
         )}
 
-        {/* Error Alert */}
         {error && (
           <div style={{
             padding: '16px 20px',
@@ -290,7 +275,6 @@ const TeamRegistrationPage: React.FC = () => {
           </div>
         )}
 
-        {/* Success Alert */}
         {success && (
           <div style={{
             padding: '16px 20px',
@@ -307,9 +291,7 @@ const TeamRegistrationPage: React.FC = () => {
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit}>
-          {/* School Name */}
           <div style={{ marginBottom: '20px' }}>
             <label style={{
               display: 'block',
@@ -350,7 +332,6 @@ const TeamRegistrationPage: React.FC = () => {
             />
           </div>
 
-          {/* Team Members */}
           <div style={{ marginBottom: '20px' }}>
             <h3 style={{
               fontWeight: 600,
@@ -480,7 +461,6 @@ const TeamRegistrationPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Password Section */}
           <div style={{ marginBottom: '24px' }}>
             <h3 style={{
               fontWeight: 600,
@@ -631,8 +611,7 @@ const TeamRegistrationPage: React.FC = () => {
           </button>
         </form>
 
-        {/* Footer */}
-        <div style={{ textAlign: 'center', marginTop: '32px' }}>          
+=        <div style={{ textAlign: 'center', marginTop: '32px' }}>          
           <button
             type="button"
             onClick={() => navigate('/join-contest')}

@@ -136,7 +136,7 @@ class Admin {
         username: adminData.username.trim(),
         email: adminData.email.trim().toLowerCase(),
         password_hash: hashedPassword,
-        role: 'admin'
+        role: adminData.role || 'admin'
       }).returning('id');
 
       const createdAdmin = await this.findById(result.id);
@@ -152,24 +152,6 @@ class Admin {
   static async authenticate(username, password) {
     if (!username || !password) {
       throw new ValidationError('Username and password are required');
-    }
-
-    // Fallback authentication for development when database is not available
-    if (username.trim() === 'admin' && password === 'password123') {
-      const mockAdmin = {
-        id: 1,
-        username: 'admin',
-        email: 'admin@hackathon.local',
-        role: 'admin',
-        created_at: new Date().toISOString()
-      };
-
-      const token = this.generateToken(mockAdmin);
-
-      return {
-        admin: mockAdmin,
-        token
-      };
     }
 
     try {

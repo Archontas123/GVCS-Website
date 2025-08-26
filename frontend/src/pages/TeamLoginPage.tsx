@@ -1,8 +1,3 @@
-/**
- * Team Login Page - Login with Team Name and Password
- * Updated login system for the new team registration flow
- */
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
@@ -30,7 +25,6 @@ const TeamLoginPage: React.FC = () => {
       [name]: value,
     }));
     
-    // Clear error when user starts typing
     if (error) setError(null);
   };
 
@@ -54,23 +48,20 @@ const TeamLoginPage: React.FC = () => {
       const response = await apiService.loginTeam(formData);
       
       if (response.success && response.data) {
-        // Create team object from login response
         const team = {
           id: response.data.teamId,
           teamName: response.data.teamName,
           contestCode: response.data.contestCode,
           schoolName: response.data.schoolName,
           memberNames: response.data.memberNames,
-          sessionToken: '', // Will be set when token is decoded
+          sessionToken: '', 
           registeredAt: '',
           lastActivity: response.data.lastActivity || new Date().toISOString(),
           isActive: true
         };
         
-        // Update auth state (this also sets the token)
         auth.login(team, response.data.token);
         
-        // Redirect to contest page using contest name slug
         const contestSlug = createContestSlug(response.data.contestName);
         navigate(`/contest/${contestSlug}`);
         
@@ -117,7 +108,6 @@ const TeamLoginPage: React.FC = () => {
           padding: '48px 40px',
         }}
       >
-        {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div
             style={{
@@ -156,7 +146,6 @@ const TeamLoginPage: React.FC = () => {
           </p>
           </div>
 
-        {/* Error Alert */}
         {error && (
           <div style={{
             padding: '16px 20px',
@@ -173,7 +162,6 @@ const TeamLoginPage: React.FC = () => {
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '20px' }}>
             <label style={{
@@ -313,7 +301,6 @@ const TeamLoginPage: React.FC = () => {
           </button>
         </form>
 
-        {/* Footer */}
         <div style={{ textAlign: 'center', marginTop: '32px' }}>
           <p style={{ 
             fontSize: '0.875rem',

@@ -16,14 +16,14 @@ class ContestTemplateService {
    * Initialize default contest templates
    */
   initializeDefaultTemplates() {
-    // ICPC-style template
-    this.templates.set('icpc', {
-      name: 'ICPC Style Contest',
-      description: 'Standard ICPC format with penalty-based scoring',
+    // Hackathon-style template
+    this.templates.set('hackathon', {
+      name: 'Hackathon Contest',
+      description: 'Standard hackathon format with points-based scoring',
       settings: {
         duration: 300, // 5 hours
         freeze_time: 60, // 1 hour before end
-        scoring_system: 'icpc',
+        scoring_system: 'hackathon',
         max_teams: 100,
         registration_required: true,
         show_standings: true,
@@ -282,7 +282,7 @@ class ContestTemplateService {
         settings: {
           duration: contest.duration,
           freeze_time: contest.freeze_time,
-          scoring_system: contest.settings?.scoring_system || 'icpc',
+          scoring_system: contest.settings?.scoring_system || 'hackathon',
           max_teams: contest.settings?.max_teams || 100,
           registration_required: contest.settings?.registration_required || true,
           show_standings: contest.settings?.show_standings !== false,

@@ -1,10 +1,10 @@
 /**
- * Freeze Service - Phase 3.4
+ * Freeze Service
  * Manages leaderboard freeze state, frozen data storage, and freeze/unfreeze operations
  */
 
 const { db } = require('../utils/db');
-const icpcScoring = require('./icpcScoring');
+const scoringService = require('./scoringService');
 const notificationService = require('./notificationService');
 
 class FreezeService {
@@ -62,7 +62,7 @@ class FreezeService {
       }
       
       // Get current leaderboard to store as frozen state
-      const currentLeaderboard = await icpcScoring.getEnhancedLeaderboard(contestId);
+      const currentLeaderboard = await scoringService.getEnhancedLeaderboard(contestId);
       
       // Store frozen leaderboard data
       await this.storeFrozenLeaderboard(contestId, currentLeaderboard, now);
@@ -161,7 +161,7 @@ class FreezeService {
       }
       
       // Fallback: return current leaderboard (shouldn't happen in normal operation)
-      return await icpcScoring.getEnhancedLeaderboard(contestId);
+      return await scoringService.getEnhancedLeaderboard(contestId);
     } catch (error) {
       console.error('Error getting frozen leaderboard:', error);
       throw error;
@@ -290,7 +290,7 @@ class FreezeService {
       }
       
       // Return real-time leaderboard
-      return await icpcScoring.getEnhancedLeaderboard(contestId);
+      return await scoringService.getEnhancedLeaderboard(contestId);
     } catch (error) {
       console.error('Error getting display leaderboard:', error);
       throw error;

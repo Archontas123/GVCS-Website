@@ -1,6 +1,6 @@
 /**
- * Leaderboard API Routes - Updated for Hackathon Scoring
- * Unified scoring and leaderboard endpoints
+ * Leaderboard API Routes - Hackathon Scoring
+ * Hackathon-style scoring and leaderboard endpoints
  */
 
 const express = require('express');
@@ -216,7 +216,7 @@ router.get('/:contestId/live', verifyAdminToken, async (req, res) => {
       .first();
 
     // Get current leaderboard
-    const leaderboard = await icpcScoring.getLeaderboard(contestId);
+    const leaderboard = await scoringService.getLeaderboard(contestId);
 
     // Get submission statistics
     const submissionStats = await submissionController.getContestSubmissionStats(contestId);
@@ -269,7 +269,7 @@ router.get('/:contestId/export', verifyAdminToken, async (req, res) => {
     const contestId = parseInt(req.params.contestId);
 
     // Get complete leaderboard with detailed information
-    const leaderboard = await icpcScoring.getLeaderboard(contestId);
+    const leaderboard = await scoringService.getLeaderboard(contestId);
 
     // Convert to CSV format
     const headers = ['Rank', 'Team Name', 'Problems Solved', 'Penalty Time', 'Last Submission'];

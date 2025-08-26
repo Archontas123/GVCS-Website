@@ -81,15 +81,15 @@ export const getVerdictIcon = (verdict: string): string => {
       return '⏱';
     case 'runtime_error':
     case 'rte':
-      return '💥';
+      return 'RTE';
     case 'compilation_error':
     case 'ce':
-      return '📝';
+      return 'CE';
     case 'memory_limit_exceeded':
     case 'mle':
-      return '🧠';
+      return 'MLE';
     case 'pending':
-      return '⏳';
+      return 'PENDING';
     default:
       return '?';
   }

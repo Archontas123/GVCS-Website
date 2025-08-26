@@ -50,8 +50,14 @@ class ApiService {
       (response: AxiosResponse) => response,
       (error) => {
         if (error.response?.status === 401) {
-          localStorage.removeItem('hackathon_token');
-          window.location.href = '/';
+          // Check if this is an admin route error
+          if (error.config?.url?.startsWith('/admin/')) {
+            localStorage.removeItem('hackathon_admin_token');
+            window.location.href = '/admin/login';
+          } else {
+            localStorage.removeItem('hackathon_token');
+            window.location.href = '/';
+          }
         }
         return Promise.reject(error);
       }
@@ -99,29 +105,37 @@ class ApiService {
     return response.data;
   }
 
-  async getProblemPublic(problemId: number): Promise<ApiResponse<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>> {
-    const response = await this.api.get(`/admin/problems/${problemId}/public`);
-    return response.data;
-  }
+  // REMOVED: Public problem access methods - now require authentication
+  // async getProblemPublic(problemId: number): Promise<ApiResponse<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>> {
+  //   const response = await this.api.get(`/admin/problems/${problemId}/public`);
+  //   return response.data;
+  // }
 
-  async getContestProblemsPublic(contestId: number): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>>> {
-    const response = await this.api.get(`/admin/contests/${contestId}/problems/public`);
-    return response.data;
-  }
+  // async getContestProblemsPublic(contestId: number): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>>> {
+  //   const response = await this.api.get(`/admin/contests/${contestId}/problems/public`);
+  //   return response.data;
+  // }
 
-  async getContestProblemsByCode(registrationCode: string): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>>> {
-    const response = await this.api.get(`/contests/${registrationCode}/problems/public`);
-    return response.data;
-  }
+  // async getContestProblemsByCode(registrationCode: string): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>>> {
+  //   const response = await this.api.get(`/contests/${registrationCode}/problems/public`);
+  //   return response.data;
+  // }
 
+  // async getContestProblemsBySlug(contestSlug: string): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>>> {
+  //   const response = await this.api.get(`/contests/${contestSlug}/problems/public`);
+  //   return response.data;
+  // }
+
+  // REMOVED: Public contest problems access - now requires authentication
+  // async getContestProblemsByName(contestName: string): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>>> {
+  //   const slug = createContestSlug(contestName);
+  //   const response = await this.api.get(`/contests/${slug}/problems/public`);
+  //   return response.data;
+  // }
+
+  // Authenticated methods for contest problems (requires team login)
   async getContestProblemsBySlug(contestSlug: string): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>>> {
     const response = await this.api.get(`/contests/${contestSlug}/problems/public`);
-    return response.data;
-  }
-
-  async getContestProblemsByName(contestName: string): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>>> {
-    const slug = createContestSlug(contestName);
-    const response = await this.api.get(`/contests/${slug}/problems/public`);
     return response.data;
   }
 

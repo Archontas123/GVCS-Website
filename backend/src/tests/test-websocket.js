@@ -455,8 +455,8 @@ class WebSocketTester {
         // Trigger a score update to test real-time broadcast
         setTimeout(async () => {
           try {
-            const icpcScoring = require('../services/icpcScoring');
-            await icpcScoring.updateTeamScoreOnSubmission(
+            const scoringService = require('../services/scoringService');
+            await scoringService.updateTeamScoreOnSubmission(
               testData.team1Id, 
               testData.problemAId, 
               'accepted'
@@ -550,8 +550,8 @@ class WebSocketTester {
           // Trigger update after both clients are ready
           setTimeout(async () => {
             try {
-              const icpcScoring = require('../services/icpcScoring');
-              await icpcScoring.updateTeamScoreOnSubmission(
+              const scoringService = require('../services/scoringService');
+              await scoringService.updateTeamScoreOnSubmission(
                 testData.team2Id,
                 testData.problemBId,
                 'accepted'

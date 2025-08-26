@@ -1,9 +1,9 @@
 /**
- * Test Case Runner Service - Updated for Hackathon Scoring
- * Handles both ICPC all-or-nothing and hackathon partial scoring
+ * Test Case Runner Service - Hackathon Scoring
+ * Handles hackathon partial scoring with test case execution
  */
 
-const ICPCJudge = require('./icpcJudge');
+const JudgeEngine = require('./judgeEngine');
 const ExecutionMonitor = require('./executionMonitor');
 const { db } = require('../utils/db');
 const partialScoringService = require('./partialScoringService');
@@ -11,70 +11,21 @@ const scoringService = require('./scoringService');
 
 class TestCaseRunner {
   constructor() {
-    this.judge = new ICPCJudge();
+    this.judge = new JudgeEngine();
     this.monitor = new ExecutionMonitor();
     this.runningTests = new Map();
   }
 
   /**
-   * Run all test cases for a problem based on contest scoring type
+   * Run all test cases for a problem with hackathon partial scoring
    * @param {Object} submission - Submission details
    * @param {Object} problem - Problem configuration
    * @returns {Promise<Object>} Test execution result
    */
   async runTestCases(submission, problem) {
-    // Get contest scoring type to determine execution strategy
-    const contestId = problem.contest_id;
-    const scoringType = await scoringService.getContestScoringType(contestId);
-    
-    return scoringType === 'hackathon'
-      ? this.runTestCasesWithPartialScoring(submission, problem)
-      : this.runTestCasesICPCStyle(submission, problem);
+    return this.runTestCasesWithPartialScoring(submission, problem);
   }
 
-  /**
-   * Run all test cases with ICPC-style evaluation (stop on first failure)
-   * @param {Object} submission - Submission details
-   * @param {Object} problem - Problem configuration
-   * @returns {Promise<Object>} Test execution result
-   */
-  async runTestCasesICPCStyle(submission, problem) {
-    const testRunId = this.generateTestRunId();
-    
-    try {
-      // Get all test cases for the problem
-      const testCases = await this.getTestCases(submission.problemId);
-      
-      if (testCases.length === 0) {
-        throw new Error('No test cases found for problem');
-      }
-
-      // Start test run tracking
-      this.runningTests.set(testRunId, {
-        submissionId: submission.submissionId,
-        problemId: submission.problemId,
-        startTime: Date.now(),
-        status: 'running'
-      });
-
-      // Execute ICPC-style judging
-      const result = await this.executeICPCJudging(
-        submission, 
-        testCases, 
-        problem, 
-        testRunId
-      );
-
-      // Cleanup
-      this.runningTests.delete(testRunId);
-      
-      return result;
-
-    } catch (error) {
-      this.runningTests.delete(testRunId);
-      throw error;
-    }
-  }
 
   /**
    * Run all test cases with partial scoring (run all test cases, don't stop on failure)
@@ -120,118 +71,6 @@ class TestCaseRunner {
     }
   }
 
-  /**
-   * Execute ICPC-style judging with all-or-nothing evaluation
-   */
-  async executeICPCJudging(submission, testCases, problem, testRunId) {
-    const judgeResult = {
-      testRunId,
-      submissionId: submission.submissionId,
-      verdict: 'Accepted',
-      totalExecutionTime: 0,
-      maxMemoryUsed: 0,
-      testCasesExecuted: 0,
-      testCasesPassed: 0,
-      compilationTime: 0,
-      testCaseResults: [],
-      firstFailure: null,
-      summary: {
-        accepted: 0,
-        wrongAnswer: 0,
-        timeLimit: 0,
-        memoryLimit: 0,
-        runtimeError: 0,
-        compilationError: 0
-      }
-    };
-
-    try {
-      // Step 1: Compile the code if necessary
-      const compileResult = await this.compileSubmission(submission);
-      judgeResult.compilationTime = compileResult.executionTime || 0;
-
-      if (!compileResult.success) {
-        judgeResult.verdict = 'Compilation Error';
-        judgeResult.compilationError = compileResult.error;
-        judgeResult.summary.compilationError = 1;
-        return judgeResult;
-      }
-
-      // Step 2: Execute test cases (ICPC: stop on first failure)
-      for (let i = 0; i < testCases.length; i++) {
-        const testCase = testCases[i];
-        judgeResult.testCasesExecuted++;
-
-        // Update running test status
-        this.updateTestRunStatus(testRunId, {
-          currentTestCase: i + 1,
-          totalTestCases: testCases.length,
-          status: `running test case ${i + 1}`
-        });
-
-        // Execute single test case
-        const testResult = await this.executeSingleTestCase(
-          submission, 
-          testCase, 
-          problem, 
-          i + 1
-        );
-
-        judgeResult.testCaseResults.push(testResult);
-        judgeResult.totalExecutionTime += testResult.executionTime || 0;
-        judgeResult.maxMemoryUsed = Math.max(
-          judgeResult.maxMemoryUsed, 
-          testResult.memoryUsed || 0
-        );
-
-        // Update summary
-        this.updateVerdictSummary(judgeResult.summary, testResult.verdict);
-
-        if (testResult.verdict === 'Accepted') {
-          judgeResult.testCasesPassed++;
-        } else {
-          // ICPC: Stop on first failure
-          judgeResult.verdict = testResult.verdict;
-          judgeResult.firstFailure = {
-            testCaseNumber: i + 1,
-            verdict: testResult.verdict,
-            input: testCase.input,
-            expectedOutput: testCase.expectedOutput,
-            actualOutput: testResult.output,
-            error: testResult.error
-          };
-          break;
-        }
-      }
-
-      // Determine final verdict
-      if (judgeResult.testCasesPassed === testCases.length) {
-        judgeResult.verdict = 'Accepted';
-      }
-
-      // Calculate partial scores if enabled
-      if (submission.enablePartialScoring) {
-        const testCaseResults = judgeResult.testCaseResults.map(tcr => ({
-          testCaseId: tcr.testCaseId,
-          verdict: tcr.verdict.toLowerCase().replace(' ', '_'),
-          executionTime: tcr.executionTime,
-          memoryUsed: tcr.memoryUsed
-        }));
-
-        judgeResult.scoring = await partialScoringService.calculateSubmissionScore(
-          submission.submissionId,
-          testCaseResults
-        );
-      }
-
-      return judgeResult;
-
-    } catch (error) {
-      judgeResult.verdict = 'System Error';
-      judgeResult.systemError = error.message;
-      return judgeResult;
-    }
-  }
 
   /**
    * Execute partial scoring judging (run all test cases)
@@ -505,7 +344,7 @@ class TestCaseRunner {
   }
 
   /**
-   * Compare program output with expected output (ICPC-style)
+   * Compare program output with expected output
    */
   compareOutputs(actualOutput, expectedOutput) {
     // Normalize both outputs

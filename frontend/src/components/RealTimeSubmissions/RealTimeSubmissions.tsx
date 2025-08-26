@@ -32,23 +32,6 @@ import {
   Collapse,
   Divider,
 } from '@mui/material';
-import {
-  PlayArrow,
-  CheckCircle,
-  Cancel,
-  Schedule,
-  Memory,
-  Error as ErrorIcon,
-  Warning,
-  Code,
-  Visibility,
-  Refresh,
-  Timer,
-  Speed,
-  FilterList,
-  ExpandMore,
-  ExpandLess,
-} from '@mui/icons-material';
 import { formatDistanceToNow } from 'date-fns';
 import { useRealTimeData, useSubmissionTracking } from '../../hooks/useWebSocket';
 import { SubmissionStatusUpdate } from '../../services/websocket';
@@ -229,14 +212,14 @@ const RealTimeSubmissions: React.FC<RealTimeSubmissionsProps> = ({
   const getVerdictInfo = (submission: SubmissionDisplay) => {
     if (submission.status === 'pending') {
       return {
-        icon: <Schedule />,
+        icon: '🕰',
         color: theme.palette.grey[500],
         text: 'Pending',
         bgColor: theme.palette.grey[100],
       };
     } else if (submission.status === 'judging') {
       return {
-        icon: <PlayArrow />,
+        icon: '▶',
         color: theme.palette.info.main,
         text: 'Judging...',
         bgColor: theme.palette.info.light + '20',
@@ -245,49 +228,49 @@ const RealTimeSubmissions: React.FC<RealTimeSubmissionsProps> = ({
       switch (submission.verdict) {
         case 'Accepted':
           return {
-            icon: <CheckCircle />,
+            icon: '✓',
             color: theme.palette.success.main,
             text: 'Accepted',
             bgColor: theme.palette.success.light + '20',
           };
         case 'Wrong Answer':
           return {
-            icon: <Cancel />,
+            icon: '×',
             color: theme.palette.error.main,
             text: 'Wrong Answer',
             bgColor: theme.palette.error.light + '20',
           };
         case 'Time Limit Exceeded':
           return {
-            icon: <Timer />,
+            icon: '⏲',
             color: theme.palette.warning.main,
             text: 'Time Limit Exceeded',
             bgColor: theme.palette.warning.light + '20',
           };
         case 'Memory Limit Exceeded':
           return {
-            icon: <Memory />,
+            icon: '💾',
             color: theme.palette.warning.main,
             text: 'Memory Limit Exceeded',
             bgColor: theme.palette.warning.light + '20',
           };
         case 'Runtime Error':
           return {
-            icon: <ErrorIcon />,
+            icon: '!',
             color: theme.palette.secondary.main,
             text: 'Runtime Error',
             bgColor: theme.palette.secondary.light + '20',
           };
         case 'Compilation Error':
           return {
-            icon: <Code />,
+            icon: '</>',
             color: theme.palette.info.main,
             text: 'Compilation Error',
             bgColor: theme.palette.info.light + '20',
           };
         default:
           return {
-            icon: <Warning />,
+            icon: '!',
             color: theme.palette.grey[500],
             text: submission.verdict || 'Unknown',
             bgColor: theme.palette.grey[100],
@@ -323,18 +306,18 @@ const RealTimeSubmissions: React.FC<RealTimeSubmissionsProps> = ({
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Speed />
+          <Typography>⏱</Typography>
           Real-time Submissions
           {judgingSubmissions.size > 0 && (
             <Badge badgeContent={judgingSubmissions.size} color="primary">
-              <PlayArrow />
+              <Typography>▶</Typography>
             </Badge>
           )}
         </Typography>
 
         {showFilters && (
           <IconButton onClick={() => setShowFiltersExpanded(!showFiltersExpanded)}>
-            {showFiltersExpanded ? <ExpandLess /> : <ExpandMore />}
+            {showFiltersExpanded ? '↑' : '↓'}
           </IconButton>
         )}
       </Box>
@@ -459,9 +442,9 @@ const RealTimeSubmissions: React.FC<RealTimeSubmissionsProps> = ({
                       {/* Status/Verdict */}
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ color: verdictInfo.color }}>
+                          <Typography sx={{ color: verdictInfo.color, fontSize: 16 }}>
                             {verdictInfo.icon}
-                          </Box>
+                          </Typography>
                           <Typography
                             variant="body2"
                             sx={{ color: verdictInfo.color, fontWeight: 500 }}
@@ -495,7 +478,7 @@ const RealTimeSubmissions: React.FC<RealTimeSubmissionsProps> = ({
                             size="small"
                             onClick={() => setSelectedSubmission(submission)}
                           >
-                            <Visibility />
+                            👁
                           </IconButton>
                         </Tooltip>
                       </TableCell>

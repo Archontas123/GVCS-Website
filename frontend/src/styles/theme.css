@@ -448,3 +448,4 @@ h6 { font-size: 1rem; font-weight: 500; line-height: 1.6; margin: 0; }
 .text-secondary { color: var(--text-secondary); }
 .text-white { color: white; }
 .text-muted { color: var(--text-secondary); }
+.text-left { text-align: left; }

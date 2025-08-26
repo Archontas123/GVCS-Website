@@ -1163,7 +1163,7 @@ router.get('/system/logs', verifyAdminToken, async (req, res, next) => {
         level: 'info',
         service: 'contest-scheduler',
         message: 'Contest auto-started successfully',
-        details: { contest_id: 1, contest_name: 'ICPC Practice Round' }
+        details: { contest_id: 1, contest_name: 'Hackathon Practice Round' }
       },
       {
         id: 2,

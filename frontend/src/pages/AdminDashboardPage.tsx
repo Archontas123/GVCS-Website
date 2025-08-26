@@ -1,8 +1,3 @@
-/**
- * Hack The Valley - Admin Dashboard
- * Admin management interface for hackathon administration
- */
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../hooks/useAdminAuth';
@@ -34,7 +29,7 @@ const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   useAdminAuth();
   
-  const [selectedTab, setSelectedTab] = useState(1); // Always show problems tab
+  const [selectedTab, setSelectedTab] = useState(1); 
   const [contests, setContests] = useState<Contest[]>([]);
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);

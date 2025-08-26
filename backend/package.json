@@ -1,7 +1,7 @@
 {
   "name": "hackathon-platform",
   "version": "1.0.0",
-  "description": "School Algorithmic Hackathon Platform with ICPC-style scoring",
+  "description": "School Algorithmic Hackathon Platform with points-based scoring",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -28,7 +28,7 @@
   "keywords": [
     "hackathon",
     "competitive-programming",
-    "icpc",
+    "points-based",
     "contest-platform",
     "algorithm",
     "coding-contest"

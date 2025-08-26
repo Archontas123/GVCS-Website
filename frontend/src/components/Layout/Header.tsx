@@ -113,7 +113,7 @@ const Header: React.FC<HeaderProps> = ({
           e.currentTarget.style.color = '#374151';
         }}
       >
-        📊 Dashboard
+        Dashboard
       </button>
       <button
         onClick={() => handleNavigation('/leaderboard')}
@@ -139,7 +139,7 @@ const Header: React.FC<HeaderProps> = ({
           e.currentTarget.style.color = '#374151';
         }}
       >
-        🏆 Leaderboard
+        Leaderboard
       </button>
     </>
   );
@@ -177,7 +177,7 @@ const Header: React.FC<HeaderProps> = ({
             e.currentTarget.style.backgroundColor = 'transparent';
           }}
         >
-          📊 Dashboard
+          Dashboard
         </div>
         <div 
           style={{ 
@@ -197,7 +197,7 @@ const Header: React.FC<HeaderProps> = ({
             e.currentTarget.style.backgroundColor = 'transparent';
           }}
         >
-          🏆 Leaderboard
+          Leaderboard
         </div>
       </div>
     )
@@ -287,7 +287,7 @@ const Header: React.FC<HeaderProps> = ({
         }}
         onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')}
       >
-        <span style={{ marginRight: '12px', fontSize: '1.5rem' }}>💻</span>
+        <span style={{ marginRight: '12px', fontSize: '1.5rem' }}>CS</span>
         {!isMobile && (
           <h1 style={{ 
             fontWeight: 700, 
@@ -404,7 +404,7 @@ const Header: React.FC<HeaderProps> = ({
               e.currentTarget.style.backgroundColor = 'transparent';
             }}
           >
-            👤
+            User
           </button>
 
           {/* Menus */}

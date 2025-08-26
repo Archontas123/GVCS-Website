@@ -343,7 +343,7 @@ class ContestScheduler {
     try {
       logger.info(`Calculating final rankings for contest ${contestId}`);
       
-      // This will be implemented in Phase 3 (ICPC Scoring System)
+      // This will be implemented in Phase 3 (Hackathon Scoring System)
       // For now, just log that final rankings need to be calculated
       logger.info(`Final rankings calculation for contest ${contestId} - to be implemented in Phase 3`);
 
@@ -421,7 +421,7 @@ class ContestScheduler {
     try {
       logger.info(`Generating final results for contest ${contestId}`);
       
-      // This will be fully implemented in Phase 3 (ICPC Scoring System)
+      // This will be fully implemented in Phase 3 (Hackathon Scoring System)
       // For now, just log that final results are being generated
       const teamCount = await db('teams')
         .where('contest_code', (

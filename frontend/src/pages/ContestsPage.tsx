@@ -5,38 +5,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  AppBar,
-  Toolbar,
-  IconButton,
-  Chip,
-  Alert,
-  CircularProgress,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  useTheme,
-} from '@mui/material';
-import {
-  ArrowBack,
-  Add,
-  MoreVert,
-  PlayArrow,
-  Pause,
-  Stop,
-  Edit,
-  Delete,
-  People,
-  Quiz,
-} from '@mui/icons-material';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 import apiService from '../services/api';
 
@@ -62,7 +30,6 @@ const processSimpleMarkdown = (text: string): string => {
 };
 
 const ContestsPage: React.FC = () => {
-  const theme = useTheme();
   const navigate = useNavigate();
   const { admin } = useAdminAuth();
   
@@ -108,7 +75,7 @@ const ContestsPage: React.FC = () => {
     switch (status) {
       case 'running': return 'success';
       case 'frozen': return 'warning';
-      case 'ended': return 'default';
+      case 'ended': return 'pending';
       default: return 'info';
     }
   };
@@ -187,112 +154,124 @@ const ContestsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress size={60} />
-      </Box>
+      <div className="flex-center full-height">
+        <div className="spinner-lg"></div>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: 'var(--background-default)', minHeight: '100vh' }}>
       {/* Header */}
-      <AppBar position="static" elevation={1}>
-        <Toolbar>
-          <IconButton
-            edge="start"
-            color="inherit"
+      <div className="navbar bg-primary" style={{ color: 'white' }}>
+        <div className="flex align-center">
+          <button
+            className="btn btn-text"
             onClick={() => navigate('/admin/dashboard')}
-            sx={{ mr: 2 }}
+            style={{ color: 'white', marginRight: '16px' }}
           >
-            <ArrowBack />
-          </IconButton>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Contest Management
-          </Typography>
-          <Button
-            variant="contained"
-            color="secondary"
-            startIcon={<Add />}
-            onClick={() => navigate('/admin/contests/new')}
-            sx={{ ml: 2 }}
-          >
-            Create Contest
-          </Button>
-        </Toolbar>
-      </AppBar>
+            ← Back
+          </button>
+          <h1 style={{ color: 'white', flexGrow: 1 }}>Contest Management</h1>
+        </div>
+        <button
+          className="btn btn-secondary"
+          onClick={() => navigate('/admin/contests/new')}
+        >
+          + Create Contest
+        </button>
+      </div>
 
-      <Box sx={{ p: 3 }}>
+      <div className="p-3">
         {/* Error Alert */}
         {error && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+          <div className="alert alert-error" style={{ position: 'relative' }}>
             {error}
-          </Alert>
+            <button
+              onClick={() => setError(null)}
+              style={{
+                position: 'absolute',
+                right: '12px',
+                top: '12px',
+                background: 'none',
+                border: 'none',
+                fontSize: '18px',
+                cursor: 'pointer'
+              }}
+            >
+              ×
+            </button>
+          </div>
         )}
 
         {/* Contests Grid */}
         {contests.length === 0 ? (
-          <Card sx={{ textAlign: 'center', py: 6 }}>
-            <CardContent>
-              <Typography variant="h5" color="text.secondary" gutterBottom>
-                No contests created yet
-              </Typography>
-              <Typography color="text.secondary" sx={{ mb: 3 }}>
+          <div className="card text-center" style={{ padding: '48px' }}>
+            <div className="card-content">
+              <h2 className="text-secondary mb-3">No contests created yet</h2>
+              <p className="text-secondary mb-4">
                 Create your first contest to get started with your hackathon platform
-              </Typography>
-              <Button
-                variant="contained"
-                size="large"
-                startIcon={<Add />}
+              </p>
+              <button
+                className="btn btn-primary"
                 onClick={() => navigate('/admin/contests/new')}
               >
-                Create First Contest
-              </Button>
-            </CardContent>
-          </Card>
+                + Create First Contest
+              </button>
+            </div>
+          </div>
         ) : (
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 3 }}>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
+            gap: '24px' 
+          }}>
             {contests.map((contest) => (
-              <Box key={contest.id}>
-                <Card 
-                  sx={{ 
+              <div key={contest.id}>
+                <div 
+                  className="card" 
+                  style={{
                     height: '100%',
                     cursor: 'pointer',
                     transition: 'transform 0.2s ease-in-out',
-                    '&:hover': {
-                      transform: 'translateY(-2px)',
-                      boxShadow: theme.shadows[4],
-                    },
                   }}
                   onClick={() => navigate(`/admin/contests/${contest.id}`)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.15)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                  }}
                 >
-                  <CardContent>
+                  <div className="card-content">
                     {/* Header with status and menu */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                      <Typography variant="h6" component="h3" sx={{ fontWeight: 600, flex: 1 }}>
+                    <div className="flex justify-between align-center mb-3">
+                      <h3 style={{ fontWeight: 600, flex: 1, margin: 0 }}>
                         {contest.contest_name}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Chip
-                          label={getContestStatusText(contest.status)}
-                          color={getContestStatusColor(contest.status) as any}
-                          size="small"
-                        />
-                        <IconButton
-                          size="small"
+                      </h3>
+                      <div className="flex align-center" style={{ gap: '8px' }}>
+                        <span className={`chip chip-${getContestStatusColor(contest.status)}`}>
+                          {getContestStatusText(contest.status)}
+                        </span>
+                        <button
+                          className="btn btn-text"
                           onClick={(e) => handleMenuOpen(e, contest.id)}
                           disabled={actionLoading === contest.id}
+                          style={{ padding: '4px', minHeight: 'auto' }}
                         >
                           {actionLoading === contest.id ? (
-                            <CircularProgress size={20} />
+                            <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }}></div>
                           ) : (
-                            <MoreVert />
+                            '⋮'
                           )}
-                        </IconButton>
-                      </Box>
-                    </Box>
+                        </button>
+                      </div>
+                    </div>
                     
                     {/* Description */}
-                    <Box sx={{ mb: 2, fontSize: '0.9rem', color: 'text.secondary' }}>
+                    <div className="mb-3 text-secondary" style={{ fontSize: '0.9rem' }}>
                       {contest.description ? (
                         <div
                           dangerouslySetInnerHTML={{
@@ -300,118 +279,173 @@ const ContestsPage: React.FC = () => {
                           }}
                         />
                       ) : (
-                        <Typography color="text.secondary">No description</Typography>
+                        <p className="text-secondary">No description</p>
                       )}
-                    </Box>
+                    </div>
                     
                     {/* Contest Details */}
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      <Typography variant="body2" color="text.secondary">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <p className="text-secondary" style={{ margin: 0, fontSize: '0.875rem' }}>
                         <strong>Code:</strong> {contest.registration_code}
-                      </Typography>
+                      </p>
                       
-                      <Typography variant="body2" color="text.secondary">
+                      <p className="text-secondary" style={{ margin: 0, fontSize: '0.875rem' }}>
                         <strong>Duration:</strong> {contest.duration} minutes
-                      </Typography>
+                      </p>
                       
-                      <Typography variant="body2" color="text.secondary">
+                      <p className="text-secondary" style={{ margin: 0, fontSize: '0.875rem' }}>
                         <strong>Start:</strong> {new Date(contest.start_time).toLocaleString()}
-                      </Typography>
+                      </p>
                       
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Quiz sx={{ fontSize: 16 }} />
-                          <Typography variant="body2" color="text.secondary">
+                      <div className="flex justify-between mt-3">
+                        <div className="flex align-center" style={{ gap: '4px' }}>
+                          <span style={{ fontSize: '16px' }}>📝</span>
+                          <span className="text-secondary" style={{ fontSize: '0.875rem' }}>
                             {contest.problems_count || 0} problems
-                          </Typography>
-                        </Box>
+                          </span>
+                        </div>
                         
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <People sx={{ fontSize: 16 }} />
-                          <Typography variant="body2" color="text.secondary">
+                        <div className="flex align-center" style={{ gap: '4px' }}>
+                          <span style={{ fontSize: '16px' }}>Teams:</span>
+                          <span className="text-secondary" style={{ fontSize: '0.875rem' }}>
                             {contest.teams_count || 0} teams
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Box>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             ))}
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
 
       {/* Contest Action Menu */}
-      <Menu
-        anchorEl={menuAnchor?.element}
-        open={Boolean(menuAnchor)}
-        onClose={handleMenuClose}
-      >
-        {menuAnchor && (
-          <>
-            {canStartContest(contests.find(c => c.id === menuAnchor.contestId)!) && (
-              <MenuItem onClick={() => handleContestAction(menuAnchor.contestId, 'start')}>
-                <PlayArrow sx={{ mr: 1 }} />
-                Start Contest
-              </MenuItem>
-            )}
-            
-            {canFreezeContest(contests.find(c => c.id === menuAnchor.contestId)!) && (
-              <MenuItem onClick={() => handleContestAction(menuAnchor.contestId, 'freeze')}>
-                <Pause sx={{ mr: 1 }} />
-                Freeze Scoreboard
-              </MenuItem>
-            )}
-            
-            {canEndContest(contests.find(c => c.id === menuAnchor.contestId)!) && (
-              <MenuItem onClick={() => handleContestAction(menuAnchor.contestId, 'end')}>
-                <Stop sx={{ mr: 1 }} />
-                End Contest
-              </MenuItem>
-            )}
-            
-            <MenuItem onClick={() => navigate(`/admin/contests/${menuAnchor.contestId}/edit`)}>
-              <Edit sx={{ mr: 1 }} />
-              Edit Contest
-            </MenuItem>
-            
-            <MenuItem 
-              onClick={() => {
-                const contest = contests.find(c => c.id === menuAnchor.contestId)!;
-                setDeleteDialog(contest);
-                handleMenuClose();
-              }}
-              sx={{ color: 'error.main' }}
-            >
-              <Delete sx={{ mr: 1 }} />
-              Delete Contest
-            </MenuItem>
-          </>
-        )}
-      </Menu>
+      {menuAnchor && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1000
+          }}
+          onClick={handleMenuClose}
+        >
+          <div 
+            className="card"
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              minWidth: '200px',
+              maxWidth: '300px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="card-content" style={{ padding: '8px 0' }}>
+              {canStartContest(contests.find(c => c.id === menuAnchor.contestId)!) && (
+                <button 
+                  className="btn btn-text w-100 text-left"
+                  onClick={() => handleContestAction(menuAnchor.contestId, 'start')}
+                  style={{ justifyContent: 'flex-start', padding: '8px 16px' }}
+                >
+                  Start Contest
+                </button>
+              )}
+              
+              {canFreezeContest(contests.find(c => c.id === menuAnchor.contestId)!) && (
+                <button 
+                  className="btn btn-text w-100 text-left"
+                  onClick={() => handleContestAction(menuAnchor.contestId, 'freeze')}
+                  style={{ justifyContent: 'flex-start', padding: '8px 16px' }}
+                >
+                  Freeze Scoreboard
+                </button>
+              )}
+              
+              {canEndContest(contests.find(c => c.id === menuAnchor.contestId)!) && (
+                <button 
+                  className="btn btn-text w-100 text-left"
+                  onClick={() => handleContestAction(menuAnchor.contestId, 'end')}
+                  style={{ justifyContent: 'flex-start', padding: '8px 16px' }}
+                >
+                  End Contest
+                </button>
+              )}
+              
+              <button 
+                className="btn btn-text w-100 text-left"
+                onClick={() => navigate(`/admin/contests/${menuAnchor.contestId}/edit`)}
+                style={{ justifyContent: 'flex-start', padding: '8px 16px' }}
+              >
+                Edit Contest
+              </button>
+              
+              <button 
+                className="btn btn-text w-100 text-left"
+                onClick={() => {
+                  const contest = contests.find(c => c.id === menuAnchor.contestId)!;
+                  setDeleteDialog(contest);
+                  handleMenuClose();
+                }}
+                style={{ justifyContent: 'flex-start', padding: '8px 16px', color: 'var(--contest-wrong-answer)' }}
+              >
+                Delete Contest
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={Boolean(deleteDialog)} onClose={() => setDeleteDialog(null)}>
-        <DialogTitle>Delete Contest</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete "{deleteDialog?.contest_name}"? This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialog(null)}>Cancel</Button>
-          <Button 
-            onClick={handleDeleteContest} 
-            color="error" 
-            variant="contained"
-            disabled={actionLoading === deleteDialog?.id}
-          >
-            {actionLoading === deleteDialog?.id ? <CircularProgress size={20} /> : 'Delete'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+      {deleteDialog && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1000,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+        >
+          <div className="card" style={{ maxWidth: '400px', margin: '16px' }}>
+            <div className="card-header">
+              <h3 className="card-title">Delete Contest</h3>
+            </div>
+            <div className="card-content">
+              <p>
+                Are you sure you want to delete "{deleteDialog?.contest_name}"? This action cannot be undone.
+              </p>
+            </div>
+            <div className="card-actions">
+              <button className="btn btn-text" onClick={() => setDeleteDialog(null)}>Cancel</button>
+              <button 
+                className="btn btn-primary"
+                onClick={handleDeleteContest}
+                disabled={actionLoading === deleteDialog?.id}
+                style={{ backgroundColor: 'var(--contest-wrong-answer)' }}
+              >
+                {actionLoading === deleteDialog?.id ? (
+                  <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }}></div>
+                ) : (
+                  'Delete'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

@@ -13,9 +13,6 @@ const {
 } = require('../utils/errors');
 const notificationService = require('../services/notificationService');
 
-// In-memory storage for development fallback
-let mockContests = [];
-let nextContestId = 100;
 
 /**
  * Contest Model Class
@@ -174,7 +171,7 @@ class Contest {
       'standard': {
         duration: 180,
         freeze_time: 60,
-        description: 'Standard ICPC-style contest - 3 hours with 1hr freeze'
+        description: 'Standard hackathon contest - 3 hours with 1hr freeze'
       },
       'advanced': {
         duration: 300,
@@ -210,65 +207,37 @@ class Contest {
 
     let registrationCode = this.generateRegistrationCode();
 
-    // Fallback creation when database is not available
-    try {
-      let isUnique = false;
-      let attempts = 0;
-      const maxAttempts = 10;
+    let isUnique = false;
+    let attempts = 0;
+    const maxAttempts = 10;
 
-      // Generate unique registration code
-      while (!isUnique && attempts < maxAttempts) {
-        registrationCode = this.generateRegistrationCode();
-        const existing = await db('contests').where('registration_code', registrationCode).first();
-        if (!existing) {
-          isUnique = true;
-        }
-        attempts++;
+    // Generate unique registration code
+    while (!isUnique && attempts < maxAttempts) {
+      registrationCode = this.generateRegistrationCode();
+      const existing = await db('contests').where('registration_code', registrationCode).first();
+      if (!existing) {
+        isUnique = true;
       }
-
-      if (!isUnique) {
-        throw new DatabaseError('Failed to generate unique registration code');
-      }
-
-      const [result] = await db('contests').insert({
-        contest_name: contestData.contest_name.trim(),
-        description: contestData.description ? contestData.description.trim() : null,
-        registration_code: registrationCode,
-        start_time: new Date(contestData.start_time),
-        duration: contestData.duration,
-        freeze_time: contestData.freeze_time || 60,
-        created_by: adminId,
-        is_active: contestData.is_active !== undefined ? contestData.is_active : true,
-      }).returning('id');
-
-      const createdContest = await this.findById(result.id);
-      return createdContest;
-    } catch (error) {
-      // Fallback: create and store mock contest in memory
-      const mockContest = {
-        id: nextContestId++,
-        contest_name: contestData.contest_name.trim(),
-        description: contestData.description ? contestData.description.trim() : null,
-        registration_code: registrationCode,
-        start_time: new Date(contestData.start_time).toISOString(),
-        duration: contestData.duration,
-        freeze_time: contestData.freeze_time || 60,
-        created_by: adminId,
-        is_active: contestData.is_active !== undefined ? contestData.is_active : true,
-        is_registration_open: contestData.is_registration_open !== undefined ? contestData.is_registration_open : true,
-        is_frozen: false,
-        frozen_at: null,
-        created_at: new Date().toISOString(),
-        status: 'not_started',
-        problems_count: 0,
-        teams_count: 0
-      };
-
-      // Store in memory for this session
-      mockContests.unshift(mockContest); // Add to beginning so it appears first
-
-      return new Contest(mockContest);
+      attempts++;
     }
+
+    if (!isUnique) {
+      throw new DatabaseError('Failed to generate unique registration code');
+    }
+
+    const [result] = await db('contests').insert({
+      contest_name: contestData.contest_name.trim(),
+      description: contestData.description ? contestData.description.trim() : null,
+      registration_code: registrationCode,
+      start_time: new Date(contestData.start_time),
+      duration: contestData.duration,
+      freeze_time: contestData.freeze_time || 60,
+      created_by: adminId,
+      is_active: contestData.is_active !== undefined ? contestData.is_active : true,
+    }).returning('id');
+
+    const createdContest = await this.findById(result.id);
+    return createdContest;
   }
 
   /**
@@ -352,63 +321,7 @@ class Contest {
       const contests = await query.orderBy('created_at', 'desc');
       return contests.map(contest => new Contest(contest));
     } catch (error) {
-      // Fallback to mock data when database is not available
-      const defaultMockContests = [
-        {
-          id: 1,
-          contest_name: 'CS Club Fall Contest 2025',
-          description: 'Welcome to our fall programming contest! Solve challenging algorithmic problems and compete with your peers.',
-          registration_code: 'FALL2025',
-          start_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
-          duration: 180,
-          freeze_time: 30,
-          created_by: 1,
-          is_active: true,
-          is_frozen: false,
-          frozen_at: null,
-          created_at: new Date().toISOString(),
-          status: 'not_started',
-          problems_count: 4,
-          teams_count: 12
-        },
-        {
-          id: 2,
-          contest_name: 'Practice Round',
-          description: 'A practice round to get familiar with the platform and test your setup.',
-          registration_code: 'PRACTICE',
-          start_time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-          duration: 60,
-          freeze_time: 15,
-          created_by: 1,
-          is_active: false,
-          is_frozen: false,
-          frozen_at: null,
-          created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
-          status: 'ended',
-          problems_count: 2,
-          teams_count: 8
-        }
-      ];
-
-      // Combine default mock contests with user-created ones
-      const allMockContests = [...mockContests, ...defaultMockContests];
-      
-      // Apply filters
-      let filteredContests = allMockContests;
-      if (filters.adminId) {
-        filteredContests = filteredContests.filter(contest => contest.created_by === filters.adminId);
-      }
-      if (filters.isActive !== undefined) {
-        filteredContests = filteredContests.filter(contest => contest.is_active === filters.isActive);
-      }
-      if (filters.isRegistrationOpen !== undefined) {
-        filteredContests = filteredContests.filter(contest => contest.is_registration_open === filters.isRegistrationOpen);
-      }
-
-      // Sort by created_at descending
-      filteredContests.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-      return filteredContests.map(contest => new Contest(contest));
+      throw new DatabaseError('Failed to fetch contests', error);
     }
   }
 
@@ -585,15 +498,7 @@ class Contest {
         submissions_count: parseInt(submissionsCount.count)
       };
     } catch (error) {
-      // Fallback statistics when database is not available
-      if (contestId === 1) {
-        return { teams_registered: 12, problems_count: 4, submissions_count: 45 };
-      } else if (contestId === 2) {
-        return { teams_registered: 8, problems_count: 2, submissions_count: 28 };
-      } else {
-        // For new contests created during the session
-        return { teams_registered: 0, problems_count: 0, submissions_count: 0 };
-      }
+      throw new DatabaseError('Failed to fetch contest statistics', error);
     }
   }
 
@@ -794,7 +699,7 @@ class Contest {
    */
   static async getTeamStatistics(contestId, teamId) {
     try {
-      // This will be fully implemented in Phase 3 (ICPC Scoring)
+      // This will be fully implemented in Phase 3 (Hackathon Scoring)
       // For now, return basic placeholder statistics
       const submissionsCount = await db('submissions')
         .where('team_id', teamId)
@@ -814,7 +719,7 @@ class Contest {
       return {
         total_submissions: parseInt(submissionsCount.count) || 0,
         problems_solved: parseInt(acceptedCount.count) || 0,
-        penalty_time: 0, // To be calculated in Phase 3
+        total_points: 0, // To be calculated by hackathon scoring
         rank: null // To be calculated in Phase 3
       };
     } catch (error) {

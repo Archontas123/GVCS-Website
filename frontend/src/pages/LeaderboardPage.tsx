@@ -1,27 +1,8 @@
-/**
- * CS Club Hackathon Platform - Leaderboard Page
- * Displays the leaderboard for the team's contest
- */
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import apiService from '../services/api';
+import { LeaderboardEntry } from '../types';
 import '../styles/theme.css';
-
-interface LeaderboardEntry {
-  rank: number;
-  teamName: string;
-  problemsSolved: number;
-  penaltyTime: number;
-  problems: Array<{
-    problemLetter: string;
-    solved: boolean;
-    attempts: number;
-    solveTime: number | null;
-    firstToSolve: boolean;
-  }>;
-  lastSubmissionTime: string | null;
-}
 
 const LeaderboardPage: React.FC = () => {
   const { team } = useAuth();
@@ -40,7 +21,6 @@ const LeaderboardPage: React.FC = () => {
       }
 
       try {
-        // Get contest info using the timer endpoint which returns contest.id
         const response = await apiService.getContestTimer(team.contestCode);
         
         if (response.success && response.data?.contest?.id) {
@@ -77,7 +57,6 @@ const LeaderboardPage: React.FC = () => {
 
     if (contestId) {
       fetchLeaderboard();
-      // Refresh every 30 seconds
       const interval = setInterval(fetchLeaderboard, 30000);
       return () => clearInterval(interval);
     }
@@ -114,24 +93,28 @@ const LeaderboardPage: React.FC = () => {
     );
   }
 
-  const formatTime = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}:${mins.toString().padStart(2, '0')}` : `${mins}`;
+  const formatPoints = (points: number): string => {
+    return points.toLocaleString();
   };
 
   const getProblemStatus = (problem: any) => {
     if (problem.solved) {
       return {
         className: 'text-success fw-bold',
-        text: problem.firstToSolve ? `+${problem.attempts || 1} 🥇` : `+${problem.attempts || 1}`,
-        title: `Solved in ${formatTime(problem.solveTime)} minutes with ${problem.attempts} attempts`
+        text: problem.firstToSolve ? `${problem.pointsEarned} (FIRST)` : `${problem.pointsEarned}`,
+        title: `Solved: ${problem.pointsEarned}/${problem.totalPoints} points with ${problem.attempts} attempts`
+      };
+    } else if (problem.attempts > 0 && problem.pointsEarned > 0) {
+      return {
+        className: 'text-warning fw-bold',
+        text: `${problem.pointsEarned}`,
+        title: `Partial credit: ${problem.pointsEarned}/${problem.totalPoints} points from ${problem.attempts} attempts`
       };
     } else if (problem.attempts > 0) {
       return {
         className: 'text-danger',
-        text: `-${problem.attempts}`,
-        title: `${problem.attempts} failed attempts`
+        text: `0`,
+        title: `${problem.attempts} failed attempts, 0 points earned`
       };
     } else {
       return {
@@ -150,7 +133,7 @@ const LeaderboardPage: React.FC = () => {
     <div style={{ fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
       <div className="container p-4">
         <div className="d-flex justify-content-between align-items-center mb-4">
-          <h2 className="mb-0">🏆 Live Leaderboard</h2>
+          <h2 className="mb-0">Live Leaderboard</h2>
           {lastUpdate && (
             <small className="text-muted">
               Last updated: {lastUpdate.toLocaleTimeString()}
@@ -170,7 +153,7 @@ const LeaderboardPage: React.FC = () => {
                   <th>Rank</th>
                   <th>Team</th>
                   <th className="text-center">Solved</th>
-                  <th className="text-center">Penalty</th>
+                  <th className="text-center">Points</th>
                   {uniqueProblems.map(letter => (
                     <th key={letter} className="text-center" style={{ minWidth: '60px' }}>
                       {letter}
@@ -191,7 +174,7 @@ const LeaderboardPage: React.FC = () => {
                           <strong>#{entry.rank}</strong>
                           {entry.rank <= 3 && (
                             <span className="ms-2">
-                              {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : '🥉'}
+                              {entry.rank === 1 ? '1st' : entry.rank === 2 ? '2nd' : '3rd'}
                             </span>
                           )}
                         </div>
@@ -229,7 +212,9 @@ const LeaderboardPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="text-center">
-                        <small>{formatTime(entry.penaltyTime)}</small>
+                        <span className="badge bg-primary fs-6">
+                          {formatPoints(entry.totalPoints)}
+                        </span>
                       </td>
                       {uniqueProblems.map(letter => {
                         const problem = entry.problems?.find(p => p.problemLetter === letter);

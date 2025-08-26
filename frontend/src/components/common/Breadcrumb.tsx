@@ -4,8 +4,6 @@
  */
 
 import React from 'react';
-import { Box, Typography, Link } from '@mui/material';
-import { ChevronRight } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 interface BreadcrumbItem {
@@ -30,55 +28,62 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ items }) => {
   };
 
   return (
-    <Box
-      sx={{
+    <div
+      style={{
         display: 'flex',
         alignItems: 'center',
-        mb: 2,
+        marginBottom: '16px',
         flexWrap: 'wrap',
       }}
     >
       {items.map((item, index) => (
         <React.Fragment key={index}>
           {index < items.length - 1 ? (
-            <Link
-              component="button"
-              variant="body2"
+            <button
               onClick={() => handleClick(item)}
-              sx={{
+              style={{
                 color: '#007bff',
                 textDecoration: 'none',
                 cursor: 'pointer',
-                '&:hover': {
-                  textDecoration: 'underline',
-                },
+                background: 'none',
+                border: 'none',
+                fontSize: '14px',
+                padding: '0'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.textDecoration = 'underline';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.textDecoration = 'none';
               }}
             >
               {item.label}
-            </Link>
+            </button>
           ) : (
-            <Typography
-              variant="body2"
-              sx={{
+            <span
+              style={{
                 color: '#6c757d',
                 fontWeight: 500,
+                fontSize: '14px'
               }}
             >
               {item.label}
-            </Typography>
+            </span>
           )}
           {index < items.length - 1 && (
-            <ChevronRight
-              sx={{
-                mx: 1,
-                fontSize: 16,
+            <span
+              style={{
+                margin: '0 8px',
+                fontSize: '16px',
                 color: '#6c757d',
               }}
-            />
+            >
+              /
+            </span>
           )}
         </React.Fragment>
       ))}
-    </Box>
+    </div>
   );
 };
 

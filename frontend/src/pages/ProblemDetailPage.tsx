@@ -4,27 +4,11 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import {
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  TableContainer,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  IconButton,
-  Typography,
-  Box,
-} from '@mui/material';
-import { Add, Close, Edit, Delete } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import TestCaseModal from '../components/Admin/TestCaseModal';
 import RichTextEditor from '../components/common/RichTextEditor';
+import '../styles/theme.css';
 
 interface TestCase {
   id: string;
@@ -390,71 +374,32 @@ const ProblemDetailPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
-          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-          padding: '32px 16px',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
-        <div
-          style={{
-            width: '40px',
-            height: '40px',
-            border: '4px solid #e5e7eb',
-            borderTop: '4px solid #1d4ed8',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-          }}
-        ></div>
+      <div className="full-height flex-center" style={{ backgroundColor: 'var(--background-default)' }}>
+        <div className="spinner-lg"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
-          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-          padding: '32px 16px',
-        }}
-      >
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div 
-            style={{ 
-              padding: '16px 20px',
-              backgroundColor: '#fef2f2',
-              border: '1px solid #fecaca',
-              borderRadius: '12px',
-              color: '#dc2626',
-              fontSize: '0.9rem',
-              fontWeight: 500,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <span><strong>Error:</strong> {error}</span>
-            <button
-              onClick={() => window.location.reload()}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#dc2626',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontSize: '0.9rem',
-                textDecoration: 'underline',
-              }}
-            >
-              Retry
-            </button>
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--background-default)', padding: 'var(--spacing-xl) var(--spacing-md)' }}>
+        <div className="container">
+          <div className="alert alert-error">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span><strong>Error:</strong> {error}</span>
+              <button
+                onClick={() => window.location.reload()}
+                className="btn-text"
+                style={{
+                  color: 'var(--contest-wrong-answer)',
+                  textDecoration: 'underline',
+                  padding: 0,
+                  minHeight: 'auto',
+                }}
+              >
+                Retry
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -462,98 +407,55 @@ const ProblemDetailPage: React.FC = () => {
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
-        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-        padding: '32px 16px',
-      }}
-    >
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--background-default)', padding: 'var(--spacing-xl) var(--spacing-md)' }}>
+      <div className="container">
         {/* Header */}
-        <div style={{ marginBottom: '32px', textAlign: 'center' }}>
-          <h1 
-            style={{ 
-              fontWeight: 700, 
-              fontSize: '2.4rem',
-              color: '#1d4ed8',
-              letterSpacing: '-0.02em',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              marginBottom: '16px',
-            }}
-          >
+        <div className="text-center mb-4">
+          <h1 style={{ 
+            color: 'var(--primary-main)',
+            marginBottom: 'var(--spacing-md)',
+          }}>
             Problem Management
           </h1>
           
-          <h2 
-            style={{ 
-              fontWeight: 500, 
-              fontSize: '1.1rem',
-              color: '#475569',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              marginBottom: '16px',
-            }}
-          >
+          <h2 style={{ 
+            fontSize: '1.1rem',
+            color: 'var(--text-secondary)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em',
+            marginBottom: 'var(--spacing-md)',
+          }}>
             {problem?.title || 'Loading Problem...'}
           </h2>
           
-          <div 
-            style={{
-              width: '80px',
-              height: '4px',
-              background: 'linear-gradient(90deg, #1d4ed8 0%, #2563eb 100%)',
-              margin: '0 auto',
-              borderRadius: '4px',
-              boxShadow: '0 2px 8px rgba(29, 78, 216, 0.3)',
-            }}
-          ></div>
+          <div style={{
+            width: '80px',
+            height: '4px',
+            backgroundColor: 'var(--primary-main)',
+            margin: '0 auto',
+            borderRadius: 'var(--border-radius)',
+            boxShadow: 'var(--shadow-sm)',
+          }}></div>
         </div>
 
         {/* Navigation Tabs */}
-        <div 
-          style={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            marginBottom: '24px',
-            gap: '8px',
-          }}
-        >
+        <div className="flex justify-center mb-4" style={{ gap: 'var(--spacing-sm)' }}>
           <button
             onClick={() => setSelectedTab(0)}
+            className={selectedTab === 0 ? 'btn btn-primary' : 'btn btn-outlined'}
             style={{
-              background: selectedTab === 0 ? 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)' : '#ffffff',
-              color: selectedTab === 0 ? 'white' : '#374151',
-              border: selectedTab === 0 ? 'none' : '2px solid #e5e7eb',
-              borderRadius: '12px',
-              padding: '12px 20px',
+              padding: 'var(--spacing-sm) var(--spacing-lg)',
               fontSize: '1rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              boxShadow: selectedTab === 0 ? '0 4px 12px rgba(29, 78, 216, 0.25)' : '0 2px 4px rgba(0, 0, 0, 0.05)',
             }}
           >
             Details
           </button>
           <button
             onClick={() => setSelectedTab(1)}
+            className={selectedTab === 1 ? 'btn btn-primary' : 'btn btn-outlined'}
             style={{
-              background: selectedTab === 1 ? 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)' : '#ffffff',
-              color: selectedTab === 1 ? 'white' : '#374151',
-              border: selectedTab === 1 ? 'none' : '2px solid #e5e7eb',
-              borderRadius: '12px',
-              padding: '12px 20px',
+              padding: 'var(--spacing-sm) var(--spacing-lg)',
               fontSize: '1rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              boxShadow: selectedTab === 1 ? '0 4px 12px rgba(29, 78, 216, 0.25)' : '0 2px 4px rgba(0, 0, 0, 0.05)',
             }}
           >
             Test Cases
@@ -561,51 +463,18 @@ const ProblemDetailPage: React.FC = () => {
         </div>
 
         {/* Main Content */}
-        <div
-          style={{
-            backgroundColor: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '16px',
-            boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)',
-            minHeight: '500px',
-          }}
-        >
+        <div className="card" style={{ minHeight: '500px' }}>
           {selectedTab === 0 ? (
             // Details Tab
-            <div style={{ padding: '48px 40px' }}>
+            <div className="card-content" style={{ padding: 'var(--spacing-xl)' }}>
               {/* Header with Edit Button */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <h3 style={{ 
-                  fontSize: '1.2rem', 
-                  fontWeight: 600, 
-                  color: '#1f2937',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                  margin: 0,
-                }}>
-                  Problem Details
-                </h3>
+              <div className="flex justify-between align-center mb-4">
+                <h3 className="card-title">Problem Details</h3>
                 {!editMode && (
                   <button
                     onClick={handleEdit}
-                    style={{
-                      background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '12px',
-                      padding: '8px 16px',
-                      fontSize: '0.9rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                      boxShadow: '0 4px 12px rgba(29, 78, 216, 0.25)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
+                    className="btn btn-primary"
+                    style={{ fontSize: '0.9rem' }}
                   >
                     Edit Problem
                   </button>
@@ -614,73 +483,28 @@ const ProblemDetailPage: React.FC = () => {
 
               {/* Success/Error Messages */}
               {saveSuccess && (
-                <div style={{
-                  backgroundColor: '#f0fdf4',
-                  border: '1px solid #bbf7d0',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  marginBottom: '24px',
-                  color: '#166534',
-                  fontSize: '0.9rem',
-                  fontWeight: 500,
-                }}>
+                <div className="alert alert-success">
                   ✓ Problem updated successfully!
                 </div>
               )}
 
               {saveError && (
-                <div style={{
-                  backgroundColor: '#fef2f2',
-                  border: '1px solid #fecaca',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  marginBottom: '24px',
-                  color: '#dc2626',
-                  fontSize: '0.9rem',
-                  fontWeight: 500,
-                }}>
+                <div className="alert alert-error">
                   Error: {saveError}
                 </div>
               )}
 
               {editMode && editedProblem ? (
                 // Edit Mode
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
                   {/* Title */}
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      marginBottom: '8px',
-                      fontWeight: 600,
-                      color: '#374151',
-                      fontSize: '0.9rem',
-                      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                    }}>
-                      Problem Title
-                    </label>
+                  <div className="form-group">
+                    <label className="form-label">Problem Title</label>
                     <input
                       type="text"
+                      className="form-control"
                       value={editedProblem.title}
                       onChange={(e) => handleFieldChange('title', e.target.value)}
-                      style={{
-                        width: '100%',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '12px',
-                        fontSize: '1rem',
-                        padding: '12px 16px',
-                        transition: 'all 0.2s ease',
-                        backgroundColor: '#ffffff',
-                        color: '#1f2937',
-                        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.borderColor = '#1d4ed8';
-                        e.target.style.boxShadow = '0 0 0 3px rgba(29, 78, 216, 0.1)';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = '#e5e7eb';
-                        e.target.style.boxShadow = 'none';
-                      }}
                     />
                   </div>
 
@@ -729,40 +553,13 @@ const ProblemDetailPage: React.FC = () => {
                   </div>
 
                   {/* Difficulty */}
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      marginBottom: '8px',
-                      fontWeight: 600,
-                      color: '#374151',
-                      fontSize: '0.9rem',
-                      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                    }}>
-                      Difficulty Level
-                    </label>
+                  <div className="form-group">
+                    <label className="form-label">Difficulty Level</label>
                     <select
+                      className="form-control"
                       value={editedProblem.difficulty}
                       onChange={(e) => handleFieldChange('difficulty', e.target.value as 'easy' | 'medium' | 'hard')}
-                      style={{
-                        width: '100%',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '12px',
-                        fontSize: '1rem',
-                        padding: '12px 16px',
-                        transition: 'all 0.2s ease',
-                        backgroundColor: '#ffffff',
-                        color: '#1f2937',
-                        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                        cursor: 'pointer',
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.borderColor = '#1d4ed8';
-                        e.target.style.boxShadow = '0 0 0 3px rgba(29, 78, 216, 0.1)';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = '#e5e7eb';
-                        e.target.style.boxShadow = 'none';
-                      }}
+                      style={{ cursor: 'pointer' }}
                     >
                       <option value="easy">Easy</option>
                       <option value="medium">Medium</option>
@@ -771,30 +568,14 @@ const ProblemDetailPage: React.FC = () => {
                   </div>
 
                   {/* Action Buttons */}
-                  <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
+                  <div className="card-actions" style={{ marginTop: 'var(--spacing-sm)' }}>
                     <button
                       onClick={handleCancelEdit}
                       disabled={saveLoading}
+                      className="btn btn-outlined"
                       style={{
-                        background: '#ffffff',
-                        color: '#64748b',
-                        border: '2px solid #cbd5e1',
-                        borderRadius: '12px',
-                        padding: '12px 20px',
-                        fontSize: '1rem',
-                        fontWeight: 500,
-                        cursor: saveLoading ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.2s ease',
-                        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
                         opacity: saveLoading ? 0.5 : 1,
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!saveLoading) {
-                          e.currentTarget.style.background = '#f8f9fa';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = '#ffffff';
+                        cursor: saveLoading ? 'not-allowed' : 'pointer',
                       }}
                     >
                       Cancel
@@ -802,46 +583,23 @@ const ProblemDetailPage: React.FC = () => {
                     <button
                       onClick={handleSaveProblem}
                       disabled={saveLoading}
+                      className="btn btn-primary"
                       style={{
-                        background: saveLoading ? '#9ca3af' : 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '12px',
-                        padding: '12px 32px',
-                        fontSize: '1rem',
-                        fontWeight: 600,
+                        backgroundColor: saveLoading ? '#9ca3af' : undefined,
                         cursor: saveLoading ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.2s ease',
-                        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                        boxShadow: saveLoading ? 'none' : '0 4px 12px rgba(29, 78, 216, 0.25)',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!saveLoading) {
-                          e.currentTarget.style.transform = 'translateY(-1px)';
-                          e.currentTarget.style.boxShadow = '0 8px 20px rgba(29, 78, 216, 0.35)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!saveLoading) {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(29, 78, 216, 0.25)';
-                        }
+                        gap: 'var(--spacing-sm)',
                       }}
                     >
                       {saveLoading && (
-                        <div
-                          style={{
-                            width: '16px',
-                            height: '16px',
-                            border: '2px solid rgba(255, 255, 255, 0.3)',
-                            borderTop: '2px solid white',
-                            borderRadius: '50%',
-                            animation: 'spin 1s linear infinite',
-                          }}
-                        ></div>
+                        <div className="spinner" style={{ 
+                          width: '16px', 
+                          height: '16px',
+                          borderWidth: '2px',
+                          borderColor: 'rgba(255, 255, 255, 0.3)',
+                          borderTopColor: 'white',
+                        }}></div>
                       )}
                       {saveLoading ? 'Saving...' : 'Save Changes'}
                     </button>
@@ -849,23 +607,21 @@ const ProblemDetailPage: React.FC = () => {
                 </div>
               ) : (
                 // View Mode
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
                   {problem ? (
                     <>
                       <div>
                         <h4 style={{
                           fontSize: '1rem',
                           fontWeight: 600,
-                          color: '#374151',
-                          marginBottom: '8px',
-                          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                          color: 'var(--text-primary)',
+                          marginBottom: 'var(--spacing-sm)',
                         }}>
                           Title
                         </h4>
                         <p style={{
-                          color: '#1f2937',
+                          color: 'var(--text-primary)',
                           fontSize: '1rem',
-                          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
                           margin: 0,
                           lineHeight: 1.5,
                         }}>
@@ -877,20 +633,17 @@ const ProblemDetailPage: React.FC = () => {
                         <h4 style={{
                           fontSize: '1rem',
                           fontWeight: 600,
-                          color: '#374151',
-                          marginBottom: '8px',
-                          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                          color: 'var(--text-primary)',
+                          marginBottom: 'var(--spacing-sm)',
                         }}>
                           Description
                         </h4>
-                        <div style={{
-                          color: '#1f2937',
+                        <div className="bg-light" style={{
+                          color: 'var(--text-primary)',
                           fontSize: '1rem',
-                          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
                           lineHeight: 1.5,
-                          backgroundColor: '#f8fafc',
-                          padding: '16px',
-                          borderRadius: '8px',
+                          padding: 'var(--spacing-md)',
+                          borderRadius: 'var(--border-radius)',
                           border: '1px solid #e2e8f0',
                         }}>
                           {problem.description ? (
@@ -1034,32 +787,19 @@ const ProblemDetailPage: React.FC = () => {
                         <h4 style={{
                           fontSize: '1rem',
                           fontWeight: 600,
-                          color: '#374151',
-                          marginBottom: '8px',
-                          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                          color: 'var(--text-primary)',
+                          marginBottom: 'var(--spacing-sm)',
                         }}>
                           Difficulty Level
                         </h4>
-                        <div style={{
-                          color: '#1f2937',
-                          fontSize: '1rem',
-                          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                          lineHeight: 1.5,
-                          backgroundColor: '#f8fafc',
-                          padding: '16px',
-                          borderRadius: '8px',
-                          border: '1px solid #e2e8f0',
-                          display: 'inline-block',
-                        }}>
+                        <div>
                           <span
+                            className={`chip ${
+                              problem.difficulty === 'easy' ? 'chip-success' : 
+                              problem.difficulty === 'medium' ? 'chip-warning' : 'chip-error'
+                            }`}
                             style={{
-                              backgroundColor: problem.difficulty === 'easy' ? '#10b981' : 
-                                             problem.difficulty === 'medium' ? '#f59e0b' : '#ef4444',
-                              color: 'white',
-                              padding: '4px 12px',
-                              borderRadius: '6px',
                               fontSize: '0.875rem',
-                              fontWeight: 600,
                               textTransform: 'capitalize',
                             }}
                           >
@@ -1082,66 +822,33 @@ const ProblemDetailPage: React.FC = () => {
             </div>
           ) : (
             // Test Cases Tab
-            <div style={{ padding: '48px 40px' }}>
-              <div style={{ marginBottom: '24px' }}>
+            <div className="card-content" style={{ padding: 'var(--spacing-xl)' }}>
+              <div style={{ marginBottom: 'var(--spacing-lg)' }}>
                 <p style={{ 
                   fontSize: '0.9rem', 
-                  color: '#6b7280',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                  marginBottom: '16px',
+                  color: 'var(--text-secondary)',
+                  marginBottom: 'var(--spacing-md)',
                 }}>
                   Add test cases to judge the correctness of a user's code. Each test case should provide standard input (STDIN) and expected output (STDOUT) that will be used to validate submissions.
                 </p>
 
                 {testCases.length === 0 && (
-                  <div 
-                    style={{ 
-                      padding: '16px 20px',
-                      backgroundColor: '#fffbeb',
-                      border: '1px solid #fed7aa',
-                      borderRadius: '12px',
-                      marginBottom: '24px',
-                      color: '#a16207',
-                      fontSize: '0.9rem',
-                      fontWeight: 500,
-                    }}
-                  >
-                    ⚠️ You do not have any test cases for this problem. Add at least one test case.
+                  <div className="alert alert-warning">
+                    Warning: You do not have any test cases for this problem. Add at least one test case.
                   </div>
                 )}
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '16px' }}>
+                <div className="flex justify-end mb-3">
                   <button
                     onClick={() => setTestCaseModalOpen(true)}
+                    className="btn btn-primary"
                     style={{
-                      background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '12px',
-                      padding: '12px 20px',
-                      fontSize: '1rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                      boxShadow: '0 4px 12px rgba(29, 78, 216, 0.25)',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%)';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                      e.currentTarget.style.boxShadow = '0 8px 20px rgba(29, 78, 216, 0.35)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(29, 78, 216, 0.25)';
+                      gap: 'var(--spacing-sm)',
                     }}
                   >
-                    <Add style={{ fontSize: '20px' }} />
-                    Add Test Case
+                    ➕ Add Test Case
                   </button>
                 </div>
               </div>
@@ -1149,77 +856,104 @@ const ProblemDetailPage: React.FC = () => {
 
               {/* Test Cases Table */}
               {testCases.length > 0 ? (
-                <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow sx={{ backgroundColor: '#f8fafc' }}>
-                        <TableCell sx={{ fontWeight: 600 }}>Order</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Input Preview</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Output Preview</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Sample</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
+                <div className="card" style={{ marginTop: '16px' }}>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Order</th>
+                        <th>Input Preview</th>
+                        <th>Output Preview</th>
+                        <th>Sample</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
                       {testCases.map((testCase) => (
-                        <TableRow key={testCase.id}>
-                          <TableCell>{testCase.order}</TableCell>
-                          <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                        <tr key={testCase.id}>
+                          <td>{testCase.order}</td>
+                          <td style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
                             {testCase.input.length > 30 ? testCase.input.substring(0, 30) + '...' : testCase.input}
-                          </TableCell>
-                          <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                          </td>
+                          <td style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
                             {testCase.output.length > 30 ? testCase.output.substring(0, 30) + '...' : testCase.output}
-                          </TableCell>
-                          <TableCell>
-                            {testCase.sample && (
-                              <Box sx={{ color: '#059669', fontSize: '0.75rem' }}>✓ Sample</Box>
+                          </td>
+                          <td>
+                            {testCase.sample ? (
+                              <span className="chip chip-success" style={{ fontSize: '0.75rem' }}>✓ Sample</span>
+                            ) : (
+                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Hidden</span>
                             )}
-                            {!testCase.sample && (
-                              <Box sx={{ color: '#6b7280', fontSize: '0.75rem' }}>Hidden</Box>
-                            )}
-                          </TableCell>
-                          <TableCell>
+                          </td>
+                          <td>
                             <div style={{ display: 'flex', gap: '4px' }}>
-                              <IconButton
-                                size="small"
+                              <button
                                 onClick={() => handleEditTestCase(testCase)}
-                                sx={{
-                                  color: '#1d4ed8',
-                                  '&:hover': {
-                                    backgroundColor: '#e0e7ff',
-                                  },
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: 'var(--primary-main)',
+                                  cursor: 'pointer',
+                                  padding: '4px 8px',
+                                  borderRadius: 'var(--border-radius)',
+                                  fontSize: '16px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '32px',
+                                  height: '32px',
+                                  transition: 'background-color 0.2s ease',
                                 }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#e0e7ff';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                }}
+                                title="Edit test case"
                               >
-                                <Edit fontSize="small" />
-                              </IconButton>
-                              <IconButton
-                                size="small"
+                                Edit
+                              </button>
+                              <button
                                 onClick={() => handleDeleteTestCase(testCase)}
-                                sx={{
-                                  color: '#dc2626',
-                                  '&:hover': {
-                                    backgroundColor: '#fee2e2',
-                                  },
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: 'var(--contest-wrong-answer)',
+                                  cursor: 'pointer',
+                                  padding: '4px 8px',
+                                  borderRadius: 'var(--border-radius)',
+                                  fontSize: '16px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '32px',
+                                  height: '32px',
+                                  transition: 'background-color 0.2s ease',
                                 }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#fee2e2';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                }}
+                                title="Delete test case"
                               >
-                                <Delete fontSize="small" />
-                              </IconButton>
+                                Delete
+                              </button>
                             </div>
-                          </TableCell>
-                        </TableRow>
+                          </td>
+                        </tr>
                       ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                    </tbody>
+                  </table>
+                </div>
               ) : (
-                <div style={{ 
-                  textAlign: 'center', 
-                  padding: '48px 0',
-                  color: '#94a3b8',
+                <div className="text-center" style={{ 
+                  padding: 'var(--spacing-xl) 0',
+                  color: 'var(--text-secondary)',
                 }}>
                   <p style={{ 
                     fontSize: '1rem',
-                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
                     margin: 0,
                   }}>No test cases have been added yet</p>
                 </div>
@@ -1230,125 +964,56 @@ const ProblemDetailPage: React.FC = () => {
         </div>
 
         {/* Action Buttons */}
-        <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: '16px' }}>
+        <div className="flex justify-between align-center mt-5">
+          <div className="flex" style={{ gap: 'var(--spacing-md)' }}>
             <button
               onClick={handlePreviewProblem}
-              style={{
-                background: '#ffffff',
-                color: '#64748b',
-                border: '2px solid #cbd5e1',
-                borderRadius: '12px',
-                padding: '12px 20px',
-                fontSize: '1rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#f8f9fa';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#ffffff';
-              }}
+              className="btn btn-outlined"
             >
               Preview Problem
             </button>
             <button
               onClick={handleDeleteProblem}
               disabled={deletingProblem}
+              className="btn"
               style={{
-                background: '#ffffff',
-                color: '#dc2626',
+                backgroundColor: 'var(--background-paper)',
+                color: 'var(--contest-wrong-answer)',
                 border: '2px solid #fecaca',
-                borderRadius: '12px',
-                padding: '12px 20px',
-                fontSize: '1rem',
-                fontWeight: 500,
-                cursor: deletingProblem ? 'not-allowed' : 'pointer',
                 opacity: deletingProblem ? 0.7 : 1,
-                transition: 'all 0.2s ease',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              }}
-              onMouseEnter={(e) => {
-                if (!deletingProblem) {
-                  e.currentTarget.style.background = '#fef2f2';
-                  e.currentTarget.style.borderColor = '#f87171';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!deletingProblem) {
-                  e.currentTarget.style.background = '#ffffff';
-                  e.currentTarget.style.borderColor = '#fecaca';
-                }
+                cursor: deletingProblem ? 'not-allowed' : 'pointer',
               }}
             >
               {deletingProblem ? 'Deleting...' : 'Delete Problem'}
             </button>
           </div>
-          <button
-            style={{
-              background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '12px 32px',
-              fontSize: '1rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              boxShadow: '0 4px 12px rgba(29, 78, 216, 0.25)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%)';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 8px 20px rgba(29, 78, 216, 0.35)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)';
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(29, 78, 216, 0.25)';
-            }}
-          >
+          <button className="btn btn-primary">
             Save Changes
           </button>
         </div>
 
         {/* Footer */}
-        <div style={{ textAlign: 'center', marginTop: '48px' }}>
+        <div className="text-center mt-5">
           <div 
             style={{
               height: '1px',
               background: 'linear-gradient(90deg, transparent, #e5e7eb, transparent)',
-              margin: '32px auto 24px',
+              margin: 'var(--spacing-xl) auto var(--spacing-lg)',
               maxWidth: '400px',
             }}
           ></div>
-          <p style={{ fontSize: '0.9rem', color: '#6b7280', margin: 0 }}>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0 }}>
             Need to return to dashboard?{' '}
             <button
               type="button"
               onClick={() => navigate('/admin/dashboard')}
+              className="btn-text"
               style={{
-                background: 'none',
-                border: 'none',
-                color: '#1d4ed8',
-                padding: '0',
-                fontWeight: 600,
-                textDecoration: 'none',
-                cursor: 'pointer',
+                color: 'var(--primary-main)',
+                padding: 0,
                 fontSize: '0.9rem',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.textDecoration = 'underline';
-                e.currentTarget.style.color = '#1e40af';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.textDecoration = 'none';
-                e.currentTarget.style.color = '#1d4ed8';
+                minHeight: 'auto',
+                textDecoration: 'underline',
               }}
             >
               Click here
@@ -1367,423 +1032,447 @@ const ProblemDetailPage: React.FC = () => {
       />
 
       {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={handleCancelDelete}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: '16px',
-            backgroundColor: '#ffffff',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04)',
-          }
-        }}
-      >
-        <DialogTitle sx={{ 
-          fontWeight: 700, 
-          fontSize: '1.5rem',
-          color: '#dc2626',
-          textAlign: 'center',
-          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-          paddingBottom: '8px'
-        }}>
-          Delete Test Case
-        </DialogTitle>
-        <DialogContent sx={{ textAlign: 'center', padding: '16px 24px' }}>
-          <Typography sx={{ 
-            fontSize: '1rem',
-            color: '#374151',
-            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-            marginBottom: '16px'
-          }}>
-            Are you sure you want to delete this test case?
-          </Typography>
-          {testCaseToDelete && (
-            <Box sx={{ 
-              backgroundColor: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: '8px',
-              padding: '12px',
-              fontFamily: 'monospace',
-              fontSize: '0.875rem',
-              textAlign: 'left'
-            }}>
-              <div><strong>Input:</strong> {testCaseToDelete.input || '(empty)'}</div>
-              <div><strong>Output:</strong> {testCaseToDelete.output || '(empty)'}</div>
-              <div><strong>Sample:</strong> {testCaseToDelete.sample ? 'Yes' : 'No'}</div>
-            </Box>
-          )}
-          <Typography sx={{ 
-            fontSize: '0.875rem',
-            color: '#dc2626',
-            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-            marginTop: '16px',
-            fontWeight: 500
-          }}>
-            This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ padding: '16px 24px', gap: '12px' }}>
-          <Button
-            onClick={handleCancelDelete}
-            disabled={deleting}
-            sx={{
-              color: '#64748b',
-              border: '2px solid #cbd5e1',
-              borderRadius: '8px',
-              padding: '8px 16px',
-              fontWeight: 500,
-              textTransform: 'none',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              '&:hover': {
-                backgroundColor: '#f8f9fa',
-                border: '2px solid #94a3b8',
-              },
+      {deleteDialogOpen && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+          }}
+          onClick={handleCancelDelete}
+        >
+          <div 
+            className="card"
+            style={{
+              width: '100%',
+              maxWidth: '500px',
+              margin: '20px',
+              backgroundColor: 'var(--background-paper)',
             }}
+            onClick={(e) => e.stopPropagation()}
           >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleConfirmDelete}
-            disabled={deleting}
-            sx={{
-              backgroundColor: '#dc2626',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '8px 16px',
-              fontWeight: 600,
-              textTransform: 'none',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              '&:hover': {
-                backgroundColor: '#b91c1c',
-              },
-              '&:disabled': {
-                backgroundColor: '#9ca3af',
-                color: '#ffffff',
-              },
-            }}
-          >
-            {deleting ? 'Deleting...' : 'Delete'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+            <div className="card-header text-center">
+              <h3 style={{ 
+                color: 'var(--contest-wrong-answer)',
+                margin: 0,
+                fontSize: '1.5rem',
+                fontWeight: 700,
+              }}>
+                Delete Test Case
+              </h3>
+            </div>
+            <div className="card-content text-center">
+              <p style={{ 
+                fontSize: '1rem',
+                color: 'var(--text-primary)',
+                marginBottom: '16px'
+              }}>
+                Are you sure you want to delete this test case?
+              </p>
+              {testCaseToDelete && (
+                <div style={{ 
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 'var(--border-radius)',
+                  padding: '12px',
+                  fontFamily: 'monospace',
+                  fontSize: '0.875rem',
+                  textAlign: 'left',
+                  marginBottom: '16px'
+                }}>
+                  <div><strong>Input:</strong> {testCaseToDelete.input || '(empty)'}</div>
+                  <div><strong>Output:</strong> {testCaseToDelete.output || '(empty)'}</div>
+                  <div><strong>Sample:</strong> {testCaseToDelete.sample ? 'Yes' : 'No'}</div>
+                </div>
+              )}
+              <p style={{ 
+                fontSize: '0.875rem',
+                color: 'var(--contest-wrong-answer)',
+                marginTop: '16px',
+                fontWeight: 500
+              }}>
+                This action cannot be undone.
+              </p>
+            </div>
+            <div className="card-actions" style={{ justifyContent: 'center', gap: '12px' }}>
+              <button
+                onClick={handleCancelDelete}
+                disabled={deleting}
+                className="btn btn-outlined"
+                style={{
+                  opacity: deleting ? 0.5 : 1,
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                style={{
+                  backgroundColor: deleting ? '#9ca3af' : 'var(--contest-wrong-answer)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 'var(--border-radius)',
+                  padding: '8px 16px',
+                  fontWeight: 600,
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!deleting) {
+                    e.currentTarget.style.backgroundColor = '#b91c1c';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!deleting) {
+                    e.currentTarget.style.backgroundColor = 'var(--contest-wrong-answer)';
+                  }
+                }}
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Problem Confirmation Dialog */}
-      <Dialog
-        open={deleteProblemDialogOpen}
-        onClose={handleCancelDeleteProblem}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: '16px',
-            backgroundColor: '#ffffff',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04)',
-          }
-        }}
-      >
-        <DialogTitle sx={{ 
-          fontWeight: 700, 
-          fontSize: '1.5rem',
-          color: '#dc2626',
-          textAlign: 'center',
-          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-          paddingBottom: '8px'
-        }}>
-          Delete Problem
-        </DialogTitle>
-        <DialogContent sx={{ textAlign: 'center', padding: '16px 24px' }}>
-          <Typography sx={{ 
-            fontSize: '1.1rem',
-            color: '#374151',
-            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-            marginBottom: '20px',
-            fontWeight: 500
-          }}>
-            Are you sure you want to delete this problem?
-          </Typography>
-          {problem && (
-            <Box sx={{ 
-              backgroundColor: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: '12px',
-              padding: '20px',
-              textAlign: 'left',
-              marginBottom: '20px'
-            }}>
-              <Typography sx={{ 
+      {deleteProblemDialogOpen && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+          }}
+          onClick={handleCancelDeleteProblem}
+        >
+          <div 
+            className="card"
+            style={{
+              width: '100%',
+              maxWidth: '600px',
+              margin: '20px',
+              backgroundColor: 'var(--background-paper)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="card-header text-center">
+              <h3 style={{ 
+                color: 'var(--contest-wrong-answer)',
+                margin: 0,
+                fontSize: '1.5rem',
+                fontWeight: 700,
+              }}>
+                Delete Problem
+              </h3>
+            </div>
+            <div className="card-content text-center">
+              <p style={{ 
                 fontSize: '1.1rem',
+                color: 'var(--text-primary)',
+                marginBottom: '20px',
+                fontWeight: 500
+              }}>
+                Are you sure you want to delete this problem?
+              </p>
+              {problem && (
+                <div style={{ 
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 'var(--border-radius-lg)',
+                  padding: '20px',
+                  textAlign: 'left',
+                  marginBottom: '20px'
+                }}>
+                  <h4 style={{ 
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
+                    marginBottom: '8px'
+                  }}>
+                    {problem.title}
+                  </h4>
+                  <p style={{ 
+                    fontSize: '0.9rem',
+                    color: 'var(--text-secondary)',
+                    marginBottom: '8px'
+                  }}>
+                    Problem ID: {problem.id || 'N/A'}
+                  </p>
+                  <p style={{ 
+                    fontSize: '0.9rem',
+                    color: 'var(--text-secondary)',
+                    marginBottom: '8px'
+                  }}>
+                    Difficulty: {problem.difficulty || 'N/A'}
+                  </p>
+                  <p style={{ 
+                    fontSize: '0.9rem',
+                    color: 'var(--text-secondary)',
+                    margin: 0
+                  }}>
+                    Test Cases: {testCases.length}
+                  </p>
+                </div>
+              )}
+              <p style={{ 
+                fontSize: '0.95rem',
+                color: 'var(--contest-wrong-answer)',
                 fontWeight: 600,
-                color: '#1f2937',
-                marginBottom: '8px',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                marginBottom: '8px'
               }}>
-                {problem.title}
-              </Typography>
-              <Typography sx={{ 
-                fontSize: '0.9rem',
-                color: '#6b7280',
-                marginBottom: '8px',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                Warning: This will permanently delete:
+              </p>
+              <div style={{ 
+                fontSize: '0.875rem',
+                color: 'var(--contest-wrong-answer)',
+                marginBottom: '16px',
+                textAlign: 'left'
               }}>
-                Problem Letter: {problem.problem_letter || 'N/A'}
-              </Typography>
-              <Typography sx={{ 
-                fontSize: '0.9rem',
-                color: '#6b7280',
-                marginBottom: '8px',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
-              }}>
-                Difficulty: {problem.difficulty || 'N/A'}
-              </Typography>
-              <Typography sx={{ 
-                fontSize: '0.9rem',
-                color: '#6b7280',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
-              }}>
-                Test Cases: {testCases.length}
-              </Typography>
-            </Box>
-          )}
-          <Typography sx={{ 
-            fontSize: '0.95rem',
-            color: '#dc2626',
-            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-            fontWeight: 600,
-            marginBottom: '8px'
-          }}>
-            ⚠️ This will permanently delete:
-          </Typography>
-          <Typography sx={{ 
-            fontSize: '0.875rem',
-            color: '#dc2626',
-            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-            marginBottom: '16px'
-          }}>
-            • The problem and all its details<br/>
-            • All {testCases.length} test cases<br/>
-            • All submissions for this problem<br/>
-            • This action cannot be undone
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ padding: '16px 24px', gap: '12px' }}>
-          <Button
-            onClick={handleCancelDeleteProblem}
-            disabled={deletingProblem}
-            sx={{
-              color: '#64748b',
-              border: '2px solid #cbd5e1',
-              borderRadius: '8px',
-              padding: '10px 20px',
-              fontWeight: 500,
-              textTransform: 'none',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              '&:hover': {
-                backgroundColor: '#f8f9fa',
-                border: '2px solid #94a3b8',
-              },
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleConfirmDeleteProblem}
-            disabled={deletingProblem}
-            sx={{
-              backgroundColor: '#dc2626',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '10px 20px',
-              fontWeight: 600,
-              textTransform: 'none',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              '&:hover': {
-                backgroundColor: '#b91c1c',
-              },
-              '&:disabled': {
-                backgroundColor: '#9ca3af',
-                color: '#ffffff',
-              },
-            }}
-          >
-            {deletingProblem ? 'Deleting Problem...' : 'Delete Problem'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+                <p>• The problem and all its details</p>
+                <p>• All {testCases.length} test cases</p>
+                <p>• All submissions for this problem</p>
+                <p>• This action cannot be undone</p>
+              </div>
+            </div>
+            <div className="card-actions" style={{ justifyContent: 'center', gap: '12px' }}>
+              <button
+                onClick={handleCancelDeleteProblem}
+                disabled={deletingProblem}
+                className="btn btn-outlined"
+                style={{
+                  opacity: deletingProblem ? 0.5 : 1,
+                  cursor: deletingProblem ? 'not-allowed' : 'pointer',
+                  padding: '10px 20px',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDeleteProblem}
+                disabled={deletingProblem}
+                style={{
+                  backgroundColor: deletingProblem ? '#9ca3af' : 'var(--contest-wrong-answer)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 'var(--border-radius)',
+                  padding: '10px 20px',
+                  fontWeight: 600,
+                  cursor: deletingProblem ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!deletingProblem) {
+                    e.currentTarget.style.backgroundColor = '#b91c1c';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!deletingProblem) {
+                    e.currentTarget.style.backgroundColor = 'var(--contest-wrong-answer)';
+                  }
+                }}
+              >
+                {deletingProblem ? 'Deleting Problem...' : 'Delete Problem'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Preview Problem Modal */}
-      <Dialog
-        open={previewOpen}
-        onClose={() => setPreviewOpen(false)}
-        maxWidth="lg"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            maxHeight: '95vh',
-            width: '90vw',
-            maxWidth: '1200px',
-          }
-        }}
-      >
-        <DialogTitle sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          backgroundColor: '#f8fafc',
-          borderBottom: '1px solid #e2e8f0',
-          color: '#1f2937',
-          fontWeight: 600,
-        }}>
-          Problem Preview
-          <IconButton onClick={() => setPreviewOpen(false)} size="small">
-            <Close />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ p: 0 }}>
-          {problem && (
-            <Box sx={{ p: 4 }}>
-              {/* Problem Title */}
-              <Typography variant="h4" sx={{ mb: 3, color: '#1f2937', fontWeight: 600 }}>
-                {problem.title}
-              </Typography>
-
-              {/* Problem Description */}
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h6" sx={{ mb: 2, color: '#374151', fontWeight: 600 }}>
-                  Description
-                </Typography>
-                <Box
-                  sx={{
-                    backgroundColor: '#f8fafc',
-                    padding: 3,
-                    borderRadius: 2,
-                    border: '1px solid #e2e8f0',
-                    '& h1, & h2, & h3, & h4, & h5, & h6': {
-                      color: '#1e293b',
-                      marginTop: '1rem',
-                      marginBottom: '0.5rem',
-                    },
-                    '& p': {
-                      marginBottom: '1rem',
-                    },
-                    '& ul, & ol': {
-                      paddingLeft: '2rem',
-                      marginBottom: '1rem',
-                    },
-                    '& code': {
-                      backgroundColor: '#e2e8f0',
-                      padding: '0.125rem 0.25rem',
-                      borderRadius: '0.25rem',
-                      fontFamily: 'monospace',
-                      fontSize: '0.875rem',
-                    },
-                    '& pre': {
-                      backgroundColor: '#1f2937',
-                      color: '#f8fafc',
-                      padding: '1rem',
-                      borderRadius: '0.5rem',
-                      overflow: 'auto',
-                      marginBottom: '1rem',
-                    },
-                    '& pre code': {
-                      backgroundColor: 'transparent',
-                      color: 'inherit',
-                      padding: 0,
-                    },
-                    '& a': {
-                      color: '#1d4ed8',
-                      textDecoration: 'underline',
-                    },
-                    '& strong': {
-                      fontWeight: 600,
-                    },
-                    '& em': {
-                      fontStyle: 'italic',
-                    },
-                  }}
-                >
-                  <ReactMarkdown>{problem.description}</ReactMarkdown>
-                </Box>
-              </Box>
-
-              {/* Input Format */}
-              {problem.inputFormat && (
-                <Box sx={{ mb: 4 }}>
-                  <Typography variant="h6" sx={{ mb: 2, color: '#374151', fontWeight: 600 }}>
-                    Input Format
-                  </Typography>
-                  <Box
-                    sx={{
-                      backgroundColor: '#f8fafc',
-                      padding: 3,
-                      borderRadius: 2,
-                      border: '1px solid #e2e8f0',
-                    }}
-                  >
-                    <ReactMarkdown>{problem.inputFormat}</ReactMarkdown>
-                  </Box>
-                </Box>
-              )}
-
-              {/* Output Format */}
-              {problem.outputFormat && (
-                <Box sx={{ mb: 4 }}>
-                  <Typography variant="h6" sx={{ mb: 2, color: '#374151', fontWeight: 600 }}>
-                    Output Format
-                  </Typography>
-                  <Box
-                    sx={{
-                      backgroundColor: '#f8fafc',
-                      padding: 3,
-                      borderRadius: 2,
-                      border: '1px solid #e2e8f0',
-                    }}
-                  >
-                    <ReactMarkdown>{problem.outputFormat}</ReactMarkdown>
-                  </Box>
-                </Box>
-              )}
-
-              {/* Constraints */}
-              {problem.constraints && (
-                <Box sx={{ mb: 4 }}>
-                  <Typography variant="h6" sx={{ mb: 2, color: '#374151', fontWeight: 600 }}>
-                    Constraints
-                  </Typography>
-                  <Box
-                    sx={{
-                      backgroundColor: '#f8fafc',
-                      padding: 3,
-                      borderRadius: 2,
-                      border: '1px solid #e2e8f0',
-                    }}
-                  >
-                    <ReactMarkdown>{problem.constraints}</ReactMarkdown>
-                  </Box>
-                </Box>
-              )}
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ backgroundColor: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
-          <Button
-            onClick={() => setPreviewOpen(false)}
-            sx={{
-              textTransform: 'none',
-              color: '#64748b',
-              fontWeight: 600,
+      {previewOpen && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+            padding: '20px',
+            overflowY: 'auto',
+          }}
+          onClick={() => setPreviewOpen(false)}
+        >
+          <div 
+            className="card"
+            style={{
+              width: '100%',
+              maxWidth: '1200px',
+              maxHeight: '95vh',
+              backgroundColor: 'var(--background-paper)',
+              overflowY: 'auto',
             }}
+            onClick={(e) => e.stopPropagation()}
           >
-            Close Preview
-          </Button>
-        </DialogActions>
-      </Dialog>
+            <div 
+              className="card-header" 
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                backgroundColor: '#f8fafc',
+              }}
+            >
+              <h3 style={{
+                color: 'var(--text-primary)',
+                fontWeight: 600,
+                margin: 0,
+              }}>
+                Problem Preview
+              </h3>
+              <button
+                onClick={() => setPreviewOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: 'var(--border-radius)',
+                }}
+                title="Close preview"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="card-content">
+              {problem && (
+                <div>
+                  {/* Problem Title */}
+                  <h1 style={{ 
+                    marginBottom: '24px', 
+                    color: 'var(--text-primary)', 
+                    fontWeight: 600 
+                  }}>
+                    {problem.title}
+                  </h1>
+
+                  {/* Problem Description */}
+                  <div style={{ marginBottom: '32px' }}>
+                    <h3 style={{ 
+                      marginBottom: '16px', 
+                      color: 'var(--text-primary)', 
+                      fontWeight: 600 
+                    }}>
+                      Description
+                    </h3>
+                    <div style={{
+                      backgroundColor: '#f8fafc',
+                      padding: '24px',
+                      borderRadius: 'var(--border-radius)',
+                      border: '1px solid #e2e8f0',
+                    }}>
+                      <ReactMarkdown>{problem.description}</ReactMarkdown>
+                    </div>
+                  </div>
+
+                  {/* Input Format */}
+                  {problem.inputFormat && (
+                    <div style={{ marginBottom: '32px' }}>
+                      <h3 style={{ 
+                        marginBottom: '16px', 
+                        color: 'var(--text-primary)', 
+                        fontWeight: 600 
+                      }}>
+                        Input Format
+                      </h3>
+                      <div style={{
+                        backgroundColor: '#f8fafc',
+                        padding: '24px',
+                        borderRadius: 'var(--border-radius)',
+                        border: '1px solid #e2e8f0',
+                      }}>
+                        <ReactMarkdown>{problem.inputFormat}</ReactMarkdown>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Output Format */}
+                  {problem.outputFormat && (
+                    <div style={{ marginBottom: '32px' }}>
+                      <h3 style={{ 
+                        marginBottom: '16px', 
+                        color: 'var(--text-primary)', 
+                        fontWeight: 600 
+                      }}>
+                        Output Format
+                      </h3>
+                      <div style={{
+                        backgroundColor: '#f8fafc',
+                        padding: '24px',
+                        borderRadius: 'var(--border-radius)',
+                        border: '1px solid #e2e8f0',
+                      }}>
+                        <ReactMarkdown>{problem.outputFormat}</ReactMarkdown>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Constraints */}
+                  {problem.constraints && (
+                    <div style={{ marginBottom: '32px' }}>
+                      <h3 style={{ 
+                        marginBottom: '16px', 
+                        color: 'var(--text-primary)', 
+                        fontWeight: 600 
+                      }}>
+                        Constraints
+                      </h3>
+                      <div style={{
+                        backgroundColor: '#f8fafc',
+                        padding: '24px',
+                        borderRadius: 'var(--border-radius)',
+                        border: '1px solid #e2e8f0',
+                      }}>
+                        <ReactMarkdown>{problem.constraints}</ReactMarkdown>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div 
+              className="card-actions" 
+              style={{
+                backgroundColor: '#f8fafc',
+                borderTop: '1px solid #e2e8f0',
+                justifyContent: 'center',
+              }}
+            >
+              <button
+                onClick={() => setPreviewOpen(false)}
+                className="btn btn-text"
+                style={{
+                  color: 'var(--text-secondary)',
+                  fontWeight: 600,
+                }}
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

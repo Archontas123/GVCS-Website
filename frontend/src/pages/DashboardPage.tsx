@@ -1,7 +1,3 @@
-/**
- * CS Club Hackathon Platform - Team Dashboard Page (Real Data Implementation)
- */
-
 import React, { useState, useEffect } from 'react';
 import apiService from '../services/api';
 import '../styles/theme.css';
@@ -61,7 +57,7 @@ interface StandingsEntry {
   team_id: number;
   team_name: string;
   problems_solved: number;
-  penalty_time: number;
+  total_points: number;
   last_submission?: string;
 }
 
@@ -81,7 +77,6 @@ const DashboardPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'problems' | 'standings' | 'activity' | 'projects'>('overview');
   
-  // Project submission state
   const [projectSubmission, setProjectSubmission] = useState<any>(null);
   const [projectFile, setProjectFile] = useState<File | null>(null);
   const [projectTitle, setProjectTitle] = useState('');
@@ -163,10 +158,9 @@ const DashboardPage: React.FC = () => {
       const result = await apiService.submitProject(dashboardData!.contest.id, formData);
 
       if (result.success) {
-        await fetchProjectSubmission(); // Refresh the project submission data
+        await fetchProjectSubmission(); 
         if (projectFile) {
           setProjectFile(null);
-          // Reset file input
           const fileInput = document.getElementById('project-file-input') as HTMLInputElement;
           if (fileInput) fileInput.value = '';
         }
@@ -187,7 +181,7 @@ const DashboardPage: React.FC = () => {
         setError('Please select a ZIP file');
         return;
       }
-      if (file.size > 100 * 1024 * 1024) { // 100MB
+      if (file.size > 100 * 1024 * 1024) { 
         setError('File size must be less than 100MB');
         return;
       }
@@ -264,7 +258,6 @@ const DashboardPage: React.FC = () => {
     <div style={{
       fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
     }}>
-      {/* Header */}
       <div style={{ 
         backgroundColor: '#ffffff',
         borderRadius: '16px',
@@ -295,7 +288,6 @@ const DashboardPage: React.FC = () => {
           }}
         />
         
-        {/* Contest Status */}
         <div style={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -352,7 +344,6 @@ const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Navigation Tabs */}
       <div style={{ 
         display: 'flex', 
         gap: '8px', 
@@ -404,16 +395,14 @@ const DashboardPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Tab Content */}
       {activeTab === 'overview' && (
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
           gap: '24px',
         }}>
-          {/* Team Statistics */}
           <div style={{
-            gridColumn: { lg: 'span 2' },
+            gridColumn: 'span 2',
             backgroundColor: '#ffffff',
             border: '1px solid #e2e8f0',
             borderRadius: '16px',
@@ -505,7 +494,6 @@ const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Verdict Distribution */}
           <div style={{
             backgroundColor: '#ffffff',
             border: '1px solid #e2e8f0',
@@ -566,7 +554,6 @@ const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Recent Submissions */}
           <div style={{
             gridColumn: '1 / -1',
             backgroundColor: '#ffffff',
@@ -800,7 +787,7 @@ const DashboardPage: React.FC = () => {
                           </td>
                           <td>{team.team_name}</td>
                           <td>{team.problems_solved}</td>
-                          <td>{Math.floor(team.penalty_time / 60)}:{(team.penalty_time % 60).toString().padStart(2, '0')}</td>
+                          <td>{team.total_points.toLocaleString()}</td>
                           <td>
                             {team.last_submission 
                               ? new Date(team.last_submission).toLocaleString()
@@ -1110,7 +1097,7 @@ const DashboardPage: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    📤 {projectSubmission ? 'Update Project' : 'Submit Project'}
+                    {projectSubmission ? 'Update Project' : 'Submit Project'}
                   </>
                 )}
               </button>
@@ -1131,7 +1118,6 @@ const DashboardPage: React.FC = () => {
         </div>
       )}
 
-      {/* Auto-refresh indicator */}
       <div className="position-fixed bottom-0 end-0 p-3">
         <div className="toast show" role="alert">
           <div className="toast-body d-flex align-items-center">

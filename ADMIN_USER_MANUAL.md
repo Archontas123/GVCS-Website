@@ -50,8 +50,8 @@ The admin dashboard provides:
      - Set registration deadline
      - Enable/disable team self-registration
    - **Scoring Settings**:
-     - ICPC scoring (default)
-     - Penalty time configuration
+     - Hackathon scoring (points-based)
+     - Partial credit configuration
      - Balloon system settings
 
 3. **Contest Validation**

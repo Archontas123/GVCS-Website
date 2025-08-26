@@ -451,7 +451,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
               e.currentTarget.style.color = '#6b7280';
             }}
           >
-            📋
+            Copy
           </button>
 
           <button
@@ -479,7 +479,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
               e.currentTarget.style.color = readOnly ? '#9ca3af' : '#6b7280';
             }}
           >
-            📋
+            Snippets
           </button>
         </div>
 
@@ -587,7 +587,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
               e.currentTarget.style.color = '#6b7280';
             }}
           >
-            ⚙
+            Settings
           </button>
 
           <button

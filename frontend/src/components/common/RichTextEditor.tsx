@@ -5,29 +5,6 @@
 
 import React, { useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
-import {
-  Box,
-  TextField,
-  IconButton,
-  Toolbar,
-  Paper,
-  Typography,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material';
-import {
-  FormatBold,
-  FormatItalic,
-  FormatListBulleted,
-  FormatListNumbered,
-  Code,
-  Link,
-  Image,
-  Close,
-} from '@mui/icons-material';
 
 interface RichTextEditorProps {
   value: string;
@@ -162,342 +139,500 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const isOverLimit = maxLength && characterCount > maxLength;
 
   return (
-    <Box>
+    <div>
       {label && (
-        <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+        <div style={{ marginBottom: '8px', fontWeight: 600, fontSize: '16px' }}>
           {label}
-        </Typography>
+        </div>
       )}
       
-      <Paper 
-        variant="outlined" 
-        sx={{ 
-          borderRadius: 2,
-          overflow: 'hidden',
-          border: '1px solid #e2e8f0',
-        }}
-      >
+      <div style={{
+        borderRadius: '8px',
+        overflow: 'hidden',
+        border: '1px solid #e2e8f0',
+      }}>
         {/* Toolbar */}
-        <Toolbar 
-          variant="dense" 
-          sx={{ 
-            backgroundColor: '#f8fafc',
-            minHeight: '48px !important',
-            borderBottom: '1px solid #e2e8f0',
-            px: 2,
-          }}
-        >
-          <Box sx={{ display: 'flex', gap: 0.5, flex: 1 }}>
-            <IconButton 
-              size="small" 
+        <div style={{
+          backgroundColor: '#f8fafc',
+          minHeight: '48px',
+          borderBottom: '1px solid #e2e8f0',
+          padding: '0 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', gap: '4px', flex: 1 }}>
+            <button
               onClick={() => handleFormatClick('bold')}
-              sx={{ color: '#64748b' }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#64748b',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}
             >
-              <FormatBold fontSize="small" />
-            </IconButton>
-            <IconButton 
-              size="small" 
+              <strong>B</strong>
+            </button>
+            <button
               onClick={() => handleFormatClick('italic')}
-              sx={{ color: '#64748b' }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#64748b',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}
             >
-              <FormatItalic fontSize="small" />
-            </IconButton>
-            <IconButton 
-              size="small" 
+              <em>I</em>
+            </button>
+            <button
               onClick={() => handleFormatClick('bulletList')}
-              sx={{ color: '#64748b' }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#64748b',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}
             >
-              <FormatListBulleted fontSize="small" />
-            </IconButton>
-            <IconButton 
-              size="small" 
+              •
+            </button>
+            <button
               onClick={() => handleFormatClick('numberList')}
-              sx={{ color: '#64748b' }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#64748b',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}
             >
-              <FormatListNumbered fontSize="small" />
-            </IconButton>
-            <IconButton 
-              size="small" 
+              1.
+            </button>
+            <button
               onClick={() => handleFormatClick('code')}
-              sx={{ color: '#64748b' }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#64748b',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}
             >
-              <Code fontSize="small" />
-            </IconButton>
-            <IconButton 
-              size="small" 
+              &lt;/&gt;
+            </button>
+            <button
               onClick={() => handleFormatClick('link')}
-              sx={{ color: '#64748b' }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#64748b',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}
             >
-              <Link fontSize="small" />
-            </IconButton>
-            <IconButton 
-              size="small" 
+              🔗
+            </button>
+            <button
               onClick={() => handleFormatClick('image')}
-              sx={{ color: '#64748b' }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#64748b',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}
             >
-              <Image fontSize="small" />
-            </IconButton>
-          </Box>
+              🖼
+            </button>
+          </div>
           
-          <Button
-            size="small"
-            variant="outlined"
+          <button
             onClick={() => setPreviewModalOpen(true)}
-            sx={{
-              textTransform: 'none',
+            style={{
+              backgroundColor: 'transparent',
+              border: '1px solid #cbd5e1',
               color: '#64748b',
-              borderColor: '#cbd5e1',
-              fontSize: '0.75rem',
-              py: 0.5,
-              px: 1.5,
-              minWidth: 'auto',
+              fontSize: '12px',
+              padding: '4px 12px',
+              borderRadius: '4px',
+              cursor: 'pointer'
             }}
           >
             Preview
-          </Button>
-        </Toolbar>
+          </button>
+        </div>
 
         {/* Editor Area */}
-        <Box sx={{ p: 0 }}>
-          <TextField
-            multiline
-            fullWidth
-            minRows={minRows}
+        <div style={{ padding: 0 }}>
+          <textarea
+            ref={textAreaRef}
+            rows={minRows}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
-            variant="standard"
-            inputRef={textAreaRef}
-            InputProps={{
-              disableUnderline: true,
-              sx: {
-                p: 2,
-                fontSize: '0.875rem',
-                lineHeight: 1.5,
-                '& textarea': {
-                  resize: 'vertical',
-                },
-              },
+            style={{
+              width: '100%',
+              border: 'none',
+              outline: 'none',
+              resize: 'vertical',
+              padding: '16px',
+              fontSize: '14px',
+              lineHeight: 1.5,
+              fontFamily: 'inherit',
+              boxSizing: 'border-box'
             }}
           />
-        </Box>
+        </div>
 
         {/* Character Count */}
         {maxLength && (
-          <Box 
-            sx={{ 
-              px: 2, 
-              py: 1, 
-              backgroundColor: '#f8fafc',
-              borderTop: '1px solid #e2e8f0',
-              textAlign: 'right',
-            }}
-          >
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                color: isOverLimit ? '#dc2626' : '#64748b',
-                fontWeight: 500,
-              }}
-            >
+          <div style={{
+            padding: '8px 16px',
+            backgroundColor: '#f8fafc',
+            borderTop: '1px solid #e2e8f0',
+            textAlign: 'right',
+          }}>
+            <span style={{
+              color: isOverLimit ? '#dc2626' : '#64748b',
+              fontWeight: 500,
+              fontSize: '12px'
+            }}>
               Characters left: {maxLength - characterCount}
-            </Typography>
-          </Box>
+            </span>
+          </div>
         )}
-      </Paper>
+      </div>
 
       {/* Preview Modal */}
-      <Dialog 
-        open={previewModalOpen} 
-        onClose={() => setPreviewModalOpen(false)}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            maxHeight: '80vh',
-          }
-        }}
-      >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+      {previewModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
           alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
         }}>
-          <Typography variant="h6">Preview</Typography>
-          <IconButton onClick={() => setPreviewModalOpen(false)} size="small">
-            <Close />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
-          <Box 
-            sx={{ 
-              fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-              lineHeight: 1.6,
-              minHeight: '200px',
-              p: 2,
-              backgroundColor: '#f8fafc',
-              borderRadius: 2,
-              border: '1px solid #e2e8f0',
-              '& h1, & h2, & h3, & h4, & h5, & h6': {
-                color: '#1e293b',
-                marginTop: '1rem',
-                marginBottom: '0.5rem',
-              },
-              '& p': {
-                marginBottom: '1rem',
-              },
-              '& ul, & ol': {
-                paddingLeft: '2rem',
-                marginBottom: '1rem',
-              },
-              '& code': {
-                backgroundColor: '#e2e8f0',
-                padding: '0.125rem 0.25rem',
-                borderRadius: '0.25rem',
-                fontFamily: 'monospace',
-                fontSize: '0.875rem',
-              },
-              '& pre': {
-                backgroundColor: '#e2e8f0',
-                padding: '1rem',
-                borderRadius: '0.5rem',
-                overflow: 'auto',
-                marginBottom: '1rem',
-              },
-              '& pre code': {
-                backgroundColor: 'transparent',
-                padding: 0,
-              },
-              '& a': {
-                color: '#3b82f6',
-                textDecoration: 'underline',
-              },
-              '& strong': {
-                fontWeight: 600,
-              },
-              '& em': {
-                fontStyle: 'italic',
-              },
-            }}
-          >
-            {value ? (
-              <ReactMarkdown>{value}</ReactMarkdown>
-            ) : (
-              <Typography color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                No content to preview
-              </Typography>
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button 
-            onClick={() => setPreviewModalOpen(false)}
-            sx={{
-              textTransform: 'none',
-              color: '#64748b',
-            }}
-          >
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            width: '90%',
+            maxWidth: '800px',
+            maxHeight: '80vh',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '16px 24px',
+              borderBottom: '1px solid #e5e7eb'
+            }}>
+              <h2 style={{ margin: 0, fontSize: '18px' }}>Preview</h2>
+              <button
+                onClick={() => setPreviewModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  color: '#6b7280'
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ padding: '24px', flex: 1, overflow: 'auto' }}>
+              <div style={{
+                fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+                lineHeight: 1.6,
+                minHeight: '200px',
+                padding: '16px',
+                backgroundColor: '#f8fafc',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+              }}>
+                {value ? (
+                  <div style={{
+                    '& h1, & h2, & h3, & h4, & h5, & h6': {
+                      color: '#1e293b',
+                      marginTop: '1rem',
+                      marginBottom: '0.5rem',
+                    },
+                    '& p': {
+                      marginBottom: '1rem',
+                    },
+                    '& ul, & ol': {
+                      paddingLeft: '2rem',
+                      marginBottom: '1rem',
+                    },
+                    '& code': {
+                      backgroundColor: '#e2e8f0',
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      fontFamily: 'monospace',
+                      fontSize: '14px',
+                    },
+                    '& pre': {
+                      backgroundColor: '#e2e8f0',
+                      padding: '16px',
+                      borderRadius: '8px',
+                      overflow: 'auto',
+                      marginBottom: '1rem',
+                    },
+                    '& a': {
+                      color: '#3b82f6',
+                      textDecoration: 'underline',
+                    },
+                  }}>
+                    <ReactMarkdown>{value}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <div style={{ color: '#6b7280', fontStyle: 'italic' }}>
+                    No content to preview
+                  </div>
+                )}
+              </div>
+            </div>
+            <div style={{
+              padding: '16px 24px',
+              borderTop: '1px solid #e5e7eb',
+              display: 'flex',
+              justifyContent: 'flex-end'
+            }}>
+              <button
+                onClick={() => setPreviewModalOpen(false)}
+                style={{
+                  backgroundColor: 'transparent',
+                  border: '1px solid #d1d5db',
+                  color: '#64748b',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Link Modal */}
-      <Dialog
-        open={linkModalOpen}
-        onClose={() => setLinkModalOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-          }
-        }}
-      >
-        <DialogTitle>Insert Link</DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-            <TextField
-              label="Link Text"
-              value={linkText}
-              onChange={(e) => setLinkText(e.target.value)}
-              fullWidth
-              variant="outlined"
-            />
-            <TextField
-              label="URL"
-              value={linkUrl}
-              onChange={(e) => setLinkUrl(e.target.value)}
-              fullWidth
-              variant="outlined"
-              placeholder="https://example.com"
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setLinkModalOpen(false)} sx={{ textTransform: 'none' }}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleInsertLink} 
-            variant="contained"
-            disabled={!linkText || !linkUrl}
-            sx={{ textTransform: 'none' }}
-          >
-            Insert Link
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {linkModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            width: '90%',
+            maxWidth: '500px',
+            padding: '24px'
+          }}>
+            <h2 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Insert Link</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: 500 }}>
+                  Link Text
+                </label>
+                <input
+                  type="text"
+                  value={linkText}
+                  onChange={(e) => setLinkText(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: 500 }}>
+                  URL
+                </label>
+                <input
+                  type="text"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button
+                onClick={() => setLinkModalOpen(false)}
+                style={{
+                  backgroundColor: 'transparent',
+                  border: '1px solid #d1d5db',
+                  color: '#374151',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleInsertLink}
+                disabled={!linkText || !linkUrl}
+                style={{
+                  backgroundColor: !linkText || !linkUrl ? '#9ca3af' : '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  cursor: !linkText || !linkUrl ? 'not-allowed' : 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Insert Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Image Modal */}
-      <Dialog
-        open={imageModalOpen}
-        onClose={() => setImageModalOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-          }
-        }}
-      >
-        <DialogTitle>Insert Image</DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-            <TextField
-              label="Alt Text (Description)"
-              value={imageAlt}
-              onChange={(e) => setImageAlt(e.target.value)}
-              fullWidth
-              variant="outlined"
-              placeholder="Image description for accessibility"
-            />
-            <TextField
-              label="Image URL"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              fullWidth
-              variant="outlined"
-              placeholder="https://example.com/image.jpg"
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setImageModalOpen(false)} sx={{ textTransform: 'none' }}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleInsertImage} 
-            variant="contained"
-            disabled={!imageAlt || !imageUrl}
-            sx={{ textTransform: 'none' }}
-          >
-            Insert Image
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+      {imageModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            width: '90%',
+            maxWidth: '500px',
+            padding: '24px'
+          }}>
+            <h2 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Insert Image</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: 500 }}>
+                  Alt Text (Description)
+                </label>
+                <input
+                  type="text"
+                  value={imageAlt}
+                  onChange={(e) => setImageAlt(e.target.value)}
+                  placeholder="Image description for accessibility"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: 500 }}>
+                  Image URL
+                </label>
+                <input
+                  type="text"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button
+                onClick={() => setImageModalOpen(false)}
+                style={{
+                  backgroundColor: 'transparent',
+                  border: '1px solid #d1d5db',
+                  color: '#374151',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleInsertImage}
+                disabled={!imageAlt || !imageUrl}
+                style={{
+                  backgroundColor: !imageAlt || !imageUrl ? '#9ca3af' : '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  cursor: !imageAlt || !imageUrl ? 'not-allowed' : 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Insert Image
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

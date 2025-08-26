@@ -1,26 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  ListItemSecondaryAction,
-  IconButton,
-  Typography,
-  Box,
-  Chip,
-  Divider,
-  Alert,
-  CircularProgress
-} from '@mui/material';
-import { Add as AddIcon, Close as CloseIcon } from '@mui/icons-material';
 import apiService from '../../services/api';
 
 interface Problem {
@@ -116,9 +95,9 @@ const AddProblemModal: React.FC<AddProblemModalProps> = ({
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'easy': return 'success';
-      case 'hard': return 'error';
-      default: return 'warning';
+      case 'easy': return '#10b981';
+      case 'hard': return '#ef4444';
+      default: return '#f59e0b';
     }
   };
 
@@ -128,153 +107,265 @@ const AddProblemModal: React.FC<AddProblemModalProps> = ({
     onClose();
   };
 
+  if (!open) return null;
+
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: '16px',
-          minHeight: '600px'
-        }
-      }}
-    >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        pb: 1
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '16px',
+        minHeight: '600px',
+        width: '90%',
+        maxWidth: '800px',
+        maxHeight: '90vh',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column'
       }}>
-        <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
-          Add Problem to Contest
-        </Typography>
-        <IconButton onClick={handleClose} size="small">
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '16px 24px',
+          borderBottom: '1px solid #e5e7eb'
+        }}>
+          <h2 style={{ margin: 0, fontWeight: 600 }}>
+            Add Problem to Contest
+          </h2>
+          <button
+            onClick={handleClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              color: '#6b7280'
+            }}
+          >
+            ×
+          </button>
+        </div>
 
-      <DialogContent sx={{ pt: 1 }}>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
+        <div style={{ padding: '16px 24px', flex: 1, overflow: 'auto' }}>
+          {error && (
+            <div style={{
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '8px',
+              padding: '12px',
+              marginBottom: '16px',
+              color: '#dc2626',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span>{error}</span>
+              <button
+                onClick={() => setError(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  color: '#dc2626'
+                }}
+              >
+                ×
+              </button>
+            </div>
+          )}
 
-        <TextField
-          fullWidth
-          placeholder="Search problems by title or contest name..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ mb: 2 }}
-          size="small"
-        />
+          <input
+            type="text"
+            placeholder="Search problems by title or contest name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              marginBottom: '16px',
+              fontSize: '14px',
+              boxSizing: 'border-box'
+            }}
+          />
 
-        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-          Select an existing problem to add to this contest:
-        </Typography>
+          <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#6b7280' }}>
+            Select an existing problem to add to this contest:
+          </p>
 
-        {loading ? (
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
-            <CircularProgress />
-          </Box>
-        ) : filteredProblems.length === 0 ? (
-          <Box textAlign="center" py={4}>
-            <Typography color="text.secondary" sx={{ mb: 2 }}>
-              {searchTerm.trim() !== '' ? 'No problems found matching your search.' : 'No problems available.'}
-            </Typography>
-            <Button
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={handleCreateNew}
-              sx={{ borderRadius: '8px' }}
-            >
-              Create New Problem
-            </Button>
-          </Box>
-        ) : (
-          <List sx={{ maxHeight: '400px', overflow: 'auto' }}>
-            {filteredProblems.map((problem, index) => (
-              <React.Fragment key={problem.id}>
-                <ListItem disablePadding>
-                  <ListItemButton
-                    onClick={() => handleCopyProblem(problem.id)}
-                    disabled={copyingId === problem.id}
-                    sx={{ 
-                      borderRadius: '8px', 
-                      mb: 1,
-                      '&:hover': {
-                        backgroundColor: 'rgba(25, 118, 210, 0.04)'
-                      }
+          {loading ? (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: '300px'
+            }}>
+              <div style={{
+                border: '3px solid #f3f4f6',
+                borderTop: '3px solid #3b82f6',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                animation: 'spin 1s linear infinite'
+              }}></div>
+            </div>
+          ) : filteredProblems.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 16px' }}>
+              <p style={{ color: '#6b7280', marginBottom: '16px' }}>
+                {searchTerm.trim() !== '' ? 'No problems found matching your search.' : 'No problems available.'}
+              </p>
+              <button
+                onClick={handleCreateNew}
+                style={{
+                  backgroundColor: 'transparent',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Create New Problem
+              </button>
+            </div>
+          ) : (
+            <div style={{ maxHeight: '400px', overflow: 'auto' }}>
+              {filteredProblems.map((problem, index) => (
+                <div key={problem.id}>
+                  <div
+                    style={{
+                      padding: '12px',
+                      borderRadius: '8px',
+                      marginBottom: '8px',
+                      cursor: copyingId === problem.id ? 'not-allowed' : 'pointer',
+                      backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                      border: '1px solid #f3f4f6',
+                      opacity: copyingId === problem.id ? 0.6 : 1,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
                     }}
+                    onClick={() => copyingId !== problem.id && handleCopyProblem(problem.id)}
                   >
-                    <ListItemText
-                      primary={
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                            {problem.title}
-                          </Typography>
-                          <Chip
-                            label={problem.difficulty}
-                            color={getDifficultyColor(problem.difficulty)}
-                            size="small"
-                            sx={{ textTransform: 'capitalize' }}
-                          />
-                        </Box>
-                      }
-                      secondary={
-                        <Typography variant="body2" color="text.secondary">
-                          From: {problem.contest_name}
-                        </Typography>
-                      }
-                    />
-                    <ListItemSecondaryAction>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <span style={{ fontWeight: 500 }}>{problem.title}</span>
+                        <span
+                          style={{
+                            backgroundColor: getDifficultyColor(problem.difficulty),
+                            color: 'white',
+                            fontSize: '12px',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            textTransform: 'capitalize'
+                          }}
+                        >
+                          {problem.difficulty}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '14px', color: '#6b7280' }}>
+                        From: {problem.contest_name}
+                      </div>
+                    </div>
+                    <div>
                       {copyingId === problem.id ? (
-                        <CircularProgress size={20} />
+                        <div style={{
+                          border: '2px solid #f3f4f6',
+                          borderTop: '2px solid #3b82f6',
+                          borderRadius: '50%',
+                          width: '20px',
+                          height: '20px',
+                          animation: 'spin 1s linear infinite'
+                        }}></div>
                       ) : (
-                        <Button
-                          variant="contained"
-                          size="small"
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleCopyProblem(problem.id);
                           }}
-                          sx={{ 
+                          style={{
+                            backgroundColor: '#3b82f6',
+                            color: 'white',
+                            border: 'none',
                             borderRadius: '6px',
-                            textTransform: 'none'
+                            padding: '6px 12px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
                           }}
                         >
                           Add
-                        </Button>
+                        </button>
                       )}
-                    </ListItemSecondaryAction>
-                  </ListItemButton>
-                </ListItem>
-                {index < filteredProblems.length - 1 && <Divider />}
-              </React.Fragment>
-            ))}
-          </List>
-        )}
-      </DialogContent>
+                    </div>
+                  </div>
+                  {index < filteredProblems.length - 1 && (
+                    <hr style={{ border: 'none', borderTop: '1px solid #f3f4f6', margin: '8px 0' }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-      <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={handleClose} sx={{ mr: 1 }}>
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleCreateNew}
-          sx={{ 
-            borderRadius: '8px',
-            textTransform: 'none'
-          }}
-        >
-          Create New Problem
-        </Button>
-      </DialogActions>
-    </Dialog>
+        <div style={{
+          padding: '16px 24px',
+          borderTop: '1px solid #e5e7eb',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: '8px'
+        }}>
+          <button
+            onClick={handleClose}
+            style={{
+              backgroundColor: 'transparent',
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px 16px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleCreateNew}
+            style={{
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '8px 16px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            Create New Problem
+          </button>
+        </div>
+
+        <style>
+          {`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}
+        </style>
+      </div>
+    </div>
   );
 };
 

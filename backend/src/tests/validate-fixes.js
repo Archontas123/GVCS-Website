@@ -64,11 +64,11 @@ try {
     const themePath = path.join(__dirname, 'client/src/utils/theme.ts');
     const themeContent = fs.readFileSync(themePath, 'utf8');
     
-    const hasICPCColors = themeContent.includes('#1976d2') && // ICCP Blue
-                         themeContent.includes('#2e7d32') && // ICCP Green
+    const hasHackathonColors = themeContent.includes('#1976d2') && // Hackathon Blue
+                         themeContent.includes('#2e7d32') && // Hackathon Green
                          themeContent.includes('contest:');   // Contest palette
-    console.log(`  ${hasICPCColors ? '✅' : '❌'} ICCP theme colors configured`);
-    validationResults.frontendFixes.push({ check: 'ICCP theme colors', passed: hasICPCColors });
+    console.log(`  ${hasHackathonColors ? '✅' : '❌'} Hackathon theme colors configured`);
+    validationResults.frontendFixes.push({ check: 'Hackathon theme colors', passed: hasHackathonColors });
     
     const hasVerdictHelpers = themeContent.includes('getVerdictColor') && 
                              themeContent.includes('getVerdictIcon');

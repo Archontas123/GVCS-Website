@@ -6,10 +6,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import {
-  TextField
-} from '@mui/material';
-import { People, Quiz } from '@mui/icons-material';
 import { useAdminAuth } from '../../../hooks/useAdminAuth';
 import apiService from '../../../services/api';
 import Breadcrumb from '../../../components/common/Breadcrumb';
@@ -618,50 +614,139 @@ const ContestDetailPage: React.FC = () => {
               </div>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
-                <TextField
-                  fullWidth
-                  label="Contest Name"
-                  value={contest.contest_name}
-                  onChange={(e) => setContest({ ...contest, contest_name: e.target.value })}
-                />
+                <div>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    color: '#374151',
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                  }}>
+                    Contest Name
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={contest.contest_name}
+                    onChange={(e) => setContest({ ...contest, contest_name: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '1rem',
+                      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                      transition: 'border-color 0.2s ease',
+                    }}
+                  />
+                </div>
 
-                <TextField
-                  fullWidth
-                  label="Registration Code"
-                  value={contest.registration_code}
-                  InputProps={{ readOnly: true }}
-                  helperText="Teams use this code to register"
-                  sx={{
-                    '& .MuiInputBase-input': {
-                      fontFamily: 'monospace',
+                <div>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    color: '#374151',
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                  }}>
+                    Registration Code
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={contest.registration_code}
+                    readOnly
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
                       fontSize: '1.1rem',
+                      fontFamily: 'monospace',
                       fontWeight: 600,
                       color: '#1d4ed8',
-                      letterSpacing: '1px'
-                    }
+                      letterSpacing: '1px',
+                      backgroundColor: '#f9fafb',
+                    }}
+                  />
+                  <small style={{
+                    display: 'block',
+                    marginTop: '4px',
+                    color: '#6b7280',
+                    fontSize: '0.75rem',
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                  }}>
+                    Teams use this code to register
+                  </small>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  color: '#374151',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                }}>
+                  Contest URL
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={getContestUrlForContest()}
+                  readOnly
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontFamily: 'monospace',
+                    backgroundColor: '#f9fafb',
                   }}
                 />
+                <small style={{
+                  display: 'block',
+                  marginTop: '4px',
+                  color: '#6b7280',
+                  fontSize: '0.75rem',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                }}>
+                  Auto-generated from contest name
+                </small>
               </div>
 
               <div style={{ marginBottom: '24px' }}>
-                <TextField
-                  fullWidth
-                  label="Contest URL"
-                  value={getContestUrlForContest()}
-                  InputProps={{ readOnly: true }}
-                  helperText="Auto-generated from contest name"
-                />
-              </div>
-
-              <div style={{ marginBottom: '24px' }}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={4}
-                  label="Description"
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  color: '#374151',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                }}>
+                  Description
+                </label>
+                <textarea
+                  className="form-control"
                   value={contest.description}
                   onChange={(e) => setContest({ ...contest, description: e.target.value })}
                   placeholder="Enter contest description (supports markdown)"
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                    transition: 'border-color 0.2s ease',
+                    resize: 'vertical',
+                  }}
                 />
                 <div style={{ 
                   marginTop: '12px', 
@@ -719,7 +804,7 @@ const ContestDetailPage: React.FC = () => {
               
               {teams.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '48px' }}>
-                  <People style={{ fontSize: '64px', color: '#6b7280', marginBottom: '16px' }} />
+                  <div style={{ fontSize: '64px', color: '#6b7280', marginBottom: '16px' }}>Teams</div>
                   <h4 style={{ color: '#6b7280', marginBottom: '8px', fontSize: '1.25rem', margin: '0 0 8px 0', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
                     No teams registered yet
                   </h4>
@@ -782,7 +867,7 @@ const ContestDetailPage: React.FC = () => {
               
               {problems.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '48px' }}>
-                  <Quiz style={{ fontSize: '64px', color: '#6b7280', marginBottom: '16px' }} />
+                  <div style={{ fontSize: '64px', color: '#6b7280', marginBottom: '16px' }}>📝</div>
                   <h4 style={{ color: '#6b7280', marginBottom: '8px', fontSize: '1.25rem', margin: '0 0 8px 0', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
                     No problems added yet
                   </h4>
@@ -893,7 +978,7 @@ const ContestDetailPage: React.FC = () => {
                         e.currentTarget.style.backgroundColor = 'transparent';
                       }}
                     >
-                      <div style={{ color: '#1d4ed8', fontSize: '1.5rem', marginTop: '4px' }}>📋</div>
+                      <div style={{ color: '#1d4ed8', fontSize: '1.5rem', marginTop: '4px' }}>Details</div>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
                           <div>
@@ -930,7 +1015,7 @@ const ContestDetailPage: React.FC = () => {
                               e.currentTarget.style.boxShadow = 'none';
                             }}
                           >
-                            ⬇️ Download
+                            Download
                           </button>
                         </div>
                         

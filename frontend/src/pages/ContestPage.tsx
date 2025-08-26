@@ -1,8 +1,3 @@
-/**
- * Contest Page - Main contest interface for authenticated teams
- * Simple, clean implementation to replace the problematic routing system
- */
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Problem } from '../types';
@@ -39,9 +34,7 @@ const ContestPage: React.FC = () => {
       const response = await apiService.getContestProblemsBySlug(slug);
       if (response.success) {
         setProblems(response.data);
-        // Extract contest name from the first problem if available
         if (response.data.length > 0) {
-          // We'll need to get contest name from somewhere - for now use slug
           setContestName(slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
         }
       } else {
@@ -113,7 +106,7 @@ const ContestPage: React.FC = () => {
                   onClick={() => handleProblemClick(problem)}
                 >
                   <div className="problem-header">
-                    <span className="problem-letter">{problem.problem_letter || '?'}</span>
+                    <span className="problem-letter">{problem.problemLetter || problem.letter || '?'}</span>
                     <span className={`difficulty difficulty-${problem.difficulty}`}>
                       {problem.difficulty}
                     </span>
@@ -122,8 +115,8 @@ const ContestPage: React.FC = () => {
                   <h3 className="problem-title">{problem.title}</h3>
                   
                   <div className="problem-stats">
-                    <span>Time: {problem.time_limit}ms</span>
-                    <span>Memory: {problem.memory_limit}MB</span>
+                    <span>Time: {problem.timeLimit}ms</span>
+                    <span>Memory: {problem.memoryLimit}MB</span>
                   </div>
                   
                   <div className="problem-description">
@@ -145,7 +138,7 @@ const ContestPage: React.FC = () => {
         </div>
       </main>
 
-      <style jsx>{`
+      <style>{`
         .contest-page {
           min-height: 100vh;
           background: #f8fafc;

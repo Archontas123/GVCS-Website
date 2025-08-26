@@ -36,12 +36,37 @@ export const useAdminAuth = (): AdminAuthState => {
             };
             setAdmin(adminData);
           } else {
-            throw new Error('Failed to verify admin token');
+            // Don't immediately clear token, might be a temporary issue
+            console.warn('Failed to verify admin token:', response.message);
+            // Still set a basic admin state if token exists - assume valid until proven otherwise
+            const basicAdminData: AdminUser = {
+              id: 0,
+              username: 'admin',
+              email: '',
+              role: 'admin' as const
+            };
+            setAdmin(basicAdminData);
           }
         }
-      } catch (error) {
-        localStorage.removeItem('hackathon_admin_token');
-        apiService.removeAdminToken();
+      } catch (error: any) {
+        console.error('Admin auth check failed:', error);
+        // Only clear token if it's a 401 (unauthorized) error
+        if (error.response?.status === 401) {
+          localStorage.removeItem('hackathon_admin_token');
+          apiService.removeAdminToken();
+        } else {
+          // For other errors (network, 500, etc), assume token is still valid
+          const token = localStorage.getItem('hackathon_admin_token');
+          if (token) {
+            const basicAdminData: AdminUser = {
+              id: 0,
+              username: 'admin',
+              email: '',
+              role: 'admin' as const
+            };
+            setAdmin(basicAdminData);
+          }
+        }
       } finally {
         setLoading(false);
       }

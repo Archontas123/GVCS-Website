@@ -4,35 +4,6 @@
  */
 
 import React, { useState } from 'react';
-import {
-  Box,
-  Chip,
-  IconButton,
-  Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  Typography,
-  Grid,
-  Paper,
-  Collapse,
-  Alert,
-  Button,
-  LinearProgress,
-  useTheme,
-} from '@mui/material';
-import {
-  Wifi,
-  WifiOff,
-  Warning,
-  Error as ErrorIcon,
-  Refresh,
-  Info,
-  ExpandMore,
-  ExpandLess,
-  SignalWifi4Bar,
-  SignalWifiConnectedNoInternet4,
-} from '@mui/icons-material';
 import { formatDistanceToNow } from 'date-fns';
 import { useWebSocket } from '../../hooks/useWebSocket';
 
@@ -57,42 +28,42 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
     switch (connectionStatus) {
       case 'connected':
         return {
-          icon: <Wifi />,
+          icon: '✓',
           color: theme.palette.success.main,
           text: 'Connected',
           description: 'Real-time updates active',
         };
       case 'connecting':
         return {
-          icon: <SignalWifi4Bar />,
+          icon: '~',
           color: theme.palette.info.main,
           text: 'Connecting',
           description: 'Establishing connection...',
         };
       case 'reconnecting':
         return {
-          icon: <SignalWifiConnectedNoInternet4 />,
+          icon: '↻',
           color: theme.palette.warning.main,
           text: 'Reconnecting',
           description: `Attempt ${connectionHealth.reconnectAttempts}`,
         };
       case 'disconnected':
         return {
-          icon: <WifiOff />,
+          icon: '×',
           color: theme.palette.grey[500],
           text: 'Disconnected',
           description: 'No real-time updates',
         };
       case 'error':
         return {
-          icon: <ErrorIcon />,
+          icon: '!',
           color: theme.palette.error.main,
           text: 'Connection Error',
           description: 'Failed to connect',
         };
       default:
         return {
-          icon: <Warning />,
+          icon: '?',
           color: theme.palette.grey[500],
           text: 'Unknown',
           description: 'Unknown status',
@@ -144,9 +115,9 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{ color: statusInfo.color }}>
+          <Typography sx={{ color: statusInfo.color, fontSize: 20 }}>
             {statusInfo.icon}
-          </Box>
+          </Typography>
           
           <Box sx={{ flexGrow: 1 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
@@ -162,7 +133,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
             {(connectionStatus === 'disconnected' || connectionStatus === 'error') && (
               <Tooltip title="Reconnect">
                 <IconButton size="small" onClick={handleReconnect} color="primary">
-                  <Refresh />
+                  ↻
                 </IconButton>
               </Tooltip>
             )}
@@ -170,7 +141,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
             {showDetails && (
               <Tooltip title="Connection Details">
                 <IconButton size="small" onClick={() => setExpanded(!expanded)}>
-                  {expanded ? <ExpandLess /> : <ExpandMore />}
+                  {expanded ? '↑' : '↓'}
                 </IconButton>
               </Tooltip>
             )}
@@ -279,9 +250,9 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
       {/* Detailed Connection Dialog */}
       <Dialog open={detailsOpen} onClose={() => setDetailsOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ color: statusInfo.color }}>
+          <Typography sx={{ color: statusInfo.color, fontSize: 20 }}>
             {statusInfo.icon}
-          </Box>
+          </Typography>
           Connection Status
         </DialogTitle>
         <DialogContent>
@@ -292,9 +263,9 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
                   Current Status
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                  <Box sx={{ color: statusInfo.color }}>
+                  <Typography sx={{ color: statusInfo.color, fontSize: 20 }}>
                     {statusInfo.icon}
-                  </Box>
+                  </Typography>
                   <Box>
                     <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                       {statusInfo.text}
@@ -350,11 +321,10 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
               <Grid size={12}>
                 <Button
                   variant="contained"
-                  startIcon={<Refresh />}
                   onClick={handleReconnect}
                   fullWidth
                 >
-                  Reconnect Now
+                  ↻ Reconnect Now
                 </Button>
               </Grid>
             )}

@@ -1,8 +1,3 @@
-/**
- * Create Problem Page
- * Updated to match modern admin dashboard UI design
- */
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Breadcrumb from '../components/common/Breadcrumb';
@@ -45,43 +40,38 @@ const CreateProblemPage: React.FC = () => {
     try {
       setSaving(true);
       
-      // First, get an available contest
       console.log('Fetching contests using API service...');
       const contestsResult = await apiService.getAdminContests();
       console.log('Contests response:', contestsResult);
 
       let contestId;
       if (contestsResult.success && contestsResult.data && contestsResult.data.length > 0) {
-        // Use the first available contest
         contestId = contestsResult.data[0].id;
         console.log('Using contest ID:', contestId);
       } else {
         throw new Error('No contests available. Please create a contest first.');
       }
 
-      // Prepare problem data for API
       const problemData = {
         title: formData.problemName,
-        description: formData.problemStatement || formData.description, // Use problemStatement as main description
+        description: formData.problemStatement || formData.description, 
         input_format: formData.inputFormat,
         output_format: formData.outputFormat,
         constraints: formData.constraints,
-        sample_input: '', // Can be added later via test cases
-        sample_output: '', // Can be added later via test cases
-        time_limit: 2000, // Default 2 seconds
-        memory_limit: 256, // Default 256MB
-        difficulty: 'medium', // Default difficulty
-        points_value: formData.points // Custom points for hackathon scoring
+        sample_input: '',
+        sample_output: '', 
+        time_limit: 2000, 
+        memory_limit: 256, 
+        difficulty: 'medium', 
+        points_value: formData.points 
       };
 
-      // Create the problem using API service
       console.log('Creating problem with data:', problemData);
       const result = await apiService.createProblem(contestId, problemData);
       console.log('Create problem response:', result);
       
       if (result.success) {
         console.log('Problem created successfully:', result.data);
-        // Navigate to the created problem's detail page or admin dashboard
         navigate('/admin/dashboard');
       } else {
         throw new Error(result.message || 'Failed to create problem');
@@ -113,10 +103,8 @@ const CreateProblemPage: React.FC = () => {
         }}
       >
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        {/* Breadcrumb */}
         <Breadcrumb items={breadcrumbItems} />
 
-        {/* Header */}
         <div style={{ marginBottom: '32px', textAlign: 'center' }}>
           <h1 
             style={{ 
@@ -167,7 +155,6 @@ const CreateProblemPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Form */}
         <div
           style={{
             backgroundColor: '#ffffff',
@@ -178,7 +165,6 @@ const CreateProblemPage: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-            {/* Problem Name */}
             <div>
               <label 
                 style={{ 
@@ -223,7 +209,6 @@ const CreateProblemPage: React.FC = () => {
               />
             </div>
 
-            {/* Description */}
             <div>
               <RichTextEditor
                 label="Description"
@@ -235,7 +220,6 @@ const CreateProblemPage: React.FC = () => {
               />
             </div>
 
-            {/* Problem Statement */}
             <div>
               <RichTextEditor
                 label="Problem Statement"
@@ -247,7 +231,6 @@ const CreateProblemPage: React.FC = () => {
               />
             </div>
 
-            {/* Input Format */}
             <div>
               <RichTextEditor
                 label="Input Format"
@@ -258,7 +241,6 @@ const CreateProblemPage: React.FC = () => {
               />
             </div>
 
-            {/* Constraints */}
             <div>
               <RichTextEditor
                 label="Constraints"
@@ -269,7 +251,6 @@ const CreateProblemPage: React.FC = () => {
               />
             </div>
 
-            {/* Points Value */}
             <div>
               <label style={{
                 display: 'block',
@@ -322,7 +303,6 @@ const CreateProblemPage: React.FC = () => {
               </p>
             </div>
 
-            {/* Output Format */}
             <div>
               <RichTextEditor
                 label="Output Format"
@@ -336,7 +316,6 @@ const CreateProblemPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Save Button */}
         <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end' }}>
           <button
             onClick={handleSave}

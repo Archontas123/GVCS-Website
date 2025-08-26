@@ -10,7 +10,6 @@ import {
   Chip,
   Typography,
 } from '@mui/material';
-import { Add } from '@mui/icons-material';
 
 interface TagInputProps {
   tags: string[];

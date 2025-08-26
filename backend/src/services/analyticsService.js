@@ -417,7 +417,7 @@ class AnalyticsService {
    */
   async getCurrentStandings(contestId) {
     try {
-      // This is a simplified version - actual implementation would use the ICPC scoring service
+      // This is a simplified version - actual implementation would use the hackathon scoring service
       const standings = await db('teams')
         .where({ contest_id: contestId })
         .leftJoin('submissions', 'teams.id', 'submissions.team_id')

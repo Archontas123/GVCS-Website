@@ -8,12 +8,12 @@ const router = express.Router();
 const { verifyAdminToken, optionalAdminAuth } = require('../middleware/adminAuth');
 const performanceStatsStorage = require('../services/performanceStatsStorage');
 const ExecutionMonitor = require('../services/executionMonitor');
-const ICPCJudge = require('../services/icpcJudge');
+const JudgeEngine = require('../services/judgeEngine');
 const judgeQueueService = require('../services/judgeQueue');
 
 // Initialize services
 const executionMonitor = new ExecutionMonitor();
-const icpcJudge = new ICPCJudge();
+const judgeEngine = new JudgeEngine();
 
 /**
  * GET /api/performance/overview
@@ -51,7 +51,7 @@ router.get('/overview', optionalAdminAuth, async (req, res) => {
     ] = await Promise.all([
       performanceStatsStorage.getAggregatedStats(startTime, now),
       executionMonitor.getPerformanceStats(),
-      icpcJudge.getJudgePerformanceMetrics(),
+      judgeEngine.getJudgePerformanceMetrics(),
       judgeQueueService.getProcessingRateStats(),
       executionMonitor.getSystemResources()
     ]);
@@ -166,7 +166,7 @@ router.get('/queue', optionalAdminAuth, async (req, res) => {
  */
 router.get('/judge', optionalAdminAuth, async (req, res) => {
   try {
-    const judgeMetrics = icpcJudge.getJudgePerformanceMetrics();
+    const judgeMetrics = judgeEngine.getJudgePerformanceMetrics();
 
     res.json({
       success: true,
@@ -381,7 +381,7 @@ router.post('/reset', verifyAdminToken, async (req, res) => {
     }
     
     if (type === 'judge' || type === 'all') {
-      icpcJudge.resetPerformanceStats();
+      judgeEngine.resetPerformanceStats();
     }
 
     res.json({

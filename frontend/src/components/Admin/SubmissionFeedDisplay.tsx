@@ -35,19 +35,6 @@ import {
   Stack,
   Paper,
 } from '@mui/material';
-import {
-  Code,
-  Refresh,
-  CheckCircle,
-  Cancel,
-  Schedule,
-  Memory,
-  Timer,
-  Assessment,
-  Speed,
-  Language,
-  BarChart,
-} from '@mui/icons-material';
 
 interface Submission {
   id: number;
@@ -167,14 +154,14 @@ const SubmissionFeedDisplay: React.FC = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'accepted': return <CheckCircle />;
-      case 'pending': return <Schedule />;
-      case 'wrong_answer': return <Cancel />;
-      case 'compilation_error': return <Code />;
-      case 'time_limit_exceeded': return <Timer />;
-      case 'runtime_error': return <Cancel />;
-      case 'memory_limit_exceeded': return <Memory />;
-      default: return <Assessment />;
+      case 'accepted': return '✓';
+      case 'pending': return '🕰';
+      case 'wrong_answer': return '×';
+      case 'compilation_error': return '</>';
+      case 'time_limit_exceeded': return '⏲';
+      case 'runtime_error': return '×';
+      case 'memory_limit_exceeded': return '💾';
+      default: return '📊';
     }
   };
 
@@ -228,7 +215,7 @@ const SubmissionFeedDisplay: React.FC = () => {
             <Badge badgeContent={stats.pending_count} color="error">
               <Tooltip title="Refresh">
                 <IconButton size="small" onClick={fetchSubmissions}>
-                  <Refresh />
+                  ↻
                 </IconButton>
               </Tooltip>
             </Badge>
@@ -239,7 +226,7 @@ const SubmissionFeedDisplay: React.FC = () => {
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
           <Card sx={{ flex: 1 }}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
-              <Speed sx={{ fontSize: 24, color: 'primary.main', mb: 1 }} />
+              <Typography sx={{ fontSize: 24, color: 'primary.main', mb: 1 }}>⏱</Typography>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 {stats.submissions_per_minute.toFixed(1)}
               </Typography>
@@ -251,7 +238,7 @@ const SubmissionFeedDisplay: React.FC = () => {
 
           <Card sx={{ flex: 1 }}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
-              <Assessment sx={{ fontSize: 24, color: 'info.main', mb: 1 }} />
+              <Typography sx={{ fontSize: 24, color: 'info.main', mb: 1 }}>📊</Typography>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 {stats.total_submissions_today}
               </Typography>
@@ -263,7 +250,7 @@ const SubmissionFeedDisplay: React.FC = () => {
 
           <Card sx={{ flex: 1 }}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
-              <Timer sx={{ fontSize: 24, color: 'secondary.main', mb: 1 }} />
+              <Typography sx={{ fontSize: 24, color: 'secondary.main', mb: 1 }}>⏲</Typography>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 {stats.average_judging_time.toFixed(1)}s
               </Typography>
@@ -275,7 +262,7 @@ const SubmissionFeedDisplay: React.FC = () => {
 
           <Card sx={{ flex: 1 }}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
-              <Schedule sx={{ fontSize: 24, color: 'warning.main', mb: 1 }} />
+              <Typography sx={{ fontSize: 24, color: 'warning.main', mb: 1 }}>🕰</Typography>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 {stats.pending_count}
               </Typography>
@@ -387,7 +374,7 @@ const SubmissionFeedDisplay: React.FC = () => {
                             </TableCell>
                             <TableCell>
                               <Chip
-                                icon={getStatusIcon(submission.status)}
+                                startIcon={getStatusIcon(submission.status)}
                                 label={submission.status.replace('_', ' ')}
                                 color={getStatusColor(submission.status) as any}
                                 size="small"
@@ -430,7 +417,7 @@ const SubmissionFeedDisplay: React.FC = () => {
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                    <Language sx={{ mr: 1, verticalAlign: 'middle' }} />
+                    <Typography component="span" sx={{ mr: 1, verticalAlign: 'middle' }}>🗺</Typography>
                     Language Usage
                   </Typography>
                   <List dense>
@@ -461,7 +448,7 @@ const SubmissionFeedDisplay: React.FC = () => {
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                    <BarChart sx={{ mr: 1, verticalAlign: 'middle' }} />
+                    <Typography component="span" sx={{ mr: 1, verticalAlign: 'middle' }}>📉</Typography>
                     Verdict Distribution
                   </Typography>
                   <List dense>

@@ -39,22 +39,6 @@ import {
   ListItemText,
   ListItemSecondaryAction,
 } from '@mui/material';
-import {
-  People,
-  PersonAdd,
-  Check,
-  Close,
-  MoreVert,
-  Refresh,
-  Block,
-  RestartAlt,
-  Visibility,
-  Error,
-  Warning,
-  Schedule,
-  GroupAdd,
-  Help,
-} from '@mui/icons-material';
 
 interface TeamRegistration {
   id: number;
@@ -217,11 +201,11 @@ const TeamRegistrationMonitor: React.FC = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'active': return <Check />;
-      case 'pending': return <Schedule />;
-      case 'rejected': return <Close />;
-      case 'inactive': return <Block />;
-      default: return <Help />;
+      case 'active': return '✓';
+      case 'pending': return '🕰';
+      case 'rejected': return '×';
+      case 'inactive': return '🚫';
+      default: return '?';
     }
   };
 
@@ -259,7 +243,7 @@ const TeamRegistrationMonitor: React.FC = () => {
           </Typography>
           <Tooltip title="Refresh">
             <IconButton size="small" onClick={fetchRegistrations}>
-              <Refresh />
+              ↻
             </IconButton>
           </Tooltip>
         </Box>
@@ -270,7 +254,7 @@ const TeamRegistrationMonitor: React.FC = () => {
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 2 }}>
             <Badge badgeContent={stats.recent_activity} color="error">
-              <People sx={{ fontSize: 32, color: 'primary.main', mb: 1 }} />
+              <Typography variant="h4" sx={{ color: 'primary.main', mb: 1 }}>👥</Typography>
             </Badge>
             <Typography variant="h5" sx={{ fontWeight: 600 }}>
               {stats.total_registrations}
@@ -283,7 +267,7 @@ const TeamRegistrationMonitor: React.FC = () => {
 
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 2 }}>
-            <Warning sx={{ fontSize: 32, color: 'warning.main', mb: 1 }} />
+            <Typography variant="h4" sx={{ color: 'warning.main', mb: 1 }}>!</Typography>
             <Typography variant="h5" sx={{ fontWeight: 600 }}>
               {stats.pending_approvals}
             </Typography>
@@ -295,7 +279,7 @@ const TeamRegistrationMonitor: React.FC = () => {
 
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 2 }}>
-            <Check sx={{ fontSize: 32, color: 'success.main', mb: 1 }} />
+            <Typography variant="h4" sx={{ color: 'success.main', mb: 1 }}>✓</Typography>
             <Typography variant="h5" sx={{ fontWeight: 600 }}>
               {stats.active_teams}
             </Typography>
@@ -307,7 +291,7 @@ const TeamRegistrationMonitor: React.FC = () => {
 
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 2 }}>
-            <GroupAdd sx={{ fontSize: 32, color: 'info.main', mb: 1 }} />
+            <Typography variant="h4" sx={{ color: 'info.main', mb: 1 }}>+</Typography>
             <Typography variant="h5" sx={{ fontWeight: 600 }}>
               {stats.registrations_today}
             </Typography>
@@ -365,7 +349,7 @@ const TeamRegistrationMonitor: React.FC = () => {
                             </Typography>
                             {registration.validation_errors && (
                               <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                                <Error sx={{ fontSize: 14, color: 'error.main', mr: 0.5 }} />
+                                <Typography sx={{ fontSize: 14, color: 'error.main', mr: 0.5 }}>!</Typography>
                                 <Typography variant="caption" color="error">
                                   {registration.validation_errors[0]}
                                 </Typography>
@@ -408,7 +392,7 @@ const TeamRegistrationMonitor: React.FC = () => {
                           size="small"
                           onClick={(e) => handleMenuOpen(e, registration)}
                         >
-                          <MoreVert />
+                          ⋮
                         </IconButton>
                       </TableCell>
                     </TableRow>
@@ -428,20 +412,20 @@ const TeamRegistrationMonitor: React.FC = () => {
       >
         {selectedTeam?.status === 'pending' && [
           <MenuItem key="approve" onClick={() => handleAction('approve')}>
-            <Check sx={{ mr: 1, color: 'success.main' }} />
+            <Typography sx={{ mr: 1, color: 'success.main' }}>✓</Typography>
             Approve Team
           </MenuItem>,
           <MenuItem key="reject" onClick={() => handleAction('reject')}>
-            <Close sx={{ mr: 1, color: 'error.main' }} />
+            <Typography sx={{ mr: 1, color: 'error.main' }}>×</Typography>
             Reject Team
           </MenuItem>
         ]}
         <MenuItem onClick={() => handleAction('view')}>
-          <Visibility sx={{ mr: 1 }} />
+          <Typography sx={{ mr: 1 }}>👁</Typography>
           View Details
         </MenuItem>
         <MenuItem onClick={() => handleAction('reset')}>
-          <RestartAlt sx={{ mr: 1 }} />
+          <Typography sx={{ mr: 1 }}>↻</Typography>
           Reset Session
         </MenuItem>
       </Menu>

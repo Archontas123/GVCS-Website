@@ -1,8 +1,3 @@
-/**
- * CS Club Hackathon Platform - Home Page
- * Phase 1.4: Landing page with registration and login options (CSS-based, removed MUI)
- */
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/theme.css';
@@ -19,7 +14,6 @@ const HomePage: React.FC = () => {
       padding: '32px 16px',
     }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        {/* Header */}
         <div style={{ marginBottom: '48px', textAlign: 'center' }}>
           <h1 
             style={{ 

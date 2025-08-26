@@ -9,6 +9,7 @@ const router = express.Router();
 const Problem = require('../controllers/problemController');
 const TestCase = require('../controllers/testCaseController');
 const { verifyAdminToken, requireContestAccess } = require('../middleware/adminAuth');
+const { authenticateTeam } = require('../middleware/auth');
 const { validate } = require('../utils/validation');
 const Joi = require('joi');
 
@@ -636,8 +637,9 @@ router.post('/testcases/:id/validate', verifyAdminToken, async (req, res, next) 
 /**
  * GET /api/problems/:id/public
  * Get problem details for contestants (includes sample test cases only)
+ * Requires team authentication
  */
-router.get('/problems/:id/public', async (req, res, next) => {
+router.get('/problems/:id/public', authenticateTeam, async (req, res, next) => {
   try {
     const problem = await Problem.findById(req.params.id);
     
@@ -669,10 +671,11 @@ router.get('/problems/:id/public', async (req, res, next) => {
 
 /**
  * GET /api/contests/:contestId/problems/public
- * Get all problems for a contest (public view for contestants)
+ * Get all problems for a contest (authenticated view for contestants)
  * Supports both contest ID and contest slug/registration code
+ * Requires team authentication
  */
-router.get('/contests/:contestId/problems/public', async (req, res, next) => {
+router.get('/contests/:contestId/problems/public', authenticateTeam, async (req, res, next) => {
   try {
     let contestId = req.params.contestId;
     

@@ -25,17 +25,22 @@ export interface Contest {
 export interface Problem {
   id: number;
   contestId: number;
-  problemLetter: string;
+  problemLetter?: string;
+  letter?: string;
   title: string;
   description: string;
-  inputFormat: string;
-  outputFormat: string;
-  sampleInput: string;
-  sampleOutput: string;
-  constraints: string;
+  inputFormat?: string;
+  outputFormat?: string;
+  sampleInput?: string;
+  sampleOutput?: string;
+  constraints?: string;
   timeLimit: number; // in milliseconds
   memoryLimit: number; // in MB
   difficulty: 'easy' | 'medium' | 'hard';
+  // Additional fields from API response
+  attempt_count?: number;
+  is_solved?: boolean;
+  solved_at?: string;
 }
 
 // Submission types
@@ -70,7 +75,7 @@ export interface ContestResult {
   teamId: number;
   teamName: string;
   problemsSolved: number;
-  penaltyTime: number; // in minutes
+  totalPoints: number; // points earned
   lastSubmissionTime: string | null;
   rank: number | null;
 }
@@ -80,7 +85,7 @@ export interface LeaderboardEntry {
   rank: number;
   teamName: string;
   problemsSolved: number;
-  penaltyTime: number;
+  totalPoints: number;
   problems: ProblemStatus[];
   lastSubmissionTime: string | null;
 }
@@ -91,6 +96,8 @@ export interface ProblemStatus {
   attempts: number;
   solveTime: number | null; // minutes from contest start
   firstToSolve: boolean;
+  pointsEarned: number;
+  totalPoints: number;
 }
 
 // API response types
