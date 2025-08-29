@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 
 const defaultConnection = {
   host: process.env.DB_HOST || 'localhost',

@@ -6,6 +6,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
+import LeetCodeEditor from './LeetCodeEditor';
 import '../../styles/theme.css';
 
 // Language templates for competitive programming
@@ -93,6 +94,7 @@ interface CodeEditorProps {
   onTest?: (code: string, language: string, input: string) => void;
   height?: string | number;
   readOnly?: boolean;
+  useLeetCodeStyle?: boolean; // New prop for LeetCode-style editor
 }
 
 interface EditorSettings {
@@ -118,6 +120,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   onTest,
   height = '400px',
   readOnly = false,
+  useLeetCodeStyle = false,
 }) => {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const [language, setLanguage] = useState<'cpp' | 'java' | 'python'>(initialLanguage as 'cpp' | 'java' | 'python');
@@ -312,6 +315,24 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   }, [isFullscreen]);
 
   const editorHeight = isFullscreen ? '100vh' : height;
+
+  // Use LeetCode-style editor if requested
+  if (useLeetCodeStyle && problemId) {
+    return (
+      <LeetCodeEditor
+        problemId={problemId}
+        language={language}
+        onLanguageChange={(newLang) => {
+          setLanguage(newLang as 'cpp' | 'java' | 'python');
+          onLanguageChange?.(newLang);
+        }}
+        onCodeChange={onChange}
+        onTest={onTest ? (code, input) => onTest(code, language, input) : undefined}
+        onSubmit={onSubmit ? (code) => onSubmit(code, language) : undefined}
+        isLoading={isSubmitting || isTesting}
+      />
+    );
+  }
 
   return (
     <div

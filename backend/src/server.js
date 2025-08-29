@@ -98,6 +98,7 @@ app.use('/api/admin', require('./routes/problems'));
 app.use('/api/timer', require('./routes/timer'));
 app.use('/api/leaderboard', require('./routes/leaderboard'));
 app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/leetcode', require('./routes/leetcode'));
 
 // Contest validation route (public)
 app.get('/api/contests/:contestCode/validate', async (req, res, next) => {

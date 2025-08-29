@@ -12,6 +12,7 @@ const crypto = require('crypto');
 // Load language configurations
 const languageConfigs = require('../config/languages.json');
 const templates = require('../config/templates.json');
+const codeTemplateService = require('./codeTemplateService');
 
 class MultiLangExecutor {
   constructor() {
@@ -77,6 +78,38 @@ class MultiLangExecutor {
       throw new Error(`No example available for language: ${language}`);
     }
     return template.example;
+  }
+
+  /**
+   * Execute LeetCode-style code (user function + hidden wrapper)
+   * @param {number} problemId - Problem ID for template lookup
+   * @param {string} userCode - User's function implementation only
+   * @param {string} language - Programming language
+   * @param {string} input - Input data for test case
+   * @param {Object} options - Execution options
+   * @returns {Promise<Object>} Execution result
+   */
+  async executeLeetCodeStyle(problemId, userCode, language, input = '', options = {}) {
+    try {
+      // Generate complete executable code using template service
+      const executableCode = await codeTemplateService.generateExecutableCode(
+        problemId,
+        language,
+        userCode
+      );
+
+      // Execute the complete code normally
+      return await this.executeCode(executableCode, language, input, options);
+    } catch (error) {
+      console.error('LeetCode-style execution failed:', error);
+      return {
+        success: false,
+        verdict: 'System Error',
+        error: error.message,
+        executionTime: 0,
+        memoryUsed: 0
+      };
+    }
   }
 
   /**

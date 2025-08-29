@@ -57,7 +57,7 @@ const requireAdmin = (req, res, next) => {
       throw new AuthenticationError('Admin authentication required');
     }
 
-    if (req.admin.role !== 'admin') {
+    if (req.admin.role !== 'admin' && req.admin.role !== 'super_admin') {
       throw new AuthorizationError('Admin role required');
     }
 
@@ -82,7 +82,7 @@ const requireContestAccess = async (req, res, next) => {
       throw new AuthenticationError('Admin authentication required');
     }
 
-    if (req.admin.role !== 'admin') {
+    if (req.admin.role !== 'admin' && req.admin.role !== 'super_admin') {
       throw new AuthorizationError('Admin role required');
     }
 

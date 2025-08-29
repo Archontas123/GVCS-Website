@@ -173,7 +173,10 @@
       "Bash(NODE_ENV=development timeout 5s node backend/src/server.js)",
       "Bash(NODE_ENV=development timeout 10s node backend/src/server.js)",
       "Bash(git checkout:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(npx create-tauri-app:*)",
+      "Bash(tauri create:*)",
+      "Bash(tauri:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

@@ -251,11 +251,7 @@ function App() {
 
             <Route
               path="/editor-test"
-              element={
-                <ProtectedRoute>
-                  <CodeEditorTestPage />
-                </ProtectedRoute>
-              }
+              element={<CodeEditorTestPage />}
             />
 
             <Route
