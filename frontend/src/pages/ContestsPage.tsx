@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 import apiService from '../services/api';
+import { MdEdit } from 'react-icons/md';
 
 interface Contest {
   id: number;
@@ -299,7 +300,7 @@ const ContestsPage: React.FC = () => {
                       
                       <div className="flex justify-between mt-3">
                         <div className="flex align-center" style={{ gap: '4px' }}>
-                          <span style={{ fontSize: '16px' }}>📝</span>
+                          <span style={{ fontSize: '16px', display: 'flex', alignItems: 'center' }}><MdEdit /></span>
                           <span className="text-secondary" style={{ fontSize: '0.875rem' }}>
                             {contest.problems_count || 0} problems
                           </span>

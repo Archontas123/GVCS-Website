@@ -1,8 +1,3 @@
-/**
- * Admin Controller - Phase 2.1
- * Handles admin authentication and management
- */
-
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { db } = require('../utils/db');
@@ -14,7 +9,8 @@ const {
 } = require('../utils/errors');
 
 /**
- * Admin Model Class
+ * Admin Model Class - Handles admin authentication and management
+ * Provides methods for creating, authenticating, and managing admin accounts
  */
 class Admin {
   constructor(data) {
@@ -27,7 +23,13 @@ class Admin {
   }
 
   /**
-   * Validate admin registration data
+   * Validates admin registration data including username, email, and password
+   * @param {Object} data - The admin registration data
+   * @param {string} data.username - The admin username (3-50 chars, alphanumeric)
+   * @param {string} data.email - The admin email address
+   * @param {string} data.password - The admin password (6-128 chars)
+   * @param {string} [data.role='admin'] - The admin role
+   * @throws {ValidationError} When validation fails
    */
   static validateRegistrationData(data) {
     const errors = [];
@@ -66,7 +68,9 @@ class Admin {
   }
 
   /**
-   * Hash password
+   * Hashes a password using bcrypt with salt rounds
+   * @param {string} password - The plain text password to hash
+   * @returns {Promise<string>} The hashed password
    */
   static async hashPassword(password) {
     const saltRounds = 12;
@@ -74,14 +78,19 @@ class Admin {
   }
 
   /**
-   * Verify password
+   * Verifies a password against a hashed password
+   * @param {string} password - The plain text password
+   * @param {string} hashedPassword - The hashed password to compare against
+   * @returns {Promise<boolean>} True if password matches
    */
   static async verifyPassword(password, hashedPassword) {
     return await bcrypt.compare(password, hashedPassword);
   }
 
   /**
-   * Generate JWT token
+   * Generates a JWT token for an admin user
+   * @param {Admin} admin - The admin object
+   * @returns {string} The signed JWT token
    */
   static generateToken(admin) {
     const payload = {
@@ -94,14 +103,17 @@ class Admin {
 
     const options = {
       expiresIn: process.env.ADMIN_TOKEN_EXPIRES || '8h',
-      issuer: 'hackathon-platform'
+      issuer: 'programming-contest-platform'
     };
 
     return jwt.sign(payload, process.env.JWT_SECRET || 'your-secret-key', options);
   }
 
   /**
-   * Verify JWT token
+   * Verifies and decodes a JWT token
+   * @param {string} token - The JWT token to verify
+   * @returns {Object} The decoded token payload
+   * @throws {AuthenticationError} When token is invalid or expired
    */
   static verifyToken(token) {
     try {
@@ -112,18 +124,24 @@ class Admin {
   }
 
   /**
-   * Create admin account
+   * Creates a new admin account in the database
+   * @param {Object} adminData - The admin data
+   * @param {string} adminData.username - The admin username
+   * @param {string} adminData.email - The admin email
+   * @param {string} adminData.password - The admin password
+   * @param {string} [adminData.role='admin'] - The admin role
+   * @returns {Promise<Admin>} The created admin instance
+   * @throws {ConflictError} When username or email already exists
+   * @throws {DatabaseError} When database operation fails
    */
   static async create(adminData) {
     this.validateRegistrationData(adminData);
 
-    // Check if username already exists
     const existingUsername = await db('admins').where('username', adminData.username.trim()).first();
     if (existingUsername) {
       throw new ConflictError('Username already exists');
     }
 
-    // Check if email already exists
     const existingEmail = await db('admins').where('email', adminData.email.trim().toLowerCase()).first();
     if (existingEmail) {
       throw new ConflictError('Email already registered');
@@ -147,7 +165,13 @@ class Admin {
   }
 
   /**
-   * Authenticate admin login
+   * Authenticates admin login credentials
+   * @param {string} username - The username or email
+   * @param {string} password - The password
+   * @returns {Promise<Object>} Object containing admin data and JWT token
+   * @throws {ValidationError} When credentials are missing
+   * @throws {AuthenticationError} When credentials are invalid
+   * @throws {DatabaseError} When database error occurs
    */
   static async authenticate(username, password) {
     if (!username || !password) {
@@ -155,7 +179,6 @@ class Admin {
     }
 
     try {
-      // Try database authentication first
       const admin = await db('admins')
         .where('username', username.trim())
         .orWhere('email', username.trim().toLowerCase())
@@ -187,12 +210,11 @@ class Admin {
       if (error instanceof ValidationError || error instanceof AuthenticationError) {
         throw error;
       }
-      // If database error, fall back to hardcoded credentials
       if (username.trim() === 'admin' && password === 'password123') {
         const mockAdmin = {
           id: 1,
           username: 'admin',
-          email: 'admin@hackathon.local',
+          email: 'admin@contest.local',
           role: 'admin',
           created_at: new Date().toISOString()
         };
@@ -209,7 +231,11 @@ class Admin {
   }
 
   /**
-   * Find admin by ID
+   * Finds an admin by their ID
+   * @param {number} adminId - The admin ID
+   * @returns {Promise<Admin>} The admin instance
+   * @throws {AuthenticationError} When admin is not found
+   * @throws {DatabaseError} When database operation fails
    */
   static async findById(adminId) {
     try {
@@ -225,12 +251,11 @@ class Admin {
       return new Admin(admin);
     } catch (error) {
       if (error instanceof AuthenticationError) throw error;
-      // Fallback for development when database is not available
       if (adminId === 1) {
         const mockAdmin = {
           id: 1,
           username: 'admin',
-          email: 'admin@hackathon.local',
+          email: 'admin@contest.local',
           password_hash: null,
           role: 'admin',
           created_at: new Date().toISOString()
@@ -242,7 +267,11 @@ class Admin {
   }
 
   /**
-   * Find admin by username
+   * Finds an admin by their username
+   * @param {string} username - The admin username
+   * @returns {Promise<Admin>} The admin instance
+   * @throws {AuthenticationError} When admin is not found
+   * @throws {DatabaseError} When database operation fails
    */
   static async findByUsername(username) {
     try {
@@ -263,7 +292,9 @@ class Admin {
   }
 
   /**
-   * Get all admins (excluding passwords)
+   * Gets all admin accounts (excluding password hashes)
+   * @returns {Promise<Admin[]>} Array of admin instances
+   * @throws {DatabaseError} When database operation fails
    */
   static async findAll() {
     try {
@@ -278,13 +309,19 @@ class Admin {
   }
 
   /**
-   * Update admin profile
+   * Updates an admin's profile information
+   * @param {number} adminId - The admin ID
+   * @param {Object} updateData - The data to update
+   * @param {string} [updateData.email] - The new email address
+   * @returns {Promise<Admin>} The updated admin instance
+   * @throws {ValidationError} When no valid fields to update or invalid email
+   * @throws {ConflictError} When email is already in use
+   * @throws {DatabaseError} When database operation fails
    */
   static async updateProfile(adminId, updateData) {
     const allowedFields = ['email'];
     const updates = {};
 
-    // Only allow certain fields to be updated
     Object.keys(updateData).forEach(key => {
       if (allowedFields.includes(key)) {
         updates[key] = updateData[key];
@@ -295,12 +332,10 @@ class Admin {
       throw new ValidationError('No valid fields to update');
     }
 
-    // Validate email if provided
     if (updates.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updates.email)) {
       throw new ValidationError('Valid email address is required');
     }
 
-    // Check if email is already taken
     if (updates.email) {
       const existingEmail = await db('admins')
         .where('email', updates.email.trim().toLowerCase())
@@ -324,7 +359,14 @@ class Admin {
   }
 
   /**
-   * Change admin password
+   * Changes an admin's password
+   * @param {number} adminId - The admin ID
+   * @param {string} currentPassword - The current password
+   * @param {string} newPassword - The new password
+   * @returns {Promise<Object>} Success message object
+   * @throws {ValidationError} When passwords are missing or invalid
+   * @throws {AuthenticationError} When current password is incorrect
+   * @throws {DatabaseError} When database operation fails
    */
   static async changePassword(adminId, currentPassword, newPassword) {
     if (!currentPassword || !newPassword) {
@@ -356,7 +398,10 @@ class Admin {
   }
 
   /**
-   * Get admin statistics (contests created, etc.)
+   * Gets statistics for an admin (contests created, active contests)
+   * @param {number} adminId - The admin ID
+   * @returns {Promise<Object>} Object containing admin statistics
+   * @throws {DatabaseError} When database operation fails
    */
   static async getStatistics(adminId) {
     try {

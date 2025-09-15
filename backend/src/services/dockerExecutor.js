@@ -1,22 +1,23 @@
-/**
- * CS Club Hackathon Platform - Docker Code Execution Service
- * Phase 1.3: Container lifecycle management and security monitoring
- */
-
 const { spawn } = require('child_process');
 const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
 
+/**
+ * Docker Executor Service for secure code execution in containers
+ * Manages Docker containers, resource limits, and execution monitoring
+ */
 class DockerExecutor {
+    /**
+     * Initialize Docker executor with container settings and resource limits
+     */
     constructor() {
-        this.containerImage = 'hackathon-judge';
-        this.tempDir = '/tmp/hackathon-executions';
+        this.containerImage = 'programming_contest-judge';
+        this.tempDir = '/tmp/programming_contest-executions';
         this.maxConcurrentContainers = 10;
         this.activeContainers = new Map();
         
-        // Use multi-language executor for language configurations
-        this.multiLangExecutor = null; // Will be initialized lazily to avoid circular dependency
+        this.multiLangExecutor = null;
     }
 
     /**

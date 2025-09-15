@@ -1,8 +1,3 @@
-/**
- * Contest Controller - Phase 2.1
- * Handles contest creation, management, and control operations
- */
-
 const { db } = require('../utils/db');
 const { 
   ValidationError, 
@@ -15,7 +10,8 @@ const notificationService = require('../services/notificationService');
 
 
 /**
- * Contest Model Class
+ * Contest Model Class - Handles contest creation, management, and control operations
+ * Provides methods for managing contest lifecycle, timing, and participant access
  */
 class Contest {
   constructor(data) {
@@ -36,10 +32,10 @@ class Contest {
   }
 
   /**
-   * Generate unique registration code
+   * Generates a unique 8-character registration code for contest access
+   * @returns {string} An 8-character alphanumeric code (excluding ambiguous chars)
    */
   static generateRegistrationCode() {
-    // Generate 8-character code with letters and numbers (no ambiguous chars)
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
     for (let i = 0; i < 8; i++) {
@@ -49,8 +45,9 @@ class Contest {
   }
 
   /**
-   * Generate URL-friendly slug from contest name
-   * Matches frontend logic in contestUtils.ts
+   * Generates a URL-friendly slug from contest name
+   * @param {string} contestName - The contest name to convert
+   * @returns {string} A lowercase, dash-separated slug
    */
   static generateSlug(contestName) {
     return contestName
@@ -60,7 +57,15 @@ class Contest {
   }
 
   /**
-   * Validate contest data - Phase 2.4 Enhanced Duration Management
+   * Validates contest data with comprehensive validation rules
+   * @param {Object} data - The contest data to validate
+   * @param {string} data.contest_name - Contest name (3-255 chars)
+   * @param {string} [data.description] - Contest description (max 5000 chars)
+   * @param {Date} data.start_time - Contest start time (min 5 minutes from now)
+   * @param {number} data.duration - Contest duration in minutes (15-1440)
+   * @param {number} [data.freeze_time] - Leaderboard freeze time in minutes
+   * @param {boolean} [isUpdate=false] - Whether this is an update operation
+   * @throws {ValidationError} When validation fails
    */
   static validateContestData(data, isUpdate = false) {
     const errors = [];
@@ -106,10 +111,8 @@ class Contest {
       } else if (data.duration > 1440) { // 24 hours
         errors.push('Duration must not exceed 24 hours (1440 minutes)');
       } else {
-        // Recommend standard contest durations
-        const standardDurations = [60, 90, 120, 180, 240, 300]; // Common contest lengths
+            const standardDurations = [60, 90, 120, 180, 240, 300]; // Common contest lengths
         if (!standardDurations.includes(data.duration) && data.duration < 480) {
-          // Just a warning, not an error
           console.warn(`Non-standard contest duration: ${data.duration} minutes. Recommended: ${standardDurations.join(', ')} minutes`);
         }
       }
@@ -125,18 +128,15 @@ class Contest {
         errors.push('Freeze time should not exceed 3 hours (180 minutes)');
       }
       
-      // Validate freeze time makes sense for contest duration
       if (data.duration && data.freeze_time > data.duration * 0.5) {
         console.warn(`Long freeze time (${data.freeze_time} min) for contest duration (${data.duration} min)`);
       }
     }
 
-    // Additional validation for contest scheduling conflicts
     if (data.start_time && data.duration) {
       const startTime = new Date(data.start_time);
       const endTime = new Date(startTime.getTime() + data.duration * 60 * 1000);
       
-      // Validate the contest doesn't run too long into unusual hours
       const startHour = startTime.getHours();
       const endHour = endTime.getHours();
       
@@ -154,10 +154,11 @@ class Contest {
   }
 
   /**
-   * Get duration recommendations based on contest type - Phase 2.4
+   * Gets predefined duration recommendations for different contest types
+   * @returns {Object} Object containing contest type configurations
    */
-  static getDurationRecommendations(contestType = 'standard') {
-    const recommendations = {
+  static getDurationRecommendations() {
+    return {
       'practice': {
         duration: 60,
         freeze_time: 0,
@@ -171,7 +172,7 @@ class Contest {
       'standard': {
         duration: 180,
         freeze_time: 60,
-        description: 'Standard hackathon contest - 3 hours with 1hr freeze'
+        description: 'Standard programming contest - 3 hours with 1hr freeze'
       },
       'advanced': {
         duration: 300,
@@ -184,12 +185,12 @@ class Contest {
         description: 'Marathon contest - 8 hours with 2hr freeze'
       }
     };
-
-    return recommendations[contestType] || recommendations['standard'];
   }
 
   /**
-   * Calculate optimal freeze time based on duration - Phase 2.4
+   * Calculates optimal freeze time based on contest duration
+   * @param {number} duration - Contest duration in minutes
+   * @returns {number} Recommended freeze time in minutes
    */
   static calculateOptimalFreezeTime(duration) {
     if (duration <= 60) return 10; // 10 minutes for short contests
@@ -200,7 +201,12 @@ class Contest {
   }
 
   /**
-   * Create a new contest
+   * Creates a new contest with validation and unique registration code
+   * @param {Object} contestData - The contest data
+   * @param {number} adminId - The ID of the admin creating the contest
+   * @returns {Promise<Contest>} The created contest instance
+   * @throws {ValidationError} When contest data is invalid
+   * @throws {DatabaseError} When database operation fails
    */
   static async create(contestData, adminId) {
     this.validateContestData(contestData);
@@ -211,7 +217,6 @@ class Contest {
     let attempts = 0;
     const maxAttempts = 10;
 
-    // Generate unique registration code
     while (!isUnique && attempts < maxAttempts) {
       registrationCode = this.generateRegistrationCode();
       const existing = await db('contests').where('registration_code', registrationCode).first();
@@ -241,7 +246,11 @@ class Contest {
   }
 
   /**
-   * Find contest by ID
+   * Finds a contest by its ID
+   * @param {number} contestId - The contest ID
+   * @returns {Promise<Contest>} The contest instance
+   * @throws {NotFoundError} When contest is not found
+   * @throws {DatabaseError} When database operation fails
    */
   static async findById(contestId) {
     try {
@@ -262,7 +271,11 @@ class Contest {
   }
 
   /**
-   * Find contest by registration code
+   * Finds a contest by its registration code
+   * @param {string} registrationCode - The registration code
+   * @returns {Promise<Contest>} The contest instance
+   * @throws {NotFoundError} When contest is not found
+   * @throws {DatabaseError} When database operation fails
    */
   static async findByRegistrationCode(registrationCode) {
     try {
@@ -283,11 +296,14 @@ class Contest {
   }
 
   /**
-   * Find contest by name slug
+   * Finds a contest by its URL slug generated from the name
+   * @param {string} slug - The contest slug
+   * @returns {Promise<Contest>} The contest instance
+   * @throws {NotFoundError} When contest is not found
+   * @throws {DatabaseError} When database operation fails
    */
   static async findBySlug(slug) {
     try {
-      // First try to match by generating slug from contest names
       const contests = await db('contests').select('*');
       
       for (const contest of contests) {
@@ -305,7 +321,12 @@ class Contest {
   }
 
   /**
-   * Get all contests with optional filtering
+   * Gets all contests with optional filtering
+   * @param {Object} [filters={}] - Optional filters
+   * @param {number} [filters.adminId] - Filter by admin ID
+   * @param {boolean} [filters.isActive] - Filter by active status
+   * @returns {Promise<Contest[]>} Array of contest instances
+   * @throws {DatabaseError} When database operation fails
    */
   static async findAll(filters = {}) {
     try {
@@ -326,7 +347,14 @@ class Contest {
   }
 
   /**
-   * Update contest
+   * Updates contest data with authorization checks and running contest restrictions
+   * @param {number} contestId - The contest ID to update
+   * @param {Object} updateData - The data to update
+   * @param {number} adminId - The admin ID performing the update
+   * @returns {Promise<Contest>} The updated contest instance
+   * @throws {AuthenticationError} When admin is not authorized
+   * @throws {ValidationError} When trying to update restricted fields during contest
+   * @throws {DatabaseError} When database operation fails
    */
   static async update(contestId, updateData, adminId) {
     // Validate that contest exists and admin has permission
@@ -336,14 +364,12 @@ class Contest {
       throw new AuthenticationError('Not authorized to update this contest');
     }
 
-    // Check if contest is running (prevent certain updates)
     const now = new Date();
     const startTime = new Date(existingContest.start_time);
     const endTime = new Date(startTime.getTime() + existingContest.duration * 60 * 1000);
     const isRunning = now >= startTime && now <= endTime;
 
     if (isRunning) {
-      // Only allow certain updates during running contest
       const allowedFields = ['description', 'freeze_time'];
       const attemptedFields = Object.keys(updateData);
       const disallowedFields = attemptedFields.filter(field => !allowedFields.includes(field));
@@ -359,7 +385,6 @@ class Contest {
     }
 
     try {
-      // Log the changes for audit purposes
       const winston = require('winston');
       const logger = winston.createLogger({
         level: 'info',
@@ -389,7 +414,13 @@ class Contest {
   }
 
   /**
-   * Delete contest (soft delete by marking inactive)
+   * Deletes contest by marking as inactive (soft delete)
+   * @param {number} contestId - The contest ID to delete
+   * @param {number} adminId - The admin ID performing the deletion
+   * @returns {Promise<Object>} Success message object
+   * @throws {AuthenticationError} When admin is not authorized
+   * @throws {ConflictError} When contest has registered teams
+   * @throws {DatabaseError} When database operation fails
    */
   static async delete(contestId, adminId) {
     const existingContest = await this.findById(contestId);
@@ -398,7 +429,6 @@ class Contest {
       throw new AuthenticationError('Not authorized to delete this contest');
     }
 
-    // Check if contest has teams registered
     const teamsCount = await db('team_contests')
       .where('contest_id', contestId)
       .count('* as count')
@@ -420,7 +450,9 @@ class Contest {
   }
 
   /**
-   * Get contest timing and status information - Phase 2.4 Enhanced
+   * Gets comprehensive contest timing and status information
+   * @param {Contest} contest - The contest instance
+   * @returns {Object} Object containing detailed timing and status information
    */
   static getContestStatus(contest) {
     const now = new Date();
@@ -478,7 +510,10 @@ class Contest {
   }
 
   /**
-   * Get contest statistics
+   * Gets statistical information about a contest
+   * @param {number} contestId - The contest ID
+   * @returns {Promise<Object>} Object containing contest statistics
+   * @throws {DatabaseError} When database operation fails
    */
   static async getStatistics(contestId) {
     try {
@@ -515,7 +550,6 @@ class Contest {
       errors.push('Contest must have at least one problem');
     }
 
-    // Check if problems have test cases
     const problemsWithoutTestCases = await db('problems')
       .leftJoin('test_cases', 'problems.id', 'test_cases.problem_id')
       .where('problems.contest_id', contestId)
@@ -528,7 +562,6 @@ class Contest {
       errors.push('All problems must have at least one test case');
     }
 
-    // Check contest timing
     const now = new Date();
     const startTime = new Date(contest.start_time);
     const endTime = new Date(startTime.getTime() + contest.duration * 60 * 1000);
@@ -553,13 +586,11 @@ class Contest {
       throw new AuthenticationError('Not authorized to start this contest');
     }
 
-    // Validate contest can be started
     const validation = await this.canStartContest(contestId);
     if (!validation.canStart) {
       throw new ValidationError(`Contest cannot be started: ${validation.errors.join(', ')}`);
     }
 
-    // Check if contest is already started
     const now = new Date();
     const startTime = new Date(contest.start_time);
     
@@ -567,7 +598,6 @@ class Contest {
       throw new ConflictError('Contest has already started');
     }
 
-    // Update start time to now
     try {
       await db('contests')
         .where('id', contestId)
@@ -575,7 +605,6 @@ class Contest {
 
       const updatedContest = await this.findById(contestId);
       
-      // Notify all teams about contest start
       notificationService.notifyContestStart(contestId, updatedContest);
 
       return updatedContest;
@@ -620,7 +649,6 @@ class Contest {
 
       const updatedContest = await this.findById(contestId);
       
-      // Notify all teams about contest freeze
       notificationService.notifyContestFreeze(contestId, updatedContest);
 
       return updatedContest;
@@ -651,7 +679,6 @@ class Contest {
       throw new ConflictError('Contest has not started yet');
     }
 
-    // Calculate new duration based on current time
     const actualDuration = Math.floor((now - startTime) / (60 * 1000));
 
     try {
@@ -663,7 +690,6 @@ class Contest {
 
       const updatedContest = await this.findById(contestId);
       
-      // Notify all teams about contest end
       notificationService.notifyContestEnd(contestId, updatedContest);
 
       return updatedContest;
@@ -699,8 +725,6 @@ class Contest {
    */
   static async getTeamStatistics(contestId, teamId) {
     try {
-      // This will be fully implemented in Phase 3 (Hackathon Scoring)
-      // For now, return basic placeholder statistics
       const submissionsCount = await db('submissions')
         .where('team_id', teamId)
         .join('problems', 'submissions.problem_id', 'problems.id')
@@ -719,8 +743,8 @@ class Contest {
       return {
         total_submissions: parseInt(submissionsCount.count) || 0,
         problems_solved: parseInt(acceptedCount.count) || 0,
-        total_points: 0, // To be calculated by hackathon scoring
-        rank: null // To be calculated in Phase 3
+        total_points: 0,
+        rank: null
       };
     } catch (error) {
       throw new DatabaseError('Failed to get team statistics', error);

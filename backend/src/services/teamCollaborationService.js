@@ -1,8 +1,3 @@
-/**
- * CS Club Hackathon Platform - Team Collaboration Service
- * Phase 6.3: Team communication and collaboration tools
- */
-
 const { db } = require('../utils/db');
 const logger = require('../utils/logger');
 const websocketService = require('./websocketService');

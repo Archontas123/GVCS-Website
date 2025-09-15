@@ -1,734 +1,717 @@
 /**
- * Problem Routes - Phase 2.2
- * Handles problem and test case management endpoints
+ * @module ProblemRoutes
+ * @description Problem API Routes for Code Template and Function Signature Management
+ * 
+ * This module provides comprehensive problem code management functionality:
+ * - Function signature retrieval for multiple programming languages
+ * - User code implementation storage and retrieval
+ * - Code testing and validation with sample inputs
+ * - Administrative template and signature management
+ * - Multi-language support (C++, Java, Python)
+ * - Code auto-saving and persistence
+ * - Integration with code execution and testing services
+ * 
+ * Supports both team-facing endpoints for code development and administrative
+ * endpoints for problem template management and submission monitoring.
  */
 
 const express = require('express');
-const multer = require('multer');
 const router = express.Router();
-const Problem = require('../controllers/problemController');
-const TestCase = require('../controllers/testCaseController');
-const { verifyAdminToken, requireContestAccess } = require('../middleware/adminAuth');
+const codeTemplateService = require('../services/codeTemplateService');
+const { db } = require('../utils/db');
 const { authenticateTeam } = require('../middleware/auth');
-const { validate } = require('../utils/validation');
-const Joi = require('joi');
+const { verifyAdminToken, requireAdmin } = require('../middleware/adminAuth');
+const { handleResponse, handleError } = require('../utils/response');
 
-// Configure multer for file uploads
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    // Accept only CSV files
-    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only CSV files are allowed'));
-    }
-  }
-});
-
-// Problem validation schemas
-const problemCreateSchema = Joi.object({
-  title: Joi.string()
-    .trim()
-    .min(3)
-    .max(255)
-    .required()
-    .messages({
-      'string.min': 'Problem title must be at least 3 characters long',
-      'string.max': 'Problem title must not exceed 255 characters',
-      'any.required': 'Problem title is required'
-    }),
-
-  description: Joi.string()
-    .trim()
-    .min(10)
-    .max(10000)
-    .required()
-    .messages({
-      'string.min': 'Problem description must be at least 10 characters long',
-      'string.max': 'Problem description must not exceed 10000 characters',
-      'any.required': 'Problem description is required'
-    }),
-
-  input_format: Joi.string()
-    .trim()
-    .min(5)
-    .max(2000)
-    .required()
-    .messages({
-      'string.min': 'Input format must be at least 5 characters long',
-      'string.max': 'Input format must not exceed 2000 characters',
-      'any.required': 'Input format is required'
-    }),
-
-  output_format: Joi.string()
-    .trim()
-    .min(5)
-    .max(2000)
-    .required()
-    .messages({
-      'string.min': 'Output format must be at least 5 characters long',
-      'string.max': 'Output format must not exceed 2000 characters',
-      'any.required': 'Output format is required'
-    }),
-
-  sample_input: Joi.string()
-    .max(5000)
-    .allow('')
-    .messages({
-      'string.max': 'Sample input must not exceed 5000 characters'
-    }),
-
-  sample_output: Joi.string()
-    .max(5000)
-    .allow('')
-    .messages({
-      'string.max': 'Sample output must not exceed 5000 characters'
-    }),
-
-  constraints: Joi.string()
-    .max(2000)
-    .allow('')
-    .messages({
-      'string.max': 'Constraints must not exceed 2000 characters'
-    }),
-
-  time_limit: Joi.number()
-    .integer()
-    .min(100)
-    .max(30000)
-    .default(2000)
-    .messages({
-      'number.min': 'Time limit must be at least 100ms',
-      'number.max': 'Time limit must not exceed 30000ms'
-    }),
-
-  memory_limit: Joi.number()
-    .integer()
-    .min(16)
-    .max(2048)
-    .default(256)
-    .messages({
-      'number.min': 'Memory limit must be at least 16MB',
-      'number.max': 'Memory limit must not exceed 2048MB'
-    }),
-
-  difficulty: Joi.string()
-    .valid('easy', 'medium', 'hard')
-    .default('medium')
-    .messages({
-      'any.only': 'Difficulty must be easy, medium, or hard'
-    }),
-
-  problem_letter: Joi.string()
-    .length(1)
-    .pattern(/^[A-Z]$/)
-    .messages({
-      'string.length': 'Problem letter must be exactly 1 character',
-      'string.pattern.base': 'Problem letter must be a single uppercase letter'
-    }),
-
-  max_points: Joi.number()
-    .integer()
-    .min(1)
-    .max(1000)
-    .default(100)
-    .messages({
-      'number.min': 'Max points must be at least 1',
-      'number.max': 'Max points must not exceed 1000'
-    })
-});
-
-const problemUpdateSchema = Joi.object({
-  title: Joi.string()
-    .trim()
-    .min(3)
-    .max(255)
-    .messages({
-      'string.min': 'Problem title must be at least 3 characters long',
-      'string.max': 'Problem title must not exceed 255 characters'
-    }),
-
-  description: Joi.string()
-    .trim()
-    .min(10)
-    .max(10000)
-    .messages({
-      'string.min': 'Problem description must be at least 10 characters long',
-      'string.max': 'Problem description must not exceed 10000 characters'
-    }),
-
-  input_format: Joi.string()
-    .trim()
-    .min(5)
-    .max(2000)
-    .messages({
-      'string.min': 'Input format must be at least 5 characters long',
-      'string.max': 'Input format must not exceed 2000 characters'
-    }),
-
-  output_format: Joi.string()
-    .trim()
-    .min(5)
-    .max(2000)
-    .messages({
-      'string.min': 'Output format must be at least 5 characters long',
-      'string.max': 'Output format must not exceed 2000 characters'
-    }),
-
-  sample_input: Joi.string()
-    .max(5000)
-    .allow('')
-    .messages({
-      'string.max': 'Sample input must not exceed 5000 characters'
-    }),
-
-  sample_output: Joi.string()
-    .max(5000)
-    .allow('')
-    .messages({
-      'string.max': 'Sample output must not exceed 5000 characters'
-    }),
-
-  constraints: Joi.string()
-    .max(2000)
-    .allow('')
-    .messages({
-      'string.max': 'Constraints must not exceed 2000 characters'
-    }),
-
-  time_limit: Joi.number()
-    .integer()
-    .min(100)
-    .max(30000)
-    .messages({
-      'number.min': 'Time limit must be at least 100ms',
-      'number.max': 'Time limit must not exceed 30000ms'
-    }),
-
-  memory_limit: Joi.number()
-    .integer()
-    .min(16)
-    .max(2048)
-    .messages({
-      'number.min': 'Memory limit must be at least 16MB',
-      'number.max': 'Memory limit must not exceed 2048MB'
-    }),
-
-  difficulty: Joi.string()
-    .valid('easy', 'medium', 'hard')
-    .messages({
-      'any.only': 'Difficulty must be easy, medium, or hard'
-    }),
-
-  problem_letter: Joi.string()
-    .length(1)
-    .pattern(/^[A-Z]$/)
-    .messages({
-      'string.length': 'Problem letter must be exactly 1 character',
-      'string.pattern.base': 'Problem letter must be a single uppercase letter'
-    }),
-
-  max_points: Joi.number()
-    .integer()
-    .min(1)
-    .max(1000)
-    .messages({
-      'number.min': 'Max points must be at least 1',
-      'number.max': 'Max points must not exceed 1000'
-    })
-});
-
-const testCaseCreateSchema = Joi.object({
-  input: Joi.string()
-    .max(10000)
-    .required()
-    .messages({
-      'string.max': 'Input must not exceed 10000 characters',
-      'any.required': 'Input is required'
-    }),
-
-  expected_output: Joi.string()
-    .max(10000)
-    .required()
-    .messages({
-      'string.max': 'Expected output must not exceed 10000 characters',
-      'any.required': 'Expected output is required'
-    }),
-
-  is_sample: Joi.boolean()
-    .default(false)
-});
-
-const testCaseUpdateSchema = Joi.object({
-  input: Joi.string()
-    .max(10000)
-    .messages({
-      'string.max': 'Input must not exceed 10000 characters'
-    }),
-
-  expected_output: Joi.string()
-    .max(10000)
-    .messages({
-      'string.max': 'Expected output must not exceed 10000 characters'
-    }),
-
-  is_sample: Joi.boolean()
-});
-
-// =============================================================================
-// PROBLEM MANAGEMENT ROUTES
-// =============================================================================
 
 /**
- * GET /api/admin/problems
- * Get all problems created by the authenticated admin
+ * @route GET /api/problems/problems/:problemId/signature/:language
+ * @description Get function signature for a problem in a specific programming language
+ * 
+ * Retrieves the function signature template that teams use as a starting point
+ * for their solution. The signature includes function declaration, parameter types,
+ * return type, and basic structure specific to the programming language.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.problemId - Problem ID to get signature for
+ * @param {string} req.params.language - Programming language (cpp|java|python)
+ * @param {Object} req.team - Authenticated team data from middleware
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @returns {Object} Response object with function signature
+ * @returns {boolean} returns.success - Operation success status
+ * @returns {Object} returns.data - Function signature data
+ * @returns {string} returns.data.language - Programming language
+ * @returns {string} returns.data.signature - Function signature template
+ * @returns {string} returns.data.message - Success message
+ * 
+ * @throws {400} Invalid language parameter (not cpp, java, or python)
+ * @throws {500} Code template service errors
+ * 
+ * @requires Team authentication via authenticateTeam middleware
+ * 
+ * @example
+ * GET /api/problems/problems/123/signature/python
+ * Authorization: Bearer <team-jwt-token>
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "language": "python",
+ *     "signature": "def solve(n, arr):\n    # Your solution here\n    pass",
+ *     "message": "Function signature retrieved successfully"
+ *   }
+ * }
  */
-router.get('/problems', verifyAdminToken, async (req, res, next) => {
+router.get('/problems/:problemId/signature/:language', authenticateTeam, async (req, res) => {
   try {
-    const problems = await Problem.findByAdminId(req.admin.id);
+    const { problemId, language } = req.params;
     
-    res.success(problems, 'Admin problems retrieved successfully');
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * GET /api/admin/contests/:contestId/problems
- * Get all problems for a contest
- */
-router.get('/contests/:contestId/problems', verifyAdminToken, requireContestAccess, async (req, res, next) => {
-  try {
-    const includeStatistics = req.query.statistics === 'true';
-    const problems = await Problem.findByContestId(req.params.contestId, includeStatistics);
-    
-    res.success(problems, 'Problems retrieved successfully');
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * POST /api/admin/contests/:contestId/problems
- * Create a new problem
- */
-router.post('/contests/:contestId/problems', verifyAdminToken, requireContestAccess, validate(problemCreateSchema), async (req, res, next) => {
-  try {
-    const problem = await Problem.create(req.body, req.params.contestId, req.admin.id);
-    const statistics = await Problem.getStatistics(problem.id);
-    
-    res.created({
-      ...problem,
-      statistics
-    }, 'Problem created successfully');
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * POST /api/admin/contests/:contestId/problems/copy
- * Copy an existing problem to this contest
- */
-router.post('/contests/:contestId/problems/copy', verifyAdminToken, requireContestAccess, async (req, res, next) => {
-  try {
-    const { problemId } = req.body;
-    
-    if (!problemId) {
-      return res.validationError(['Problem ID is required']);
-    }
-
-    const copiedProblem = await Problem.copyToContest(problemId, req.params.contestId, req.admin.id);
-    const statistics = await Problem.getStatistics(copiedProblem.id);
-    
-    res.created({
-      ...copiedProblem,
-      statistics
-    }, 'Problem copied to contest successfully');
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * GET /api/admin/problems/:id
- * Get problem details
- */
-router.get('/problems/:id', verifyAdminToken, async (req, res, next) => {
-  try {
-    const problem = await Problem.findById(req.params.id);
-    
-    // Check admin access to this problem's contest
-    const Contest = require('../controllers/contestController');
-    const contest = await Contest.findById(problem.contest_id);
-    if (req.admin.role !== 'admin') {
-      return res.forbidden('Access denied to this problem');
-    }
-
-    const statistics = await Problem.getStatistics(problem.id);
-    const testCaseStats = await TestCase.getStatistics(problem.id);
-    
-    res.success({
-      ...problem,
-      statistics,
-      test_case_statistics: testCaseStats
-    }, 'Problem details retrieved successfully');
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * PUT /api/admin/problems/:id
- * Update problem
- */
-router.put('/problems/:id', verifyAdminToken, validate(problemUpdateSchema), async (req, res, next) => {
-  try {
-    const updatedProblem = await Problem.update(req.params.id, req.body, req.admin.id);
-    const statistics = await Problem.getStatistics(updatedProblem.id);
-    
-    res.success({
-      ...updatedProblem,
-      statistics
-    }, 'Problem updated successfully');
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * DELETE /api/admin/problems/:id
- * Delete problem
- */
-router.delete('/problems/:id', verifyAdminToken, async (req, res, next) => {
-  try {
-    const result = await Problem.delete(req.params.id, req.admin.id);
-    res.success(result, 'Problem deleted successfully');
-  } catch (error) {
-    next(error);
-  }
-});
-
-// =============================================================================
-// PROBLEM POINTS MANAGEMENT ROUTES
-// =============================================================================
-
-/**
- * PUT /api/admin/problems/:id/points
- * Set maximum points for a problem and recalculate test case distribution
- */
-router.put('/problems/:id/points', verifyAdminToken, async (req, res, next) => {
-  try {
-    const { max_points } = req.body;
-    
-    if (!max_points || max_points < 1 || max_points > 1000) {
-      return res.validationError(['Max points must be between 1 and 1000']);
+    // Validate language
+    if (!['cpp', 'java', 'python'].includes(language)) {
+      return handleError(res, 'Invalid language', 400);
     }
     
-    const updatedProblem = await Problem.setProblemPoints(req.params.id, max_points, req.admin.id);
-    const statistics = await Problem.getScoringStats(req.params.id, req.admin.id);
+    // Get function signature
+    const signature = await codeTemplateService.getFunctionSignature(problemId, language);
     
-    res.success({
-      problem: updatedProblem,
-      scoring_statistics: statistics
-    }, 'Problem points updated successfully');
+    handleResponse(res, {
+      language,
+      signature,
+      message: 'Function signature retrieved successfully'
+    });
+    
   } catch (error) {
-    next(error);
+    console.error('Error getting function signature:', error);
+    handleError(res, 'Failed to get function signature');
   }
 });
 
 /**
- * GET /api/admin/problems/:id/scoring-stats
- * Get detailed scoring statistics for a problem
+ * @route GET /api/problems/problems/:problemId/code/:language
+ * @description Get team's saved code implementation for a problem
+ * 
+ * Retrieves the team's previously saved code implementation for a specific
+ * problem and language. If no implementation exists, returns the default
+ * function signature template.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.problemId - Problem ID to get code for
+ * @param {string} req.params.language - Programming language (cpp|java|python)
+ * @param {Object} req.team - Authenticated team data from middleware
+ * @param {number} req.team.id - Team identifier
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @returns {Object} Response object with saved code
+ * @returns {boolean} returns.success - Operation success status
+ * @returns {Object} returns.data - Saved code data
+ * @returns {number} returns.data.problemId - Problem identifier
+ * @returns {number} returns.data.teamId - Team identifier
+ * @returns {string} returns.data.language - Programming language
+ * @returns {string} returns.data.code - Saved code implementation or template
+ * @returns {string} returns.data.message - Success message
+ * 
+ * @throws {400} Invalid language parameter
+ * @throws {500} Code template service errors
+ * 
+ * @requires Team authentication via authenticateTeam middleware
+ * 
+ * @example
+ * GET /api/problems/problems/123/code/java
+ * Authorization: Bearer <team-jwt-token>
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "problemId": 123,
+ *     "teamId": 456,
+ *     "language": "java",
+ *     "code": "public int solve(int n, int[] arr) {\n    // Your solution\n    return 0;\n}",
+ *     "message": "User code retrieved successfully"
+ *   }
+ * }
  */
-router.get('/problems/:id/scoring-stats', verifyAdminToken, async (req, res, next) => {
+router.get('/problems/:problemId/code/:language', authenticateTeam, async (req, res) => {
   try {
-    const statistics = await Problem.getScoringStats(req.params.id, req.admin.id);
+    const { problemId, language } = req.params;
+    const teamId = req.team.id;
     
-    res.success(statistics, 'Problem scoring statistics retrieved successfully');
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * PUT /api/admin/contests/:contestId/problems/bulk-points
- * Set points for all problems in a contest
- */
-router.put('/contests/:contestId/problems/bulk-points', verifyAdminToken, requireContestAccess, async (req, res, next) => {
-  try {
-    const { points_per_problem } = req.body;
-    
-    if (!points_per_problem || points_per_problem < 1 || points_per_problem > 1000) {
-      return res.validationError(['Points per problem must be between 1 and 1000']);
+    // Validate language
+    if (!['cpp', 'java', 'python'].includes(language)) {
+      return handleError(res, 'Invalid language', 400);
     }
     
-    const partialScoringService = require('../services/partialScoringService');
-    const result = await partialScoringService.updateContestPointsDistribution(
-      req.params.contestId, 
-      points_per_problem
-    );
+    // Get user's implementation or default
+    const code = await codeTemplateService.getUserImplementation(teamId, problemId, language);
     
-    res.success(result, 'Contest points distribution updated successfully');
-  } catch (error) {
-    next(error);
-  }
-});
-
-// =============================================================================
-// TEST CASE MANAGEMENT ROUTES
-// =============================================================================
-
-/**
- * GET /api/admin/problems/:problemId/testcases
- * Get all test cases for a problem
- */
-router.get('/problems/:problemId/testcases', verifyAdminToken, async (req, res, next) => {
-  try {
-    const includeSampleOnly = req.query.sample_only === 'true';
-    const testCases = await TestCase.findByProblemId(req.params.problemId, includeSampleOnly);
+    handleResponse(res, {
+      problemId: parseInt(problemId),
+      teamId,
+      language,
+      code,
+      message: 'User code retrieved successfully'
+    });
     
-    res.success(testCases, 'Test cases retrieved successfully');
   } catch (error) {
-    next(error);
+    console.error('Error getting user code:', error);
+    handleError(res, 'Failed to get user code');
   }
 });
 
 /**
- * POST /api/admin/problems/:problemId/testcases
- * Create a new test case
+ * @route POST /api/problems/problems/:problemId/code/:language
+ * @description Save team's code implementation for a problem
+ * 
+ * Stores the team's code implementation for a specific problem and language.
+ * Includes validation for code length and content. Code is persisted for
+ * later retrieval and submission.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.problemId - Problem ID to save code for
+ * @param {string} req.params.language - Programming language (cpp|java|python)
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.code - Code implementation to save
+ * @param {Object} req.team - Authenticated team data from middleware
+ * @param {number} req.team.id - Team identifier
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @returns {Object} Response object with save confirmation
+ * @returns {boolean} returns.success - Operation success status
+ * @returns {Object} returns.data - Save operation data
+ * @returns {number} returns.data.problemId - Problem identifier
+ * @returns {number} returns.data.teamId - Team identifier
+ * @returns {string} returns.data.language - Programming language
+ * @returns {string} returns.data.message - Success message
+ * 
+ * @throws {400} Invalid language parameter or empty/oversized code
+ * @throws {500} Code template service errors
+ * 
+ * @requires Team authentication via authenticateTeam middleware
+ * 
+ * Code Validation:
+ * - Code cannot be empty or only whitespace
+ * - Maximum code size: 50KB (50,000 characters)
+ * - Must be valid string content
+ * 
+ * @example
+ * POST /api/problems/problems/123/code/cpp
+ * Authorization: Bearer <team-jwt-token>
+ * Content-Type: application/json
+ * 
+ * {
+ *   "code": "#include <iostream>\nint solve(int n, vector<int>& arr) {\n    return arr[0];\n}"
+ * }
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "problemId": 123,
+ *     "teamId": 456,
+ *     "language": "cpp",
+ *     "message": "Code saved successfully"
+ *   }
+ * }
  */
-router.post('/problems/:problemId/testcases', verifyAdminToken, validate(testCaseCreateSchema), async (req, res, next) => {
+router.post('/problems/:problemId/code/:language', authenticateTeam, async (req, res) => {
   try {
-    const testCase = await TestCase.create(req.body, req.params.problemId, req.admin.id);
+    const { problemId, language } = req.params;
+    const { code } = req.body;
+    const teamId = req.team.id;
     
-    res.created(testCase, 'Test case created successfully');
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * POST /api/admin/problems/:problemId/testcases/bulk
- * Create multiple test cases from array, CSV text, or CSV file upload
- */
-router.post('/problems/:problemId/testcases/bulk', verifyAdminToken, upload.single('csv_file'), async (req, res, next) => {
-  try {
-    let testCasesData;
-
-    if (req.file) {
-      // Handle CSV file upload
-      const csvContent = req.file.buffer.toString('utf8');
-      testCasesData = TestCase.parseCSVData(csvContent);
-    } else if (req.body.csv_data) {
-      // Parse CSV data from text field
-      testCasesData = TestCase.parseCSVData(req.body.csv_data);
-    } else if (req.body.test_cases && Array.isArray(req.body.test_cases)) {
-      // Use provided array
-      testCasesData = req.body.test_cases;
-    } else {
-      return res.validationError(['Either csv_file upload, csv_data text, or test_cases array is required']);
+    // Validate language
+    if (!['cpp', 'java', 'python'].includes(language)) {
+      return handleError(res, 'Invalid language', 400);
     }
-
-    const result = await TestCase.createBulk(testCasesData, req.params.problemId, req.admin.id);
     
-    res.created(result, 'Test cases created successfully');
-  } catch (error) {
-    // Handle multer errors specifically
-    if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.validationError(['File size too large. Maximum allowed size is 5MB']);
+    // Validate code
+    if (!code || code.trim().length === 0) {
+      return handleError(res, 'Code cannot be empty', 400);
     }
-    if (error.message === 'Only CSV files are allowed') {
-      return res.validationError(['Only CSV files are allowed']);
+    
+    if (code.length > 50000) { // 50KB limit
+      return handleError(res, 'Code too large (max 50KB)', 400);
     }
-    next(error);
-  }
-});
-
-/**
- * GET /api/admin/testcases/:id
- * Get test case details
- */
-router.get('/testcases/:id', verifyAdminToken, async (req, res, next) => {
-  try {
-    const testCase = await TestCase.findById(req.params.id);
     
-    // Check admin access
-    await TestCase.checkAdminAccess(testCase.problem_id, req.admin.id);
+    // Save user's implementation
+    await codeTemplateService.saveUserImplementation(teamId, problemId, language, code);
     
-    res.success(testCase, 'Test case details retrieved successfully');
+    handleResponse(res, {
+      problemId: parseInt(problemId),
+      teamId,
+      language,
+      message: 'Code saved successfully'
+    });
+    
   } catch (error) {
-    next(error);
+    console.error('Error saving user code:', error);
+    handleError(res, 'Failed to save code');
   }
 });
 
 /**
- * PUT /api/admin/testcases/:id
- * Update test case
+ * @route POST /api/problems/problems/:problemId/test/:language
+ * @description Test team's code implementation with sample input
+ * 
+ * Executes the team's code implementation with provided input and returns
+ * the execution results. Includes compilation, execution, and output capture.
+ * Automatically saves code if execution is successful.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.problemId - Problem ID to test code for
+ * @param {string} req.params.language - Programming language (cpp|java|python)
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.code - Code implementation to test
+ * @param {string} [req.body.input=''] - Input data for testing
+ * @param {Object} req.team - Authenticated team data from middleware
+ * @param {number} req.team.id - Team identifier
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @returns {Object} Response object with execution results
+ * @returns {boolean} returns.success - Operation success status
+ * @returns {Object} returns.data - Test execution data
+ * @returns {number} returns.data.problemId - Problem identifier
+ * @returns {string} returns.data.language - Programming language
+ * @returns {Object} returns.data.execution - Execution results
+ * @returns {boolean} returns.data.execution.success - Execution success status
+ * @returns {string} returns.data.execution.output - Program output
+ * @returns {string} [returns.data.execution.error] - Error message if failed
+ * @returns {number} returns.data.execution.executionTime - Execution time (ms)
+ * @returns {number} returns.data.execution.memoryUsed - Memory used (MB)
+ * @returns {string} returns.data.message - Success message
+ * 
+ * @throws {400} Invalid language parameter or empty code
+ * @throws {500} Code execution service errors
+ * 
+ * @requires Team authentication via authenticateTeam middleware
+ * 
+ * Execution Limits:
+ * - Time limit: 5 seconds
+ * - Memory limit: 256 MB
+ * - Auto-save on successful execution
+ * 
+ * @example
+ * POST /api/problems/problems/123/test/python
+ * Authorization: Bearer <team-jwt-token>
+ * Content-Type: application/json
+ * 
+ * {
+ *   "code": "def solve(n, arr):\n    return sum(arr)",
+ *   "input": "3\n1 2 3"
+ * }
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "problemId": 123,
+ *     "language": "python",
+ *     "execution": {
+ *       "success": true,
+ *       "output": "6",
+ *       "executionTime": 150,
+ *       "memoryUsed": 12.5
+ *     },
+ *     "message": "Code tested successfully"
+ *   }
+ * }
  */
-router.put('/testcases/:id', verifyAdminToken, validate(testCaseUpdateSchema), async (req, res, next) => {
+router.post('/problems/:problemId/test/:language', authenticateTeam, async (req, res) => {
   try {
-    const updatedTestCase = await TestCase.update(req.params.id, req.body, req.admin.id);
+    const { problemId, language } = req.params;
+    const { code, input } = req.body;
+    const teamId = req.team.id;
     
-    res.success(updatedTestCase, 'Test case updated successfully');
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * DELETE /api/admin/testcases/:id
- * Delete test case
- */
-router.delete('/testcases/:id', verifyAdminToken, async (req, res, next) => {
-  try {
-    const result = await TestCase.delete(req.params.id, req.admin.id);
-    res.success(result, 'Test case deleted successfully');
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * GET /api/admin/problems/:problemId/testcases/statistics
- * Get test case statistics for a problem
- */
-router.get('/problems/:problemId/testcases/statistics', verifyAdminToken, async (req, res, next) => {
-  try {
-    const statistics = await TestCase.getStatistics(req.params.problemId);
+    // Validate language
+    if (!['cpp', 'java', 'python'].includes(language)) {
+      return handleError(res, 'Invalid language', 400);
+    }
     
-    res.success(statistics, 'Test case statistics retrieved successfully');
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * POST /api/admin/testcases/:id/validate
- * Validate test case format and provide suggestions
- */
-router.post('/testcases/:id/validate', verifyAdminToken, async (req, res, next) => {
-  try {
-    const testCase = await TestCase.findById(req.params.id);
+    // Validate code
+    if (!code || code.trim().length === 0) {
+      return handleError(res, 'Code cannot be empty', 400);
+    }
     
-    // Check admin access
-    await TestCase.checkAdminAccess(testCase.problem_id, req.admin.id);
+    // Execute code
+    const multiLangExecutor = require('../services/multiLangExecutor');
     
-    const validation = TestCase.validateTestCaseFormat(
-      testCase.input, 
-      testCase.expected_output,
-      req.body.constraints || {}
-    );
-    
-    res.success(validation, 'Test case validation completed');
-  } catch (error) {
-    next(error);
-  }
-});
-
-// =============================================================================
-// PUBLIC PROBLEM ROUTES (FOR CONTESTANTS)
-// =============================================================================
-
-/**
- * GET /api/problems/:id/public
- * Get problem details for contestants (includes sample test cases only)
- * Requires team authentication
- */
-router.get('/problems/:id/public', authenticateTeam, async (req, res, next) => {
-  try {
-    const problem = await Problem.findById(req.params.id);
-    
-    // Get only sample test cases (visible to contestants)
-    const sampleTestCases = await TestCase.findByProblemId(req.params.id, true);
-    
-    // Return problem with sample test cases
-    res.success({
-      id: problem.id,
-      contest_id: problem.contest_id,
-      problem_letter: problem.problem_letter,
-      title: problem.title,
-      description: problem.description,
-      input_format: problem.input_format,
-      output_format: problem.output_format,
-      constraints: problem.constraints,
-      time_limit: problem.time_limit,
-      memory_limit: problem.memory_limit,
-      difficulty: problem.difficulty,
-      sample_test_cases: sampleTestCases.map(tc => ({
-        input: tc.input,
-        expected_output: tc.expected_output
-      }))
-    }, 'Problem details retrieved successfully');
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * GET /api/contests/:contestId/problems/public
- * Get all problems for a contest (authenticated view for contestants)
- * Supports both contest ID and contest slug/registration code
- * Requires team authentication
- */
-router.get('/contests/:contestId/problems/public', authenticateTeam, async (req, res, next) => {
-  try {
-    let contestId = req.params.contestId;
-    
-    // If not a number, try to find contest by slug or registration code
-    if (isNaN(parseInt(contestId))) {
-      const Contest = require('../controllers/contestController');
-      let contest;
-      
-      try {
-        // First try to find by slug (generated from name)
-        contest = await Contest.findBySlug(contestId);
-      } catch (error) {
-        try {
-          // If not found by slug, try registration code
-          contest = await Contest.findByRegistrationCode(contestId);
-        } catch (secondError) {
-          return res.notFound('Contest not found');
-        }
+    const result = await multiLangExecutor.executeLeetCodeStyle(
+      problemId,
+      code,
+      language,
+      input || '',
+      {
+        timeLimit: 5000, // 5 seconds
+        memoryLimit: 256 // 256 MB
       }
-      
-      contestId = contest.id;
-    }
-    
-    const problems = await Problem.findByContestId(contestId);
-    
-    // For each problem, get only sample test cases
-    const problemsWithSamples = await Promise.all(
-      problems.map(async (problem) => {
-        const sampleTestCases = await TestCase.findByProblemId(problem.id, true);
-        
-        return {
-          id: problem.id,
-          contest_id: problem.contest_id,
-          problem_letter: problem.problem_letter,
-          title: problem.title,
-          description: problem.description,
-          input_format: problem.input_format,
-          output_format: problem.output_format,
-          constraints: problem.constraints,
-          time_limit: problem.time_limit,
-          memory_limit: problem.memory_limit,
-          difficulty: problem.difficulty,
-          sample_test_cases: sampleTestCases.map(tc => ({
-            input: tc.input,
-            expected_output: tc.expected_output
-          }))
-        };
-      })
     );
     
-    res.success(problemsWithSamples, 'Contest problems retrieved successfully');
+    // Save code if execution was successful (auto-save on test)
+    if (result.success) {
+      await codeTemplateService.saveUserImplementation(teamId, problemId, language, code);
+    }
+    
+    handleResponse(res, {
+      problemId: parseInt(problemId),
+      language,
+      execution: {
+        success: result.success,
+        output: result.output,
+        error: result.error,
+        executionTime: result.executionTime,
+        memoryUsed: result.memoryUsed
+      },
+      message: 'Code tested successfully'
+    });
+    
   } catch (error) {
-    next(error);
+    console.error('Error testing code:', error);
+    handleError(res, 'Failed to test code');
+  }
+});
+
+
+/**
+ * @route GET /api/problems/admin/problems/:problemId/templates
+ * @description Get all function signatures and templates for a problem (admin only)
+ * 
+ * Retrieves comprehensive template data for a problem including function signatures,
+ * I/O wrappers, default solutions, and input/output format specifications for
+ * all supported programming languages.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.problemId - Problem ID to get templates for
+ * @param {Object} req.admin - Admin user data from middleware
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @returns {Object} Response object with complete template data
+ * @returns {boolean} returns.success - Operation success status
+ * @returns {Object} returns.data - Template data
+ * @returns {Object} returns.data.signatures - Function signatures by language
+ * @returns {string} returns.data.signatures.cpp - C++ function signature
+ * @returns {string} returns.data.signatures.java - Java function signature
+ * @returns {string} returns.data.signatures.python - Python function signature
+ * @returns {Object} returns.data.wrappers - I/O wrappers by language (hidden from teams)
+ * @returns {string} returns.data.wrappers.cpp - C++ I/O wrapper code
+ * @returns {string} returns.data.wrappers.java - Java I/O wrapper code
+ * @returns {string} returns.data.wrappers.python - Python I/O wrapper code
+ * @returns {Object} returns.data.defaults - Default solution templates
+ * @returns {string} returns.data.defaults.cpp - C++ default solution
+ * @returns {string} returns.data.defaults.java - Java default solution
+ * @returns {string} returns.data.defaults.python - Python default solution
+ * @returns {Object} returns.data.formats - Input/output format descriptions
+ * @returns {string} returns.data.formats.input - Input format specification
+ * @returns {string} returns.data.formats.output - Output format specification
+ * @returns {string} returns.data.message - Success message
+ * 
+ * @throws {404} Problem not found
+ * @throws {500} Database query errors
+ * 
+ * @requires Admin authentication via verifyAdminToken and requireAdmin middleware
+ * 
+ * @example
+ * GET /api/problems/admin/problems/123/templates
+ * Authorization: Bearer <admin-jwt-token>
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "signatures": {
+ *       "cpp": "int solve(int n, vector<int>& arr) {",
+ *       "java": "public int solve(int n, int[] arr) {",
+ *       "python": "def solve(n, arr):"
+ *     },
+ *     "wrappers": {
+ *       "cpp": "#include <iostream>\n// I/O handling code",
+ *       "java": "import java.util.*;\n// I/O handling code",
+ *       "python": "# I/O handling code"
+ *     },
+ *     "formats": {
+ *       "input": "First line: n\nSecond line: n integers",
+ *       "output": "Single integer result"
+ *     }
+ *   }
+ * }
+ */
+router.get('/admin/problems/:problemId/templates', verifyAdminToken, requireAdmin, async (req, res) => {
+  try {
+    const { problemId } = req.params;
+    
+    // Get problem with all template data
+    const problem = await db('problems')
+      .where('id', problemId)
+      .first(
+        'function_signature_cpp',
+        'function_signature_java', 
+        'function_signature_python',
+        'io_wrapper_cpp',
+        'io_wrapper_java',
+        'io_wrapper_python',
+        'input_format',
+        'output_format',
+        'default_solution_cpp',
+        'default_solution_java',
+        'default_solution_python'
+      );
+      
+    if (!problem) {
+      return handleError(res, 'Problem not found', 404);
+    }
+    
+    handleResponse(res, {
+      signatures: {
+        cpp: problem.function_signature_cpp,
+        java: problem.function_signature_java,
+        python: problem.function_signature_python
+      },
+      wrappers: {
+        cpp: problem.io_wrapper_cpp,
+        java: problem.io_wrapper_java,
+        python: problem.io_wrapper_python
+      },
+      defaults: {
+        cpp: problem.default_solution_cpp,
+        java: problem.default_solution_java,
+        python: problem.default_solution_python
+      },
+      formats: {
+        input: problem.input_format,
+        output: problem.output_format
+      },
+      message: 'Templates retrieved successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error getting templates:', error);
+    handleError(res, 'Failed to get templates');
+  }
+});
+
+/**
+ * @route PUT /api/problems/admin/problems/:problemId/templates
+ * @description Update function signatures and templates for a problem (admin only)
+ * 
+ * Updates the complete template configuration for a problem including function
+ * signatures, I/O wrappers, default solutions, and format specifications.
+ * Supports partial updates - only provided fields will be updated.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.problemId - Problem ID to update templates for
+ * @param {Object} req.body - Request body with template updates
+ * @param {Object} req.body.signatures - Function signatures to update
+ * @param {string} [req.body.signatures.cpp] - C++ function signature
+ * @param {string} [req.body.signatures.java] - Java function signature
+ * @param {string} [req.body.signatures.python] - Python function signature
+ * @param {Object} req.body.wrappers - I/O wrappers to update
+ * @param {string} [req.body.wrappers.cpp] - C++ I/O wrapper code
+ * @param {string} [req.body.wrappers.java] - Java I/O wrapper code
+ * @param {string} [req.body.wrappers.python] - Python I/O wrapper code
+ * @param {Object} [req.body.defaults] - Default solution templates
+ * @param {string} [req.body.defaults.cpp] - C++ default solution
+ * @param {string} [req.body.defaults.java] - Java default solution
+ * @param {string} [req.body.defaults.python] - Python default solution
+ * @param {Object} [req.body.formats] - Input/output format specifications
+ * @param {string} [req.body.formats.input] - Input format description
+ * @param {string} [req.body.formats.output] - Output format description
+ * @param {Object} req.admin - Admin user data from middleware
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @returns {Object} Response object with update confirmation
+ * @returns {boolean} returns.success - Operation success status
+ * @returns {Object} returns.data - Update operation data
+ * @returns {number} returns.data.problemId - Problem identifier
+ * @returns {Array} returns.data.updated - List of fields that were updated
+ * @returns {string} returns.data.message - Success message
+ * 
+ * @throws {400} Missing required signatures or wrappers
+ * @throws {404} Problem not found
+ * @throws {500} Database update errors
+ * 
+ * @requires Admin authentication via verifyAdminToken and requireAdmin middleware
+ * 
+ * @example
+ * PUT /api/problems/admin/problems/123/templates
+ * Authorization: Bearer <admin-jwt-token>
+ * Content-Type: application/json
+ * 
+ * {
+ *   "signatures": {
+ *     "python": "def solve(n, arr):\n    # Updated signature"
+ *   },
+ *   "wrappers": {
+ *     "python": "# Updated I/O wrapper"
+ *   },
+ *   "formats": {
+ *     "input": "Updated input format"
+ *   }
+ * }
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "problemId": 123,
+ *     "updated": ["function_signature_python", "io_wrapper_python", "input_format"],
+ *     "message": "Templates updated successfully"
+ *   }
+ * }
+ */
+router.put('/admin/problems/:problemId/templates', verifyAdminToken, requireAdmin, async (req, res) => {
+  try {
+    const { problemId } = req.params;
+    const { signatures, wrappers, defaults, formats } = req.body;
+    
+    // Validate required fields
+    if (!signatures || !wrappers) {
+      return handleError(res, 'Signatures and wrappers are required', 400);
+    }
+    
+    // Build update object
+    const updateData = {};
+    
+    // Function signatures (what users see)
+    if (signatures.cpp) updateData.function_signature_cpp = signatures.cpp;
+    if (signatures.java) updateData.function_signature_java = signatures.java;
+    if (signatures.python) updateData.function_signature_python = signatures.python;
+    
+    // I/O wrappers (hidden from users)
+    if (wrappers.cpp) updateData.io_wrapper_cpp = wrappers.cpp;
+    if (wrappers.java) updateData.io_wrapper_java = wrappers.java;
+    if (wrappers.python) updateData.io_wrapper_python = wrappers.python;
+    
+    // Default implementations
+    if (defaults?.cpp) updateData.default_solution_cpp = defaults.cpp;
+    if (defaults?.java) updateData.default_solution_java = defaults.java;  
+    if (defaults?.python) updateData.default_solution_python = defaults.python;
+    
+    // Input/output formats
+    if (formats?.input) updateData.input_format = formats.input;
+    if (formats?.output) updateData.output_format = formats.output;
+    
+    // Update problem
+    const updated = await db('problems')
+      .where('id', problemId)
+      .update(updateData);
+      
+    if (!updated) {
+      return handleError(res, 'Problem not found', 404);
+    }
+    
+    handleResponse(res, {
+      problemId: parseInt(problemId),
+      updated: Object.keys(updateData),
+      message: 'Templates updated successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error updating templates:', error);
+    handleError(res, 'Failed to update templates');
+  }
+});
+
+/**
+ * @route GET /api/problems/admin/problems/:problemId/submissions
+ * @description Get all team code implementations for a problem (admin only)
+ * 
+ * Retrieves all saved code implementations from teams for a specific problem
+ * across all supported programming languages. Includes team information,
+ * save timestamps, and complete code content.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.problemId - Problem ID to get submissions for
+ * @param {Object} req.admin - Admin user data from middleware
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @returns {Object} Response object with team submissions
+ * @returns {boolean} returns.success - Operation success status
+ * @returns {Object} returns.data - Submissions data
+ * @returns {number} returns.data.problemId - Problem identifier
+ * @returns {Array} returns.data.submissions - Team code implementations
+ * @returns {number} returns.data.submissions[].id - Implementation record ID
+ * @returns {number} returns.data.submissions[].team_id - Team identifier
+ * @returns {string} returns.data.submissions[].team_name - Team name
+ * @returns {string} returns.data.submissions[].language - Programming language
+ * @returns {string} returns.data.submissions[].code - Complete code implementation
+ * @returns {string} returns.data.submissions[].saved_at - Last save timestamp
+ * @returns {string} returns.data.submissions[].created_at - First save timestamp
+ * @returns {number} returns.data.count - Total number of submissions
+ * @returns {string} returns.data.message - Success message
+ * 
+ * @throws {500} Database query errors
+ * 
+ * @requires Admin authentication via verifyAdminToken and requireAdmin middleware
+ * 
+ * @example
+ * GET /api/problems/admin/problems/123/submissions
+ * Authorization: Bearer <admin-jwt-token>
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "problemId": 123,
+ *     "submissions": [
+ *       {
+ *         "id": 1,
+ *         "team_id": 456,
+ *         "team_name": "CodeMasters",
+ *         "language": "python",
+ *         "code": "def solve(n, arr):\n    return sum(arr)",
+ *         "saved_at": "2025-01-15T10:30:00.000Z",
+ *         "created_at": "2025-01-15T09:00:00.000Z"
+ *       }
+ *     ],
+ *     "count": 1,
+ *     "message": "Submissions retrieved successfully"
+ *   }
+ * }
+ */
+router.get('/admin/problems/:problemId/submissions', verifyAdminToken, requireAdmin, async (req, res) => {
+  try {
+    const { problemId } = req.params;
+    
+    // Get all saved implementations for this problem
+    const submissions = await db('team_problem_code as tpc')
+      .join('teams as t', 't.id', 'tpc.team_id')
+      .where('tpc.problem_id', problemId)
+      .select(
+        'tpc.id',
+        'tpc.team_id',
+        't.team_name',
+        'tpc.language',
+        'tpc.code',
+        'tpc.saved_at',
+        'tpc.created_at'
+      )
+      .orderBy('tpc.saved_at', 'desc');
+    
+    handleResponse(res, {
+      problemId: parseInt(problemId),
+      submissions,
+      count: submissions.length,
+      message: 'Submissions retrieved successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error getting submissions:', error);
+    handleError(res, 'Failed to get submissions');
   }
 });
 

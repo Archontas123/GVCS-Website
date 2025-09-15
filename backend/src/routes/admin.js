@@ -1,6 +1,8 @@
 /**
- * Admin Routes - Phase 2.1
- * Handles admin authentication and management endpoints
+ * Admin Routes Module
+ * Provides comprehensive admin management endpoints including authentication,
+ * contest management, system monitoring, and team registration oversight
+ * @module routes/admin
  */
 
 const express = require('express');
@@ -11,7 +13,10 @@ const { verifyAdminToken, requireSuperAdmin, requireContestAccess } = require('.
 const { validate } = require('../utils/validation');
 const Joi = require('joi');
 
-// Admin authentication schemas
+/**
+ * Joi schema for admin login validation
+ * @type {Joi.ObjectSchema}
+ */
 const adminLoginSchema = Joi.object({
   username: Joi.string()
     .trim()
@@ -35,6 +40,10 @@ const adminLoginSchema = Joi.object({
     })
 });
 
+/**
+ * Joi schema for admin registration validation
+ * @type {Joi.ObjectSchema}
+ */
 const adminRegistrationSchema = Joi.object({
   username: Joi.string()
     .trim()
@@ -77,6 +86,10 @@ const adminRegistrationSchema = Joi.object({
     })
 });
 
+/**
+ * Joi schema for contest creation validation
+ * @type {Joi.ObjectSchema}
+ */
 const contestCreateSchema = Joi.object({
   contest_name: Joi.string()
     .trim()
@@ -129,6 +142,10 @@ const contestCreateSchema = Joi.object({
   is_active: Joi.boolean().default(true)
 });
 
+/**
+ * Joi schema for contest update validation
+ * @type {Joi.ObjectSchema}
+ */
 const contestUpdateSchema = Joi.object({
   contest_name: Joi.string()
     .trim()
@@ -171,13 +188,39 @@ const contestUpdateSchema = Joi.object({
   is_active: Joi.boolean()
 });
 
-// =============================================================================
-// ADMIN AUTHENTICATION ROUTES
-// =============================================================================
-
 /**
- * POST /api/admin/login
  * Admin login endpoint
+ * @route POST /api/admin/login
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.username - Admin username (3-50 characters)
+ * @param {string} req.body.password - Admin password (6-128 characters)
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with authentication token and admin details
+ * @throws {ValidationError} 400 - Invalid input data
+ * @throws {UnauthorizedError} 401 - Invalid credentials
+ * @throws {InternalServerError} 500 - Server error
+ * @example
+ * // Request body:
+ * {
+ *   "username": "admin123",
+ *   "password": "securepassword"
+ * }
+ * 
+ * // Response:
+ * {
+ *   "success": true,
+ *   "message": "Login successful",
+ *   "data": {
+ *     "token": "jwt_token_here",
+ *     "admin": {
+ *       "id": 1,
+ *       "username": "admin123",
+ *       "role": "admin"
+ *     }
+ *   }
+ * }
  */
 router.post('/login', validate(adminLoginSchema), async (req, res, next) => {
   try {
@@ -191,8 +234,23 @@ router.post('/login', validate(adminLoginSchema), async (req, res, next) => {
 });
 
 /**
- * POST /api/admin/register
- * Admin registration (super admin only)
+ * Admin registration endpoint (super admin only)
+ * @route POST /api/admin/register
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.username - New admin username (3-50 characters, alphanumeric with _ and -)
+ * @param {string} req.body.email - Admin email address (max 255 characters)
+ * @param {string} req.body.password - Admin password (6-128 characters)
+ * @param {string} [req.body.role=admin] - Admin role
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with created admin details (excluding password)
+ * @requires verifyAdminToken - Admin authentication required
+ * @requires requireSuperAdmin - Super admin privileges required
+ * @throws {ValidationError} 400 - Invalid input data
+ * @throws {UnauthorizedError} 401 - Not authenticated or insufficient privileges
+ * @throws {ConflictError} 409 - Username or email already exists
+ * @throws {InternalServerError} 500 - Server error
  */
 router.post('/register', verifyAdminToken, requireSuperAdmin, validate(adminRegistrationSchema), async (req, res, next) => {
   try {
@@ -211,8 +269,18 @@ router.post('/register', verifyAdminToken, requireSuperAdmin, validate(adminRegi
 });
 
 /**
- * GET /api/admin/profile
- * Get current admin profile
+ * Get current admin profile with statistics
+ * @route GET /api/admin/profile
+ * @param {Object} req - Express request object
+ * @param {Object} req.admin - Admin object from authentication middleware
+ * @param {number} req.admin.id - Admin ID
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with admin profile and statistics
+ * @requires verifyAdminToken - Admin authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {NotFoundError} 404 - Admin not found
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/profile', verifyAdminToken, async (req, res, next) => {
   try {
@@ -233,8 +301,19 @@ router.get('/profile', verifyAdminToken, async (req, res, next) => {
 });
 
 /**
- * PUT /api/admin/profile
- * Update admin profile
+ * Update current admin profile
+ * @route PUT /api/admin/profile
+ * @param {Object} req - Express request object
+ * @param {Object} req.admin - Admin object from authentication middleware
+ * @param {Object} req.body - Updated profile data
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with updated admin profile
+ * @requires verifyAdminToken - Admin authentication required
+ * @throws {ValidationError} 400 - Invalid update data
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {ConflictError} 409 - Username/email conflict
+ * @throws {InternalServerError} 500 - Server error
  */
 router.put('/profile', verifyAdminToken, async (req, res, next) => {
   try {
@@ -253,8 +332,20 @@ router.put('/profile', verifyAdminToken, async (req, res, next) => {
 });
 
 /**
- * PUT /api/admin/password
  * Change admin password
+ * @route PUT /api/admin/password
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.current_password - Current password for verification
+ * @param {string} req.body.new_password - New password (6-128 characters)
+ * @param {Object} req.admin - Admin object from authentication middleware
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response confirming password change
+ * @requires verifyAdminToken - Admin authentication required
+ * @throws {ValidationError} 400 - Invalid password data
+ * @throws {UnauthorizedError} 401 - Not authenticated or incorrect current password
+ * @throws {InternalServerError} 500 - Server error
  */
 router.put('/password', verifyAdminToken, async (req, res, next) => {
   try {
@@ -267,19 +358,22 @@ router.put('/password', verifyAdminToken, async (req, res, next) => {
   }
 });
 
-// =============================================================================
-// CONTEST MANAGEMENT ROUTES
-// =============================================================================
-
 /**
- * GET /api/admin/contests
- * Get all contests for admin
+ * Get all contests with statistics
+ * @route GET /api/admin/contests
+ * @param {Object} req - Express request object
+ * @param {Object} req.query - Query parameters
+ * @param {string} [req.query.active] - Filter by active status ('true' or 'false')
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with array of contests including statistics
+ * @requires verifyAdminToken - Admin authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/contests', verifyAdminToken, async (req, res, next) => {
   try {
     const filters = {};
-    
-    // All admins can see all contests now (simplified role structure)
     
     if (req.query.active !== undefined) {
       filters.isActive = req.query.active === 'true';
@@ -287,7 +381,6 @@ router.get('/contests', verifyAdminToken, async (req, res, next) => {
     
     const contests = await Contest.findAll(filters);
     
-    // Get statistics for each contest
     const contestsWithStats = await Promise.all(
       contests.map(async (contest) => {
         const stats = await Contest.getStatistics(contest.id);
@@ -305,8 +398,24 @@ router.get('/contests', verifyAdminToken, async (req, res, next) => {
 });
 
 /**
- * POST /api/admin/contests
  * Create new contest
+ * @route POST /api/admin/contests
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Contest data
+ * @param {string} req.body.contest_name - Contest name (3-255 characters)
+ * @param {string} [req.body.description] - Contest description (max 5000 characters)
+ * @param {string} req.body.start_time - Contest start time (ISO format, future date)
+ * @param {number} req.body.duration - Contest duration in minutes (30-720)
+ * @param {number} [req.body.freeze_time=60] - Freeze time in minutes before end
+ * @param {boolean} [req.body.is_active=true] - Contest active status
+ * @param {Object} req.admin - Admin object from authentication middleware
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with created contest and statistics
+ * @requires verifyAdminToken - Admin authentication required
+ * @throws {ValidationError} 400 - Invalid contest data
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {InternalServerError} 500 - Server error
  */
 router.post('/contests', verifyAdminToken, validate(contestCreateSchema), async (req, res, next) => {
   try {
@@ -323,8 +432,19 @@ router.post('/contests', verifyAdminToken, validate(contestCreateSchema), async 
 });
 
 /**
- * GET /api/admin/contests/:id
- * Get contest details
+ * Get detailed contest information
+ * @route GET /api/admin/contests/:id
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Contest ID
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with contest details, statistics, and status
+ * @requires verifyAdminToken - Admin authentication required
+ * @requires requireContestAccess - Contest access permission required
+ * @throws {UnauthorizedError} 401 - Not authenticated or no contest access
+ * @throws {NotFoundError} 404 - Contest not found
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/contests/:id', verifyAdminToken, requireContestAccess, async (req, res, next) => {
   try {
@@ -343,8 +463,22 @@ router.get('/contests/:id', verifyAdminToken, requireContestAccess, async (req, 
 });
 
 /**
- * PUT /api/admin/contests/:id
- * Update contest
+ * Update contest information
+ * @route PUT /api/admin/contests/:id
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Contest ID
+ * @param {Object} req.body - Updated contest data
+ * @param {Object} req.admin - Admin object from authentication middleware
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with updated contest and statistics
+ * @requires verifyAdminToken - Admin authentication required
+ * @requires requireContestAccess - Contest access permission required
+ * @throws {ValidationError} 400 - Invalid contest data
+ * @throws {UnauthorizedError} 401 - Not authenticated or no contest access
+ * @throws {NotFoundError} 404 - Contest not found
+ * @throws {InternalServerError} 500 - Server error
  */
 router.put('/contests/:id', verifyAdminToken, requireContestAccess, validate(contestUpdateSchema), async (req, res, next) => {
   try {
@@ -361,8 +495,21 @@ router.put('/contests/:id', verifyAdminToken, requireContestAccess, validate(con
 });
 
 /**
- * DELETE /api/admin/contests/:id
  * Delete contest (soft delete)
+ * @route DELETE /api/admin/contests/:id
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Contest ID
+ * @param {Object} req.admin - Admin object from authentication middleware
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response confirming contest deletion
+ * @requires verifyAdminToken - Admin authentication required
+ * @requires requireContestAccess - Contest access permission required
+ * @throws {UnauthorizedError} 401 - Not authenticated or no contest access
+ * @throws {NotFoundError} 404 - Contest not found
+ * @throws {ConflictError} 409 - Contest cannot be deleted (active participants)
+ * @throws {InternalServerError} 500 - Server error
  */
 router.delete('/contests/:id', verifyAdminToken, requireContestAccess, async (req, res, next) => {
   try {
@@ -374,8 +521,19 @@ router.delete('/contests/:id', verifyAdminToken, requireContestAccess, async (re
 });
 
 /**
- * GET /api/admin/contests/:id/can-start
  * Check if contest can be started
+ * @route GET /api/admin/contests/:id/can-start
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Contest ID
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with contest start validation results
+ * @requires verifyAdminToken - Admin authentication required
+ * @requires requireContestAccess - Contest access permission required
+ * @throws {UnauthorizedError} 401 - Not authenticated or no contest access
+ * @throws {NotFoundError} 404 - Contest not found
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/contests/:id/can-start', verifyAdminToken, requireContestAccess, async (req, res, next) => {
   try {
@@ -388,8 +546,21 @@ router.get('/contests/:id/can-start', verifyAdminToken, requireContestAccess, as
 });
 
 /**
- * POST /api/admin/contests/:id/start
  * Start contest immediately
+ * @route POST /api/admin/contests/:id/start
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Contest ID
+ * @param {Object} req.admin - Admin object from authentication middleware
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with started contest details
+ * @requires verifyAdminToken - Admin authentication required
+ * @requires requireContestAccess - Contest access permission required
+ * @throws {UnauthorizedError} 401 - Not authenticated or no contest access
+ * @throws {NotFoundError} 404 - Contest not found
+ * @throws {ConflictError} 409 - Contest cannot be started (validation failed)
+ * @throws {InternalServerError} 500 - Server error
  */
 router.post('/contests/:id/start', verifyAdminToken, requireContestAccess, async (req, res, next) => {
   try {
@@ -402,8 +573,21 @@ router.post('/contests/:id/start', verifyAdminToken, requireContestAccess, async
 });
 
 /**
- * POST /api/admin/contests/:id/freeze
  * Freeze contest leaderboard
+ * @route POST /api/admin/contests/:id/freeze
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Contest ID
+ * @param {Object} req.admin - Admin object from authentication middleware
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with frozen contest details
+ * @requires verifyAdminToken - Admin authentication required
+ * @requires requireContestAccess - Contest access permission required
+ * @throws {UnauthorizedError} 401 - Not authenticated or no contest access
+ * @throws {NotFoundError} 404 - Contest not found
+ * @throws {ConflictError} 409 - Contest cannot be frozen (not running)
+ * @throws {InternalServerError} 500 - Server error
  */
 router.post('/contests/:id/freeze', verifyAdminToken, requireContestAccess, async (req, res, next) => {
   try {
@@ -416,8 +600,21 @@ router.post('/contests/:id/freeze', verifyAdminToken, requireContestAccess, asyn
 });
 
 /**
- * POST /api/admin/contests/:id/unfreeze
  * Unfreeze contest leaderboard
+ * @route POST /api/admin/contests/:id/unfreeze
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Contest ID
+ * @param {Object} req.admin - Admin object from authentication middleware
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with unfrozen contest details
+ * @requires verifyAdminToken - Admin authentication required
+ * @requires requireContestAccess - Contest access permission required
+ * @throws {UnauthorizedError} 401 - Not authenticated or no contest access
+ * @throws {NotFoundError} 404 - Contest not found
+ * @throws {ConflictError} 409 - Contest cannot be unfrozen (not frozen)
+ * @throws {InternalServerError} 500 - Server error
  */
 router.post('/contests/:id/unfreeze', verifyAdminToken, requireContestAccess, async (req, res, next) => {
   try {
@@ -429,8 +626,21 @@ router.post('/contests/:id/unfreeze', verifyAdminToken, requireContestAccess, as
 });
 
 /**
- * POST /api/admin/contests/:id/end
  * End contest early
+ * @route POST /api/admin/contests/:id/end
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Contest ID
+ * @param {Object} req.admin - Admin object from authentication middleware
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with ended contest details
+ * @requires verifyAdminToken - Admin authentication required
+ * @requires requireContestAccess - Contest access permission required
+ * @throws {UnauthorizedError} 401 - Not authenticated or no contest access
+ * @throws {NotFoundError} 404 - Contest not found
+ * @throws {ConflictError} 409 - Contest cannot be ended (not running)
+ * @throws {InternalServerError} 500 - Server error
  */
 router.post('/contests/:id/end', verifyAdminToken, requireContestAccess, async (req, res, next) => {
   try {
@@ -443,8 +653,16 @@ router.post('/contests/:id/end', verifyAdminToken, requireContestAccess, async (
 });
 
 /**
- * GET /api/admin/admins
  * Get all admins (super admin only)
+ * @route GET /api/admin/admins
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with array of admin accounts
+ * @requires verifyAdminToken - Admin authentication required
+ * @requires requireSuperAdmin - Super admin privileges required
+ * @throws {UnauthorizedError} 401 - Not authenticated or insufficient privileges
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/admins', verifyAdminToken, requireSuperAdmin, async (req, res, next) => {
   try {
@@ -455,19 +673,21 @@ router.get('/admins', verifyAdminToken, requireSuperAdmin, async (req, res, next
   }
 });
 
-// =============================================================================
-// DASHBOARD STATS ENDPOINTS
-// =============================================================================
-
 /**
- * GET /api/admin/dashboard/stats
  * Get overall dashboard statistics
+ * @route GET /api/admin/dashboard/stats
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with dashboard statistics
+ * @requires verifyAdminToken - Admin authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/dashboard/stats', verifyAdminToken, async (req, res, next) => {
   try {
     const { db } = require('../utils/db');
     
-    // Get overall statistics
     const [totalSubmissions, totalContests, totalTeams, totalProblems] = await Promise.all([
       db('submissions').count('* as count').first(),
       db('contests').count('* as count').first(),
@@ -475,15 +695,13 @@ router.get('/dashboard/stats', verifyAdminToken, async (req, res, next) => {
       db('problems').count('* as count').first()
     ]);
 
-    // Get active contests
     const activeContests = await db('contests')
       .where('is_active', true)
       .count('* as count')
       .first();
 
-    // Get pending submissions (judge queue)
     const pendingSubmissions = await db('submissions')
-      .where('verdict', 'PE') // Pending
+      .where('verdict', 'PE')
       .count('* as count')
       .first();
 
@@ -494,7 +712,7 @@ router.get('/dashboard/stats', verifyAdminToken, async (req, res, next) => {
       totalTeams: parseInt(totalTeams.count) || 0,
       totalProblems: parseInt(totalProblems.count) || 0,
       pendingJudging: parseInt(pendingSubmissions.count) || 0,
-      systemHealth: 'healthy' // Will be enhanced with real health checks
+      systemHealth: 'healthy'
     };
 
     res.success(stats, 'Dashboard statistics retrieved successfully');
@@ -504,14 +722,20 @@ router.get('/dashboard/stats', verifyAdminToken, async (req, res, next) => {
 });
 
 /**
- * GET /api/admin/system/health
  * Get system health status
+ * @route GET /api/admin/system/health
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with system health information
+ * @requires verifyAdminToken - Admin authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/system/health', verifyAdminToken, async (req, res, next) => {
   try {
     const { db } = require('../utils/db');
     
-    // Test database connection
     let dbHealth = 'healthy';
     let dbResponseTime = 0;
     
@@ -527,7 +751,6 @@ router.get('/system/health', verifyAdminToken, async (req, res, next) => {
       dbHealth = 'error';
     }
 
-    // Get system metrics (mock for now, can be enhanced with real system monitoring)
     const health = {
       overall: dbHealth === 'error' ? 'critical' : dbHealth === 'slow' ? 'warning' : 'healthy',
       database: {
@@ -549,25 +772,30 @@ router.get('/system/health', verifyAdminToken, async (req, res, next) => {
 });
 
 /**
- * GET /api/admin/judge/queue
  * Get judge queue status
+ * @route GET /api/admin/judge/queue
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with judge queue statistics
+ * @requires verifyAdminToken - Admin authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/judge/queue', verifyAdminToken, async (req, res, next) => {
   try {
     const { db } = require('../utils/db');
     
-    // Get queue statistics
     const [pending, processing, completed, failed] = await Promise.all([
       db('submissions').where('verdict', 'PE').count('* as count').first(),
-      db('submissions').where('verdict', 'RU').count('* as count').first(), // Running
+      db('submissions').where('verdict', 'RU').count('* as count').first(),
       db('submissions').whereNot('verdict', 'PE').whereNot('verdict', 'RU').count('* as count').first(),
-      db('submissions').where('verdict', 'CE').count('* as count').first() // Compilation Error as failed example
+      db('submissions').where('verdict', 'CE').count('* as count').first()
     ]);
 
-    // Get recent average processing time
     const avgTime = await db('submissions')
       .whereNotNull('judged_at')
-      .where('submitted_at', '>', new Date(Date.now() - 3600000).toISOString()) // Last hour
+      .where('submitted_at', '>', new Date(Date.now() - 3600000).toISOString())
       .select(db.raw('AVG(EXTRACT(epoch FROM (judged_at - submitted_at))) as avg_time'))
       .first();
 
@@ -576,7 +804,7 @@ router.get('/judge/queue', verifyAdminToken, async (req, res, next) => {
       processing: parseInt(processing.count) || 0,
       completed: parseInt(completed.count) || 0,
       failed: parseInt(failed.count) || 0,
-      workers_active: 5, // Mock - can be enhanced with real worker monitoring
+      workers_active: 5,
       workers_total: 8,
       avg_processing_time_seconds: parseFloat(avgTime?.avg_time) || 1.8
     };
@@ -587,26 +815,31 @@ router.get('/judge/queue', verifyAdminToken, async (req, res, next) => {
   }
 });
 
-// =============================================================================
-// CONTEST LIVE STATS ENDPOINTS
-// =============================================================================
-
 /**
- * GET /api/admin/contests/:id/live-stats
  * Get real-time contest statistics
+ * @route GET /api/admin/contests/:id/live-stats
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Contest ID
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with live contest statistics
+ * @requires verifyAdminToken - Admin authentication required
+ * @requires requireContestAccess - Contest access permission required
+ * @throws {UnauthorizedError} 401 - Not authenticated or no contest access
+ * @throws {NotFoundError} 404 - Contest not found
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/contests/:id/live-stats', verifyAdminToken, requireContestAccess, async (req, res, next) => {
   try {
     const { db } = require('../utils/db');
     const contestId = req.params.id;
 
-    // Get contest details
     const contest = await db('contests').where('id', contestId).first();
     if (!contest) {
       return res.notFound('Contest not found');
     }
 
-    // Calculate time statistics
     const startTime = new Date(contest.start_time);
     const now = new Date();
     const durationMs = contest.duration * 60 * 1000;
@@ -616,7 +849,6 @@ router.get('/contests/:id/live-stats', verifyAdminToken, requireContestAccess, a
     const timeRemaining = Math.max(0, endTime.getTime() - now.getTime());
     const progressPercentage = Math.min(100, (timeElapsed / durationMs) * 100);
 
-    // Get live statistics
     const [teamsCount, submissionsCount, problemsSolved, totalSubmissions] = await Promise.all([
       db('teams').where('contest_id', contestId).count('* as count').first(),
       db('submissions').where('contest_id', contestId).count('* as count').first(),
@@ -624,7 +856,6 @@ router.get('/contests/:id/live-stats', verifyAdminToken, requireContestAccess, a
       db('submissions').where('contest_id', contestId).count('* as count').first()
     ]);
 
-    // Get team participation rate
     const activeTeams = await db('submissions')
       .where('contest_id', contestId)
       .countDistinct('team_id as count')
@@ -634,7 +865,6 @@ router.get('/contests/:id/live-stats', verifyAdminToken, requireContestAccess, a
       ? ((parseInt(activeTeams.count) || 0) / parseInt(teamsCount.count)) * 100 
       : 0;
 
-    // Get average solve time
     const avgSolveTime = await db('submissions')
       .where('contest_id', contestId)
       .where('verdict', 'AC')
@@ -663,8 +893,19 @@ router.get('/contests/:id/live-stats', verifyAdminToken, requireContestAccess, a
 });
 
 /**
- * GET /api/admin/contests/:id/progress
  * Get contest progress and timing information
+ * @route GET /api/admin/contests/:id/progress
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Contest ID
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with contest progress and timing details
+ * @requires verifyAdminToken - Admin authentication required
+ * @requires requireContestAccess - Contest access permission required
+ * @throws {UnauthorizedError} 401 - Not authenticated or no contest access
+ * @throws {NotFoundError} 404 - Contest not found
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/contests/:id/progress', verifyAdminToken, requireContestAccess, async (req, res, next) => {
   try {
@@ -682,7 +923,6 @@ router.get('/contests/:id/progress', verifyAdminToken, requireContestAccess, asy
     const endTime = new Date(startTime.getTime() + durationMs);
     const freezeTime = contest.freeze_time ? new Date(endTime.getTime() - (contest.freeze_time * 60 * 1000)) : null;
 
-    // Determine current status
     let status = 'not_started';
     if (now >= startTime && now < endTime) {
       status = freezeTime && now >= freezeTime ? 'frozen' : 'running';
@@ -709,13 +949,20 @@ router.get('/contests/:id/progress', verifyAdminToken, requireContestAccess, asy
   }
 });
 
-// =============================================================================
-// TEAM REGISTRATION ENDPOINTS
-// =============================================================================
-
 /**
- * GET /api/admin/teams/registrations
  * Get team registration data with filtering
+ * @route GET /api/admin/teams/registrations
+ * @param {Object} req - Express request object
+ * @param {Object} req.query - Query parameters
+ * @param {string} [req.query.status] - Filter by team status
+ * @param {string} [req.query.contest_id] - Filter by contest ID
+ * @param {number} [req.query.limit=50] - Maximum number of results
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with team registration data
+ * @requires verifyAdminToken - Admin authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/teams/registrations', verifyAdminToken, async (req, res, next) => {
   try {
@@ -742,7 +989,6 @@ router.get('/teams/registrations', verifyAdminToken, async (req, res, next) => {
 
     const registrations = await query;
 
-    // Get last activity for each team (last submission)
     const teamsWithActivity = await Promise.all(
       registrations.map(async (team) => {
         const lastSubmission = await db('submissions')
@@ -771,8 +1017,15 @@ router.get('/teams/registrations', verifyAdminToken, async (req, res, next) => {
 });
 
 /**
- * GET /api/admin/teams/stats
  * Get team registration statistics
+ * @route GET /api/admin/teams/stats
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with team registration statistics
+ * @requires verifyAdminToken - Admin authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/teams/stats', verifyAdminToken, async (req, res, next) => {
   try {
@@ -787,7 +1040,7 @@ router.get('/teams/stats', verifyAdminToken, async (req, res, next) => {
         .count('* as count')
         .first(),
       db('submissions')
-        .where('submitted_at', '>', new Date(Date.now() - 30 * 60 * 1000).toISOString()) // Last 30 minutes
+        .where('submitted_at', '>', new Date(Date.now() - 30 * 60 * 1000).toISOString())
         .countDistinct('team_id as count')
         .first()
     ]);
@@ -807,8 +1060,20 @@ router.get('/teams/stats', verifyAdminToken, async (req, res, next) => {
 });
 
 /**
- * POST /api/admin/teams/:id/approve
  * Approve team registration
+ * @route POST /api/admin/teams/:id/approve
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Team ID
+ * @param {Object} req.admin - Admin object from authentication middleware
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with approved team details
+ * @requires verifyAdminToken - Admin authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {NotFoundError} 404 - Team not found
+ * @throws {ConflictError} 409 - Team already approved or invalid status
+ * @throws {InternalServerError} 500 - Server error
  */
 router.post('/teams/:id/approve', verifyAdminToken, async (req, res, next) => {
   try {
@@ -836,8 +1101,22 @@ router.post('/teams/:id/approve', verifyAdminToken, async (req, res, next) => {
 });
 
 /**
- * POST /api/admin/teams/:id/reject
  * Reject team registration
+ * @route POST /api/admin/teams/:id/reject
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Team ID
+ * @param {Object} req.body - Request body
+ * @param {string} [req.body.reason] - Rejection reason
+ * @param {Object} req.admin - Admin object from authentication middleware
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with rejected team details
+ * @requires verifyAdminToken - Admin authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {NotFoundError} 404 - Team not found
+ * @throws {ConflictError} 409 - Team already processed or invalid status
+ * @throws {InternalServerError} 500 - Server error
  */
 router.post('/teams/:id/reject', verifyAdminToken, async (req, res, next) => {
   try {
@@ -866,13 +1145,21 @@ router.post('/teams/:id/reject', verifyAdminToken, async (req, res, next) => {
   }
 });
 
-// =============================================================================
-// SUBMISSION ENDPOINTS
-// =============================================================================
-
 /**
- * GET /api/admin/submissions/live
  * Get live submission feed
+ * @route GET /api/admin/submissions/live
+ * @param {Object} req - Express request object
+ * @param {Object} req.query - Query parameters
+ * @param {string} [req.query.contest_id] - Filter by contest ID
+ * @param {string} [req.query.language] - Filter by programming language
+ * @param {string} [req.query.status] - Filter by submission status/verdict
+ * @param {number} [req.query.limit=50] - Maximum number of results
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with live submissions data
+ * @requires verifyAdminToken - Admin authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/submissions/live', verifyAdminToken, async (req, res, next) => {
   try {
@@ -929,8 +1216,17 @@ router.get('/submissions/live', verifyAdminToken, async (req, res, next) => {
 });
 
 /**
- * GET /api/admin/submissions/stats
  * Get submission statistics
+ * @route GET /api/admin/submissions/stats
+ * @param {Object} req - Express request object
+ * @param {Object} req.query - Query parameters
+ * @param {string} [req.query.contest_id] - Filter by contest ID
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with submission statistics
+ * @requires verifyAdminToken - Admin authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/submissions/stats', verifyAdminToken, async (req, res, next) => {
   try {
@@ -942,7 +1238,6 @@ router.get('/submissions/stats', verifyAdminToken, async (req, res, next) => {
       baseQuery = baseQuery.where('contest_id', contest_id);
     }
 
-    // Get submissions per minute (last hour)
     const submissionsLastHour = await baseQuery.clone()
       .where('submitted_at', '>', new Date(Date.now() - 60 * 60 * 1000).toISOString())
       .count('* as count')
@@ -950,19 +1245,16 @@ router.get('/submissions/stats', verifyAdminToken, async (req, res, next) => {
 
     const submissionsPerMinute = (parseInt(submissionsLastHour.count) || 0) / 60;
 
-    // Get total submissions today
     const submissionsToday = await baseQuery.clone()
       .where('submitted_at', '>', new Date().toISOString().split('T')[0] + 'T00:00:00.000Z')
       .count('* as count')
       .first();
 
-    // Get pending count
     const pendingCount = await baseQuery.clone()
       .where('verdict', 'PE')
       .count('* as count')
       .first();
 
-    // Get average judging time
     const avgJudgingTime = await baseQuery.clone()
       .whereNotNull('judged_at')
       .where('submitted_at', '>', new Date(Date.now() - 60 * 60 * 1000).toISOString())
@@ -983,8 +1275,17 @@ router.get('/submissions/stats', verifyAdminToken, async (req, res, next) => {
 });
 
 /**
- * GET /api/admin/submissions/analytics
  * Get submission analytics (language usage, verdict distribution)
+ * @route GET /api/admin/submissions/analytics
+ * @param {Object} req - Express request object
+ * @param {Object} req.query - Query parameters
+ * @param {string} [req.query.contest_id] - Filter by contest ID
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with submission analytics data
+ * @requires verifyAdminToken - Admin authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/submissions/analytics', verifyAdminToken, async (req, res, next) => {
   try {
@@ -996,7 +1297,6 @@ router.get('/submissions/analytics', verifyAdminToken, async (req, res, next) =>
       baseQuery = baseQuery.where('contest_id', contest_id);
     }
 
-    // Get language usage
     const languageUsage = await baseQuery.clone()
       .select('language')
       .count('* as count')
@@ -1010,7 +1310,6 @@ router.get('/submissions/analytics', verifyAdminToken, async (req, res, next) =>
       languageStats[lang.language] = Math.round((parseInt(lang.count) / totalSubmissions) * 100);
     });
 
-    // Get verdict distribution
     const verdictDistribution = await baseQuery.clone()
       .select('verdict')
       .count('* as count')
@@ -1037,20 +1336,22 @@ router.get('/submissions/analytics', verifyAdminToken, async (req, res, next) =>
   }
 });
 
-// =============================================================================
-// SYSTEM MONITORING ENDPOINTS
-// =============================================================================
-
 /**
- * GET /api/admin/system/status
  * Get complete system status
+ * @route GET /api/admin/system/status
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with comprehensive system status
+ * @requires verifyAdminToken - Admin authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/system/status', verifyAdminToken, async (req, res, next) => {
   try {
     const { db } = require('../utils/db');
     const os = require('os');
 
-    // Database status
     let dbStatus = 'connected';
     let dbResponseTime = 0;
     try {
@@ -1062,10 +1363,8 @@ router.get('/system/status', verifyAdminToken, async (req, res, next) => {
       dbStatus = 'disconnected';
     }
 
-    // Get database connection info
     const dbConnections = await db.raw('SELECT count(*) as count FROM pg_stat_activity').catch(() => ({ rows: [{ count: 0 }] }));
 
-    // Judge queue status
     const [pending, processing] = await Promise.all([
       db('submissions').where('verdict', 'PE').count('* as count').first(),
       db('submissions').where('verdict', 'RU').count('* as count').first()
@@ -1075,7 +1374,7 @@ router.get('/system/status', verifyAdminToken, async (req, res, next) => {
       judge_queue: {
         pending: parseInt(pending.count) || 0,
         processing: parseInt(processing.count) || 0,
-        workers_active: 5, // Mock - enhance with real worker monitoring
+        workers_active: 5,
         avg_processing_time: 1.8
       },
       database: {
@@ -1086,13 +1385,13 @@ router.get('/system/status', verifyAdminToken, async (req, res, next) => {
       server: {
         cpu_usage: Math.round((os.loadavg()[0] / os.cpus().length) * 100),
         memory_usage: Math.round(((os.totalmem() - os.freemem()) / os.totalmem()) * 100),
-        disk_usage: 42, // Mock - enhance with real disk monitoring
+        disk_usage: 42,
         uptime: Math.floor(os.uptime())
       },
       contests_scheduler: {
         status: 'running',
         last_check: new Date().toISOString(),
-        scheduled_tasks: 3 // Mock - enhance with real scheduler monitoring
+        scheduled_tasks: 3
       }
     };
 
@@ -1103,8 +1402,15 @@ router.get('/system/status', verifyAdminToken, async (req, res, next) => {
 });
 
 /**
- * GET /api/admin/system/metrics
  * Get detailed system metrics
+ * @route GET /api/admin/system/metrics
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with detailed system metrics
+ * @requires verifyAdminToken - Admin authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/system/metrics', verifyAdminToken, async (req, res, next) => {
   try {
@@ -1123,18 +1429,18 @@ router.get('/system/metrics', verifyAdminToken, async (req, res, next) => {
         usage_percent: Math.round(((os.totalmem() - os.freemem()) / os.totalmem()) * 100)
       },
       disk: {
-        total_gb: 500, // Mock - enhance with real disk monitoring
+        total_gb: 500,
         used_gb: 210,
         free_gb: 290,
         usage_percent: 42
       },
       network: {
-        bytes_sent: 1024000000, // Mock - enhance with real network monitoring
+        bytes_sent: 1024000000,
         bytes_received: 2048000000,
         connections_active: 45
       },
       processes: {
-        total: 156, // Mock
+        total: 156,
         running: 3,
         sleeping: 153
       },
@@ -1148,14 +1454,24 @@ router.get('/system/metrics', verifyAdminToken, async (req, res, next) => {
 });
 
 /**
- * GET /api/admin/system/logs
- * Get system logs
+ * Get system logs with filtering
+ * @route GET /api/admin/system/logs
+ * @param {Object} req - Express request object
+ * @param {Object} req.query - Query parameters
+ * @param {string} [req.query.level=all] - Filter by log level (info, warning, error, all)
+ * @param {number} [req.query.limit=100] - Maximum number of log entries
+ * @param {string} [req.query.service] - Filter by service name
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with system logs
+ * @requires verifyAdminToken - Admin authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/system/logs', verifyAdminToken, async (req, res, next) => {
   try {
     const { level = 'all', limit = 100, service } = req.query;
 
-    // Mock system logs - in real implementation, this would read from log files or logging service
     const mockLogs = [
       {
         id: 1,
@@ -1163,7 +1479,7 @@ router.get('/system/logs', verifyAdminToken, async (req, res, next) => {
         level: 'info',
         service: 'contest-scheduler',
         message: 'Contest auto-started successfully',
-        details: { contest_id: 1, contest_name: 'Hackathon Practice Round' }
+        details: { contest_id: 1, contest_name: 'Programming Contest Practice Round' }
       },
       {
         id: 2,
@@ -1196,71 +1512,6 @@ router.get('/system/logs', verifyAdminToken, async (req, res, next) => {
     filteredLogs = filteredLogs.slice(0, parseInt(limit));
 
     res.success(filteredLogs, 'System logs retrieved successfully');
-  } catch (error) {
-    next(error);
-  }
-});
-
-// =============================================================================
-// PROJECT SUBMISSION ENDPOINTS
-// =============================================================================
-
-/**
- * GET /api/admin/contests/:id/projects
- * Get all project submissions for a contest
- */
-router.get('/contests/:id/projects', verifyAdminToken, requireContestAccess, async (req, res, next) => {
-  try {
-    const { db } = require('../utils/db');
-    const contestId = parseInt(req.params.id);
-
-    const projects = await db('project_submissions as ps')
-      .join('teams as t', 'ps.team_id', 't.id')
-      .where('ps.contest_id', contestId)
-      .select(
-        'ps.*',
-        't.team_name'
-      )
-      .orderBy('ps.submitted_at', 'desc');
-
-    res.success(projects, 'Project submissions retrieved successfully');
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * GET /api/admin/projects/:id/download
- * Download a project submission file
- */
-router.get('/projects/:id/download', verifyAdminToken, async (req, res, next) => {
-  try {
-    const { db } = require('../utils/db');
-    const fs = require('fs');
-    const path = require('path');
-    const submissionId = parseInt(req.params.id);
-
-    const submission = await db('project_submissions').where('id', submissionId).first();
-    
-    if (!submission) {
-      return res.notFound('Project submission not found');
-    }
-
-    const filePath = path.resolve(submission.file_path);
-    
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      return res.notFound('Project file not found on disk');
-    }
-
-    // Set appropriate headers for file download
-    res.setHeader('Content-Disposition', `attachment; filename="${submission.original_filename}"`);
-    res.setHeader('Content-Type', submission.mime_type || 'application/zip');
-    
-    // Stream the file
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
-    
   } catch (error) {
     next(error);
   }

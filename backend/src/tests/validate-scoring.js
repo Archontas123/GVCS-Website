@@ -1,5 +1,5 @@
 /**
- * Simple validation script for Hackathon Scoring
+ * Simple validation script for Programming Contest Scoring
  */
 
 const scoringService = require('../services/scoringService');
@@ -7,7 +7,7 @@ const { db } = require('../utils/db');
 
 async function validateScoring() {
   try {
-    console.log('🧪 Testing Hackathon Scoring System...');
+    console.log('🧪 Testing Programming Contest Scoring System...');
     
     // Test with test database
     process.env.NODE_ENV = 'test';
@@ -17,7 +17,7 @@ async function validateScoring() {
     const result = await scoringService.calculateTeamScore(999, 999);
     console.log('✅ Non-existent team result:', result);
     
-    console.log('✅ Hackathon Scoring system basic validation passed!');
+    console.log('✅ Programming Contest Scoring system basic validation passed!');
     await db.destroy();
     process.exit(0);
     

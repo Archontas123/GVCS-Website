@@ -1,8 +1,3 @@
-/**
- * CS Club Hackathon Platform - Security Audit Service
- * Phase 6.4: Comprehensive security testing and validation
- */
-
 const { db } = require('../utils/db');
 const logger = require('../utils/logger');
 const crypto = require('crypto');

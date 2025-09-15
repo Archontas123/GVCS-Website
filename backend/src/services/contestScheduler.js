@@ -1,15 +1,9 @@
-/**
- * Contest Scheduler Service - Phase 2.4
- * Handles automated contest timing: auto-start, auto-freeze, auto-end
- */
-
 const cron = require('node-cron');
 const { db } = require('../utils/db');
 const Contest = require('../controllers/contestController');
 const notificationService = require('./notificationService');
 const winston = require('winston');
 
-// Set up logger
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
@@ -22,7 +16,14 @@ const logger = winston.createLogger({
   ]
 });
 
+/**
+ * Contest Scheduler Service for automated contest lifecycle management
+ * Manages contest timing, notifications, and graceful shutdown procedures
+ */
 class ContestScheduler {
+  /**
+   * Initialize contest scheduler with empty task tracking
+   */
   constructor() {
     this.scheduledTasks = new Map();
     this.isRunning = false;
@@ -30,6 +31,7 @@ class ContestScheduler {
 
   /**
    * Start the contest scheduler
+   * @returns {void}
    */
   start() {
     if (this.isRunning) {
@@ -39,7 +41,6 @@ class ContestScheduler {
 
     logger.info('Starting contest scheduler...');
 
-    // Check every minute for contests that need status updates
     this.mainTask = cron.schedule('* * * * *', async () => {
       try {
         await this.checkAndUpdateContests();
@@ -57,6 +58,7 @@ class ContestScheduler {
 
   /**
    * Stop the contest scheduler
+   * @returns {void}
    */
   stop() {
     if (!this.isRunning) {
@@ -70,7 +72,6 @@ class ContestScheduler {
       this.mainTask.stop();
     }
 
-    // Clear all scheduled tasks
     this.scheduledTasks.forEach(task => task.stop());
     this.scheduledTasks.clear();
 
@@ -80,16 +81,17 @@ class ContestScheduler {
 
   /**
    * Check all contests and update their status if needed
+   * @returns {Promise<void>}
+   * @throws {Error} When database query fails or contest processing fails
    */
   async checkAndUpdateContests() {
     try {
       const now = new Date();
       
-      // Get all active contests that might need status updates
       const contests = await db('contests')
         .select('*')
         .where('is_active', true)
-        .where('start_time', '<=', new Date(now.getTime() + 5 * 60 * 1000)) // Starting in next 5 minutes or already started
+        .where('start_time', '<=', new Date(now.getTime() + 5 * 60 * 1000))
         .orderBy('start_time');
 
       for (const contest of contests) {
@@ -103,6 +105,11 @@ class ContestScheduler {
 
   /**
    * Process timing for a single contest
+   * @param {Object} contest - Contest data object
+   * @param {Date} [now=new Date()] - Current timestamp for comparison
+   * @returns {Promise<void>}
+   * @throws {Error} When contest processing fails
+   * @private
    */
   async processContestTiming(contest, now = new Date()) {
     try {
@@ -111,15 +118,12 @@ class ContestScheduler {
       const endTime = new Date(startTime.getTime() + contest.duration * 60 * 1000);
       const freezeTime = new Date(endTime.getTime() - contest.freeze_time * 60 * 1000);
 
-      // Check if contest should start
       if (contestStatus.status === 'not_started' && now >= startTime) {
         await this.autoStartContest(contest);
       }
-      // Check if contest should be frozen
       else if (contestStatus.status === 'running' && !contest.is_frozen && now >= freezeTime) {
         await this.autoFreezeContest(contest);
       }
-      // Check if contest should end
       else if ((contestStatus.status === 'running' || contestStatus.status === 'frozen') && now >= endTime) {
         await this.autoEndContest(contest);
       }
@@ -132,27 +136,30 @@ class ContestScheduler {
 
   /**
    * Automatically start a contest
+   * @param {Object} contest - Contest data object
+   * @param {number} contest.id - Contest ID
+   * @param {string} contest.contest_name - Contest name
+   * @param {Date} contest.start_time - Contest start time
+   * @param {number} contest.duration - Contest duration in minutes
+   * @returns {Promise<void>}
+   * @throws {Error} When contest start validation or database update fails
+   * @private
    */
   async autoStartContest(contest) {
     try {
       logger.info(`Auto-starting contest: ${contest.contest_name} (ID: ${contest.id})`);
 
-      // Validate contest can be started
       const canStart = await this.validateContestCanStart(contest);
       if (!canStart.valid) {
         logger.warn(`Cannot auto-start contest ${contest.id}: ${canStart.reason}`);
         return;
       }
 
-      // Update contest status (no explicit status field, but contest is considered started when current time >= start_time)
       await db('contests')
         .where('id', contest.id)
         .update({
-          // Contest is considered started when current time >= start_time
-          // No explicit status update needed as getContestStatus handles this
         });
 
-      // Notify all teams via WebSocket
       await notificationService.broadcastToContest(contest.id, {
         type: 'contest_started',
         message: `Contest "${contest.contest_name}" has started!`,
@@ -175,12 +182,17 @@ class ContestScheduler {
 
   /**
    * Automatically freeze contest leaderboard
+   * @param {Object} contest - Contest data object
+   * @param {number} contest.id - Contest ID
+   * @param {string} contest.contest_name - Contest name
+   * @returns {Promise<void>}
+   * @throws {Error} When freeze operation fails
+   * @private
    */
   async autoFreezeContest(contest) {
     try {
       logger.info(`Auto-freezing contest: ${contest.contest_name} (ID: ${contest.id})`);
 
-      // Use freeze service for proper freeze handling
       const freezeService = require('./freezeService');
       await freezeService.freezeLeaderboard(contest.id);
 
@@ -194,12 +206,13 @@ class ContestScheduler {
 
   /**
    * Check and trigger auto-freeze for all eligible contests - Phase 3.4
+   * @returns {Promise<void>}
+   * @throws {Error} When auto-freeze check fails
    */
   async checkAutoFreeze() {
     try {
       const now = new Date();
       
-      // Get all running contests that might need to be frozen
       const contests = await db('contests')
         .select('*')
         .where('is_active', true)
@@ -222,27 +235,29 @@ class ContestScheduler {
 
   /**
    * Automatically end a contest with graceful shutdown - Phase 2.4
+   * @param {Object} contest - Contest data object
+   * @param {number} contest.id - Contest ID
+   * @param {string} contest.contest_name - Contest name
+   * @returns {Promise<void>}
+   * @throws {Error} When contest end process fails
+   * @private
    */
   async autoEndContest(contest) {
     try {
       logger.info(`Auto-ending contest: ${contest.contest_name} (ID: ${contest.id})`);
 
       const now = new Date();
-      const endGraceTime = 30000; // 30 seconds grace period
+      const endGraceTime = 30000;
 
-      // Step 1: Stop accepting new submissions
       logger.info(`Stopping new submissions for contest ${contest.id}...`);
       await this.stopAcceptingSubmissions(contest.id);
 
-      // Step 2: Give grace period for pending submissions to complete
       logger.info(`Grace period: Waiting ${endGraceTime/1000} seconds for pending submissions in contest ${contest.id}...`);
       
-      // Check submission queue and wait for pending submissions
       const pendingSubmissions = await this.getPendingSubmissionsCount(contest.id);
       if (pendingSubmissions > 0) {
         logger.info(`Found ${pendingSubmissions} pending submissions. Waiting for completion...`);
         
-        // Wait up to grace period, checking every 5 seconds
         let waitTime = 0;
         while (waitTime < endGraceTime) {
           await new Promise(resolve => setTimeout(resolve, 5000));
@@ -260,27 +275,21 @@ class ContestScheduler {
         }
       }
 
-      // Step 3: Complete pending submissions (force completion if needed)
       await this.completePendingSubmissions(contest.id);
 
-      // Step 4: Update contest to ended status
       await db('contests')
         .where('id', contest.id)
         .update({
-          is_active: false, // Contest is now ended
+          is_active: false,
           ended_at: now
         });
 
-      // Step 5: Calculate final rankings
       await this.calculateFinalRankings(contest.id);
 
-      // Step 6: Generate final results and statistics
       await this.generateFinalResults(contest.id);
 
-      // Step 7: Archive contest data
       await this.archiveContestData(contest.id);
 
-      // Step 8: Notify all teams via WebSocket
       await notificationService.broadcastToContest(contest.id, {
         type: 'contest_ended',
         message: `Contest "${contest.contest_name}" has ended!`,
@@ -303,6 +312,10 @@ class ContestScheduler {
 
   /**
    * Validate that a contest can be started
+   * @param {Object} contest - Contest data object
+   * @param {number} contest.id - Contest ID
+   * @returns {Promise<Object>} Validation result with valid boolean and optional reason
+   * @private
    */
   async validateContestCanStart(contest) {
     try {
@@ -338,13 +351,15 @@ class ContestScheduler {
 
   /**
    * Calculate final rankings for ended contest
+   * @param {number} contestId - Contest ID
+   * @returns {Promise<void>}
+   * @throws {Error} When ranking calculation fails
+   * @private
    */
   async calculateFinalRankings(contestId) {
     try {
       logger.info(`Calculating final rankings for contest ${contestId}`);
       
-      // This will be implemented in Phase 3 (Hackathon Scoring System)
-      // For now, just log that final rankings need to be calculated
       logger.info(`Final rankings calculation for contest ${contestId} - to be implemented in Phase 3`);
 
     } catch (error) {
@@ -355,6 +370,10 @@ class ContestScheduler {
 
   /**
    * Stop accepting new submissions for a contest - Phase 2.4
+   * @param {number} contestId - Contest ID
+   * @returns {Promise<boolean>} True if successful
+   * @throws {Error} When operation fails
+   * @private
    */
   async stopAcceptingSubmissions(contestId) {
     try {
@@ -370,6 +389,9 @@ class ContestScheduler {
 
   /**
    * Get count of pending submissions for a contest - Phase 2.4
+   * @param {number} contestId - Contest ID
+   * @returns {Promise<number>} Number of pending submissions
+   * @private
    */
   async getPendingSubmissionsCount(contestId) {
     try {
@@ -389,6 +411,10 @@ class ContestScheduler {
 
   /**
    * Complete pending submissions (force completion if needed) - Phase 2.4
+   * @param {number} contestId - Contest ID
+   * @returns {Promise<number>} Number of submissions force-completed
+   * @throws {Error} When database update fails
+   * @private
    */
   async completePendingSubmissions(contestId) {
     try {
@@ -416,13 +442,15 @@ class ContestScheduler {
 
   /**
    * Generate final results and statistics - Phase 2.4
+   * @param {number} contestId - Contest ID
+   * @returns {Promise<void>}
+   * @throws {Error} When results generation fails
+   * @private
    */
   async generateFinalResults(contestId) {
     try {
       logger.info(`Generating final results for contest ${contestId}`);
       
-      // This will be fully implemented in Phase 3 (Hackathon Scoring System)
-      // For now, just log that final results are being generated
       const teamCount = await db('teams')
         .where('contest_code', (
           await db('contests').select('registration_code').where('id', contestId).first()
@@ -446,6 +474,10 @@ class ContestScheduler {
 
   /**
    * Archive contest data - Phase 2.4 Enhanced
+   * @param {number} contestId - Contest ID
+   * @returns {Promise<void>}
+   * @throws {Error} When archival process fails
+   * @private
    */
   async archiveContestData(contestId) {
     try {
@@ -458,11 +490,6 @@ class ContestScheduler {
           archived_at: new Date()
         });
 
-      // In a production environment, this might also:
-      // - Export contest data to files
-      // - Move large data to archive tables
-      // - Generate summary reports
-      // - Clean up temporary data
 
       logger.info(`Contest ${contestId} data archived successfully`);
 
@@ -474,6 +501,7 @@ class ContestScheduler {
 
   /**
    * Get scheduler status
+   * @returns {Object} Status object with isRunning, scheduledTasks count, and uptime
    */
   getStatus() {
     return {
@@ -485,6 +513,11 @@ class ContestScheduler {
 
   /**
    * Schedule a specific contest event (for manual scheduling)
+   * @param {number} contestId - Contest ID
+   * @param {string} eventType - Type of event to schedule
+   * @param {Date} dateTime - When to execute the event
+   * @param {Function} callback - Callback function to execute
+   * @returns {void}
    */
   scheduleContestEvent(contestId, eventType, dateTime, callback) {
     const cronExpression = this.dateToCron(dateTime);
@@ -492,7 +525,6 @@ class ContestScheduler {
     const task = cron.schedule(cronExpression, async () => {
       try {
         await callback();
-        // Remove task after execution
         this.scheduledTasks.delete(`${contestId}-${eventType}`);
       } catch (error) {
         logger.error(`Error in scheduled task ${contestId}-${eventType}:`, error);
@@ -509,6 +541,9 @@ class ContestScheduler {
 
   /**
    * Convert Date to cron expression (simplified)
+   * @param {Date} date - Date to convert to cron expression
+   * @returns {string} Cron expression string
+   * @private
    */
   dateToCron(date) {
     const d = new Date(date);

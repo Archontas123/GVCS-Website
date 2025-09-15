@@ -1,41 +1,10 @@
-/**
- * CS Club Hackathon Platform - Real-time Submissions Component
- * Phase 5.5: Live submission status updates with judging progress
- */
 
 import React, { useEffect, useState, useMemo } from 'react';
-import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Typography,
-  Chip,
-  LinearProgress,
-  IconButton,
-  Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Alert,
-  Card,
-  CardContent,
-  Badge,
-  useTheme,
-  Fade,
-  Collapse,
-  Divider,
-} from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
-import { useRealTimeData, useSubmissionTracking } from '../../hooks/useWebSocket';
+import { useRealTimeData } from '../../hooks/useWebSocket';
 import { SubmissionStatusUpdate } from '../../services/websocket';
 import { useAuth } from '../../hooks/useAuth';
+import '../../styles/theme.css';
 
 interface RealTimeSubmissionsProps {
   contestId?: number;
@@ -66,124 +35,140 @@ const RealTimeSubmissions: React.FC<RealTimeSubmissionsProps> = ({
   autoScroll = true,
   showFilters = false,
 }) => {
-  const theme = useTheme();
   const { team } = useAuth();
   const { submissionUpdates, isConnected } = useRealTimeData(contestId);
   
-  const [submissions, setSubmissions] = useState<SubmissionDisplay[]>([]);
   const [selectedSubmission, setSelectedSubmission] = useState<SubmissionDisplay | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterLanguage, setFilterLanguage] = useState<string>('all');
   const [showFiltersExpanded, setShowFiltersExpanded] = useState(false);
-  const [judgingSubmissions, setJudgingSubmissions] = useState<Set<number>>(new Set());
+  const [teamNames, setTeamNames] = useState<Map<number, string>>(new Map());
+  const [problemInfo, setProblemInfo] = useState<Map<number, { letter: string; title?: string }>>(new Map());
+  const [submissionDetails, setSubmissionDetails] = useState<Map<number, { language: string; submissionTime: string }>>(new Map());
 
-  // Mock data for demo (in real implementation, this would come from WebSocket)
-  const mockSubmissions: SubmissionDisplay[] = [
-    {
-      submissionId: 1,
-      teamId: team?.id || 1,
-      problemId: 1,
-      status: 'judged',
-      verdict: 'Accepted',
-      executionTime: 45,
-      memoryUsed: 1024,
-      teamName: team?.teamName || 'Team Alpha',
-      problemLetter: 'A',
-      language: 'cpp',
-      submissionTime: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    },
-    {
-      submissionId: 2,
-      teamId: 2,
-      problemId: 2,
-      status: 'judging',
-      teamName: 'Team Beta',
-      problemLetter: 'B',
-      language: 'java',
-      submissionTime: new Date(Date.now() - 1 * 60 * 1000).toISOString(),
-    },
-    {
-      submissionId: 3,
-      teamId: 3,
-      problemId: 1,
-      status: 'judged',
-      verdict: 'Wrong Answer',
-      executionTime: 120,
-      memoryUsed: 2048,
-      teamName: 'Team Gamma',
-      problemLetter: 'A',
-      language: 'python',
-      submissionTime: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
-    },
-    {
-      submissionId: 4,
-      teamId: team?.id || 1,
-      problemId: 3,
-      status: 'pending',
-      teamName: team?.teamName || 'Team Alpha',
-      problemLetter: 'C',
-      language: 'cpp',
-      submissionTime: new Date(Date.now() - 30 * 1000).toISOString(),
-    },
-  ];
-
-  // Initialize with mock data
   useEffect(() => {
-    setSubmissions(mockSubmissions);
-  }, [team]);
-
-  // Simulate real-time updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSubmissions(prev => prev.map(sub => {
-        // Simulate judging progress
-        if (sub.status === 'pending') {
-          return { ...sub, status: 'judging' };
-        } else if (sub.status === 'judging' && Math.random() > 0.7) {
-          const verdicts = ['Accepted', 'Wrong Answer', 'Time Limit Exceeded', 'Runtime Error'];
-          const verdict = verdicts[Math.floor(Math.random() * verdicts.length)];
-          return {
-            ...sub,
-            status: 'judged',
-            verdict,
-            executionTime: Math.floor(Math.random() * 1000) + 10,
-            memoryUsed: Math.floor(Math.random() * 4000) + 512,
-          };
+    const fetchTeamInfo = async (teamId: number) => {
+      if (!teamNames.has(teamId)) {
+        try {
+          const response = await fetch(`/api/teams/${teamId}`);
+          if (response.ok) {
+            const teamData = await response.json();
+            setTeamNames(prev => new Map(prev.set(teamId, teamData.data?.teamName || `Team ${teamId}`)));
+          }
+        } catch (error) {
+          console.error('Failed to fetch team info:', error);
+          setTeamNames(prev => new Map(prev.set(teamId, `Team ${teamId}`)));
         }
-        return sub;
-      }));
-    }, 3000);
+      }
+    };
 
-    return () => clearInterval(interval);
-  }, []);
+    const fetchProblemInfo = async (problemId: number) => {
+      if (!problemInfo.has(problemId)) {
+        try {
+          const response = await fetch(`/api/problems/${problemId}`);
+          if (response.ok) {
+            const problemData = await response.json();
+            setProblemInfo(prev => new Map(prev.set(problemId, {
+              letter: problemData.data?.problemLetter || String.fromCharCode(65 + (problemId - 1)),
+              title: problemData.data?.title
+            })));
+          }
+        } catch (error) {
+          console.error('Failed to fetch problem info:', error);
+          setProblemInfo(prev => new Map(prev.set(problemId, {
+            letter: String.fromCharCode(65 + (problemId - 1))
+          })));
+        }
+      }
+    };
 
-  // Track submissions that are being judged
-  useEffect(() => {
-    const judging = new Set(
-      submissions
+    const fetchSubmissionDetails = async (submissionId: number, teamId: number) => {
+      if (!submissionDetails.has(submissionId)) {
+        const canFetchDetails = showAllTeams || !team || teamId === team.id;
+        
+        if (canFetchDetails && team?.sessionToken) {
+          try {
+            const response = await fetch(`/api/submissions/${submissionId}/status`, {
+              headers: {
+                'Authorization': `Bearer ${team.sessionToken}`,
+              }
+            });
+            if (response.ok) {
+              const submissionData = await response.json();
+              if (submissionData.success && submissionData.data) {
+                setSubmissionDetails(prev => new Map(prev.set(submissionId, {
+                  language: submissionData.data.language,
+                  submissionTime: submissionData.data.submissionTime
+                })));
+                return;
+              }
+            }
+          } catch (error) {
+            console.error('Failed to fetch submission details:', error);
+          }
+        }
+        
+        setSubmissionDetails(prev => new Map(prev.set(submissionId, {
+          language: getDefaultLanguage(),
+          submissionTime: new Date().toISOString()
+        })));
+      }
+    };
+
+    const getDefaultLanguage = () => {
+      const languages = Array.from(submissionDetails.values()).map(d => d.language);
+      const languageCount = languages.reduce((acc, lang) => {
+        acc[lang] = (acc[lang] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const mostCommon = Object.entries(languageCount).sort((a, b) => b[1] - a[1])[0];
+      return mostCommon ? mostCommon[0] : 'cpp';
+    };
+
+    submissionUpdates.forEach(submission => {
+      fetchTeamInfo(submission.teamId);
+      fetchProblemInfo(submission.problemId);
+      fetchSubmissionDetails(submission.submissionId, submission.teamId);
+    });
+  }, [submissionUpdates, teamNames, problemInfo, submissionDetails, team?.sessionToken, showAllTeams]);
+
+
+  const enrichedSubmissions = useMemo((): SubmissionDisplay[] => {
+    return submissionUpdates.map(submission => {
+      const details = submissionDetails.get(submission.submissionId);
+      return {
+        ...submission,
+        teamName: teamNames.get(submission.teamId) || `Team ${submission.teamId}`,
+        problemLetter: problemInfo.get(submission.problemId)?.letter || String.fromCharCode(65 + (submission.problemId - 1)),
+        language: details?.language || 'unknown',
+        submissionTime: details?.submissionTime || new Date().toISOString(),
+      };
+    });
+  }, [submissionUpdates, teamNames, problemInfo, submissionDetails]);
+
+  const judgingSubmissions = useMemo(() => {
+    return new Set(
+      enrichedSubmissions
         .filter(sub => sub.status === 'judging' || sub.status === 'pending')
         .map(sub => sub.submissionId)
     );
-    setJudgingSubmissions(judging);
-  }, [submissions]);
+  }, [enrichedSubmissions]);
 
-  // Filter submissions
+
   const filteredSubmissions = useMemo(() => {
-    let filtered = submissions;
+    let filtered = enrichedSubmissions;
 
-    // Filter by team if specified
     if (teamId) {
       filtered = filtered.filter(sub => sub.teamId === teamId);
     } else if (!showAllTeams && team) {
       filtered = filtered.filter(sub => sub.teamId === team.id);
     }
 
-    // Filter by problem if specified
     if (problemId) {
       filtered = filtered.filter(sub => sub.problemId === problemId);
     }
 
-    // Filter by status
     if (filterStatus !== 'all') {
       if (filterStatus === 'judging') {
         filtered = filtered.filter(sub => sub.status === 'judging' || sub.status === 'pending');
@@ -192,196 +177,211 @@ const RealTimeSubmissions: React.FC<RealTimeSubmissionsProps> = ({
       }
     }
 
-    // Filter by language
     if (filterLanguage !== 'all') {
       filtered = filtered.filter(sub => sub.language === filterLanguage);
     }
 
-    // Sort by submission time (newest first)
     filtered.sort((a, b) => {
       const timeA = new Date(a.submissionTime || 0).getTime();
       const timeB = new Date(b.submissionTime || 0).getTime();
       return timeB - timeA;
     });
 
-    // Limit number of submissions
     return filtered.slice(0, maxSubmissions);
-  }, [submissions, teamId, showAllTeams, team, problemId, filterStatus, filterLanguage, maxSubmissions]);
+  }, [enrichedSubmissions, teamId, showAllTeams, team, problemId, filterStatus, filterLanguage, maxSubmissions]);
 
-  // Get verdict display info
   const getVerdictInfo = (submission: SubmissionDisplay) => {
     if (submission.status === 'pending') {
       return {
-        icon: '🕰',
-        color: theme.palette.grey[500],
+        icon: 'PENDING',
+        color: '#6b7280',
         text: 'Pending',
-        bgColor: theme.palette.grey[100],
+        bgColor: '#f3f4f6',
       };
     } else if (submission.status === 'judging') {
       return {
-        icon: '▶',
-        color: theme.palette.info.main,
+        icon: 'JUDGING',
+        color: '#1d4ed8',
         text: 'Judging...',
-        bgColor: theme.palette.info.light + '20',
+        bgColor: '#dbeafe',
       };
     } else {
       switch (submission.verdict) {
         case 'Accepted':
           return {
-            icon: '✓',
-            color: theme.palette.success.main,
+            icon: 'AC',
+            color: '#16a34a',
             text: 'Accepted',
-            bgColor: theme.palette.success.light + '20',
+            bgColor: '#dcfce7',
           };
         case 'Wrong Answer':
           return {
-            icon: '×',
-            color: theme.palette.error.main,
+            icon: 'WA',
+            color: '#dc2626',
             text: 'Wrong Answer',
-            bgColor: theme.palette.error.light + '20',
+            bgColor: '#fef2f2',
           };
         case 'Time Limit Exceeded':
           return {
-            icon: '⏲',
-            color: theme.palette.warning.main,
+            icon: 'TLE',
+            color: '#d97706',
             text: 'Time Limit Exceeded',
-            bgColor: theme.palette.warning.light + '20',
+            bgColor: '#fef3c7',
           };
         case 'Memory Limit Exceeded':
           return {
-            icon: '💾',
-            color: theme.palette.warning.main,
+            icon: 'MLE',
+            color: '#d97706',
             text: 'Memory Limit Exceeded',
-            bgColor: theme.palette.warning.light + '20',
+            bgColor: '#fef3c7',
           };
         case 'Runtime Error':
           return {
-            icon: '!',
-            color: theme.palette.secondary.main,
+            icon: 'RTE',
+            color: '#7c2d12',
             text: 'Runtime Error',
-            bgColor: theme.palette.secondary.light + '20',
+            bgColor: '#fed7aa',
           };
         case 'Compilation Error':
           return {
-            icon: '</>',
-            color: theme.palette.info.main,
+            icon: 'CE',
+            color: '#1d4ed8',
             text: 'Compilation Error',
-            bgColor: theme.palette.info.light + '20',
+            bgColor: '#dbeafe',
           };
         default:
           return {
-            icon: '!',
-            color: theme.palette.grey[500],
+            icon: 'UNK',
+            color: '#6b7280',
             text: submission.verdict || 'Unknown',
-            bgColor: theme.palette.grey[100],
+            bgColor: '#f3f4f6',
           };
       }
     }
   };
 
-  // Get language display info
   const getLanguageInfo = (language?: string) => {
     switch (language) {
       case 'cpp':
-        return { name: 'C++', color: theme.palette.primary.main };
+        return { name: 'C++', color: '#1d4ed8' };
       case 'java':
-        return { name: 'Java', color: theme.palette.warning.main };
+        return { name: 'Java', color: '#d97706' };
       case 'python':
-        return { name: 'Python', color: theme.palette.success.main };
+        return { name: 'Python', color: '#16a34a' };
       default:
-        return { name: language?.toUpperCase() || 'Unknown', color: theme.palette.grey[500] };
+        return { name: language?.toUpperCase() || 'Unknown', color: '#6b7280' };
     }
   };
 
   if (!isConnected) {
     return (
-      <Alert severity="warning">
-        Real-time submission updates are not available. Please check your connection.
-      </Alert>
+      <div className="container">
+        <div className="alert alert-warning">
+          Real-time submission updates are not available. Please check your connection.
+        </div>
+        <div className="text-center p-4">
+          <div className="text-muted mb-3">
+            Attempting to connect to real-time updates...
+          </div>
+          <div className="spinner"></div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box>
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography>⏱</Typography>
-          Real-time Submissions
+    <div className="container">
+      <div className="flex justify-between align-center mb-3">
+        <div className="flex align-center">
+          <h3 style={{ margin: 0, marginRight: '12px' }}>
+            Real-time Submissions
+          </h3>
           {judgingSubmissions.size > 0 && (
-            <Badge badgeContent={judgingSubmissions.size} color="primary">
-              <Typography>▶</Typography>
-            </Badge>
+            <span 
+              className="chip chip-info" 
+              style={{ fontSize: '12px' }}
+            >
+              {judgingSubmissions.size} judging
+            </span>
           )}
-        </Typography>
+        </div>
 
         {showFilters && (
-          <IconButton onClick={() => setShowFiltersExpanded(!showFiltersExpanded)}>
-            {showFiltersExpanded ? '↑' : '↓'}
-          </IconButton>
+          <button 
+            className="btn btn-text"
+            onClick={() => setShowFiltersExpanded(!showFiltersExpanded)}
+          >
+            {showFiltersExpanded ? 'Hide Filters' : 'Show Filters'}
+          </button>
         )}
-      </Box>
+      </div>
 
-      {/* Filters */}
-      {showFilters && (
-        <Collapse in={showFiltersExpanded}>
-          <Card sx={{ mb: 2 }}>
-            <CardContent>
-              <Typography variant="subtitle2" gutterBottom>
-                Filters
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                <Chip
-                  label="All Status"
-                  variant={filterStatus === 'all' ? 'filled' : 'outlined'}
-                  onClick={() => setFilterStatus('all')}
-                  size="small"
-                />
-                <Chip
-                  label="Judging"
-                  variant={filterStatus === 'judging' ? 'filled' : 'outlined'}
-                  onClick={() => setFilterStatus('judging')}
-                  size="small"
-                />
-                <Chip
-                  label="Judged"
-                  variant={filterStatus === 'judged' ? 'filled' : 'outlined'}
-                  onClick={() => setFilterStatus('judged')}
-                  size="small"
-                />
-              </Box>
-            </CardContent>
-          </Card>
-        </Collapse>
+      {showFilters && showFiltersExpanded && (
+        <div className="card mb-3">
+          <div className="card-content">
+            <h5 style={{ marginBottom: '12px' }}>Filters</h5>
+            <div className="flex" style={{ gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                className={`btn ${filterStatus === 'all' ? 'btn-primary' : 'btn-outlined'}`}
+                style={{ padding: '6px 12px', fontSize: '12px' }}
+                onClick={() => setFilterStatus('all')}
+              >
+                All Status
+              </button>
+              <button
+                className={`btn ${filterStatus === 'judging' ? 'btn-primary' : 'btn-outlined'}`}
+                style={{ padding: '6px 12px', fontSize: '12px' }}
+                onClick={() => setFilterStatus('judging')}
+              >
+                Judging
+              </button>
+              <button
+                className={`btn ${filterStatus === 'judged' ? 'btn-primary' : 'btn-outlined'}`}
+                style={{ padding: '6px 12px', fontSize: '12px' }}
+                onClick={() => setFilterStatus('judged')}
+              >
+                Judged
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Submissions Table */}
-      <TableContainer component={Paper} elevation={2}>
-        <Table size="small">
-          <TableHead>
-            <TableRow sx={{ bgcolor: 'primary.main' }}>
-              <TableCell sx={{ color: 'white', fontWeight: 600 }}>Time</TableCell>
-              {showAllTeams && (
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Team</TableCell>
-              )}
-              <TableCell sx={{ color: 'white', fontWeight: 600 }}>Problem</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600 }}>Language</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600 }}>Status</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600 }}>Time</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600 }}>Memory</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600 }}>Actions</TableCell>
-            </TableRow>
-          </TableHead>
+      <div className="card mb-3">
+        <table className="table">
+          <thead style={{ backgroundColor: 'var(--primary-main)' }}>
+            <tr>
+              <th style={{ color: 'white' }}>Time</th>
+              {showAllTeams && <th style={{ color: 'white' }}>Team</th>}
+              <th style={{ color: 'white' }}>Problem</th>
+              <th style={{ color: 'white' }}>Language</th>
+              <th style={{ color: 'white' }}>Status</th>
+              <th style={{ color: 'white' }}>Time</th>
+              <th style={{ color: 'white' }}>Memory</th>
+              <th style={{ color: 'white' }}>Actions</th>
+            </tr>
+          </thead>
           
-          <TableBody>
+          <tbody>
             {filteredSubmissions.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={showAllTeams ? 8 : 7} align="center">
-                  <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
-                    No submissions found
-                  </Typography>
-                </TableCell>
-              </TableRow>
+              <tr>
+                <td colSpan={showAllTeams ? 8 : 7} className="text-center" style={{ padding: '48px 24px' }}>
+                  <div style={{ maxWidth: '400px', margin: '0 auto' }}>
+                    <h5 className="text-muted" style={{ marginBottom: '8px' }}>Waiting for submissions</h5>
+                    <p className="text-muted" style={{ margin: '0 0 16px 0', lineHeight: '1.5' }}>
+                      {submissionUpdates.length === 0 
+                        ? 'No submissions have been made yet. Start coding to see live updates here!'
+                        : 'No submissions match the current filters.'
+                      }
+                    </p>
+                    {contestId && (
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        Contest ID: {contestId} | Connected to real-time updates
+                      </div>
+                    )}
+                  </div>
+                </td>
+              </tr>
             ) : (
               filteredSubmissions.map((submission, index) => {
                 const verdictInfo = getVerdictInfo(submission);
@@ -389,210 +389,219 @@ const RealTimeSubmissions: React.FC<RealTimeSubmissionsProps> = ({
                 const isJudging = submission.status === 'judging' || submission.status === 'pending';
                 
                 return (
-                  <Fade key={submission.submissionId} in timeout={300 + index * 50}>
-                    <TableRow
-                      hover
-                      sx={{
-                        bgcolor: verdictInfo.bgColor,
-                        '&:hover': { bgcolor: theme.palette.action.hover },
-                      }}
-                    >
-                      {/* Submission Time */}
-                      <TableCell>
-                        <Typography variant="body2">
+                  <tr 
+                    key={submission.submissionId}
+                    style={{ backgroundColor: verdictInfo.bgColor }}
+                  >
+                      <td>
+                        <div className="text-muted" style={{ fontSize: '13px' }}>
                           {submission.submissionTime ? 
                             formatDistanceToNow(new Date(submission.submissionTime)) + ' ago' :
                             'Unknown'
                           }
-                        </Typography>
-                      </TableCell>
+                        </div>
+                      </td>
 
-                      {/* Team Name */}
                       {showAllTeams && (
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        <td>
+                          <div style={{ fontWeight: '500' }}>
                             {submission.teamName || `Team ${submission.teamId}`}
-                          </Typography>
-                        </TableCell>
+                          </div>
+                        </td>
                       )}
 
-                      {/* Problem */}
-                      <TableCell>
-                        <Chip
-                          label={submission.problemLetter || `P${submission.problemId}`}
-                          size="small"
-                          variant="outlined"
-                          sx={{ fontWeight: 600 }}
-                        />
-                      </TableCell>
+                      <td>
+                        <span 
+                          className="chip" 
+                          style={{ 
+                            backgroundColor: '#f5f5f5', 
+                            color: 'var(--text-primary)', 
+                            fontSize: '12px',
+                            fontWeight: '600'
+                          }}
+                        >
+                          {submission.problemLetter || `P${submission.problemId}`}
+                        </span>
+                      </td>
 
-                      {/* Language */}
-                      <TableCell>
-                        <Chip
-                          label={languageInfo.name}
-                          size="small"
-                          sx={{
-                            bgcolor: languageInfo.color + '20',
+                      <td>
+                        <span 
+                          className="chip"
+                          style={{
+                            backgroundColor: languageInfo.color + '20',
                             color: languageInfo.color,
                             border: `1px solid ${languageInfo.color}`,
                           }}
-                        />
-                      </TableCell>
+                        >
+                          {languageInfo.name}
+                        </span>
+                      </td>
 
-                      {/* Status/Verdict */}
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography sx={{ color: verdictInfo.color, fontSize: 16 }}>
+                      <td>
+                        <div className="flex align-center" style={{ gap: '8px' }}>
+                          <span 
+                            style={{ 
+                              color: verdictInfo.color, 
+                              fontSize: '12px', 
+                              fontWeight: 'bold'
+                            }}
+                          >
                             {verdictInfo.icon}
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{ color: verdictInfo.color, fontWeight: 500 }}
+                          </span>
+                          <span 
+                            style={{ 
+                              color: verdictInfo.color, 
+                              fontWeight: '500', 
+                              fontSize: '13px'
+                            }}
                           >
                             {verdictInfo.text}
-                          </Typography>
+                          </span>
                           {isJudging && (
-                            <LinearProgress sx={{ width: 30, ml: 1, height: 4 }} />
+                            <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }}></div>
                           )}
-                        </Box>
-                      </TableCell>
+                        </div>
+                      </td>
 
-                      {/* Execution Time */}
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                          {submission.executionTime ? `${submission.executionTime}ms` : '—'}
-                        </Typography>
-                      </TableCell>
+                      <td>
+                        <div className="text-muted" style={{ fontFamily: 'monospace', fontSize: '13px' }}>
+                          {submission.executionTime ? `${submission.executionTime}ms` : '-'}
+                        </div>
+                      </td>
 
-                      {/* Memory Used */}
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                          {submission.memoryUsed ? `${Math.round(submission.memoryUsed / 1024)}KB` : '—'}
-                        </Typography>
-                      </TableCell>
+                      <td>
+                        <div className="text-muted" style={{ fontFamily: 'monospace', fontSize: '13px' }}>
+                          {submission.memoryUsed ? `${Math.round(submission.memoryUsed / 1024)}KB` : '-'}
+                        </div>
+                      </td>
 
-                      {/* Actions */}
-                      <TableCell>
-                        <Tooltip title="View Details">
-                          <IconButton
-                            size="small"
-                            onClick={() => setSelectedSubmission(submission)}
-                          >
-                            👁
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  </Fade>
+                      <td>
+                        <button
+                          className="btn btn-text"
+                          style={{ padding: '4px 8px', fontSize: '12px' }}
+                          onClick={() => setSelectedSubmission(submission)}
+                          title="View Details"
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
                 );
               })
             )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </tbody>
+        </table>
+      </div>
 
-      {/* Submission Details Dialog */}
-      <Dialog
-        open={!!selectedSubmission}
-        onClose={() => setSelectedSubmission(null)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          Submission Details
-        </DialogTitle>
-        <DialogContent>
-          {selectedSubmission && (
-            <Box>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 3 }}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Submission ID
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                    #{selectedSubmission.submissionId}
-                  </Typography>
-                </Box>
+      {selectedSubmission && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+          }}
+          onClick={() => setSelectedSubmission(null)}
+        >
+          <div className="card" style={{ maxWidth: '600px', width: '100%' }} onClick={(e) => e.stopPropagation()}>
+            <div className="card-header flex justify-between align-center">
+              <h4>Submission Details</h4>
+              <button 
+                className="btn btn-text"
+                onClick={() => setSelectedSubmission(null)}
+              >
+                Close
+              </button>
+            </div>
+            <div className="card-content">
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '16px',
+                marginBottom: '24px',
+              }}>
+                <div>
+                  <div className="text-muted" style={{ fontSize: '12px', marginBottom: '4px' }}>Submission ID</div>
+                  <div style={{ fontWeight: '600' }}>#{selectedSubmission.submissionId}</div>
+                </div>
                 
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Problem
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                <div>
+                  <div className="text-muted" style={{ fontSize: '12px', marginBottom: '4px' }}>Problem</div>
+                  <div style={{ fontWeight: '600' }}>
                     {selectedSubmission.problemLetter || `Problem ${selectedSubmission.problemId}`}
-                  </Typography>
-                </Box>
+                  </div>
+                </div>
                 
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Language
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                <div>
+                  <div className="text-muted" style={{ fontSize: '12px', marginBottom: '4px' }}>Language</div>
+                  <div style={{ fontWeight: '600' }}>
                     {getLanguageInfo(selectedSubmission.language).name}
-                  </Typography>
-                </Box>
+                  </div>
+                </div>
                 
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Status
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                <div>
+                  <div className="text-muted" style={{ fontSize: '12px', marginBottom: '4px' }}>Status</div>
+                  <div style={{ fontWeight: '600' }}>
                     {getVerdictInfo(selectedSubmission).text}
-                  </Typography>
-                </Box>
+                  </div>
+                </div>
                 
                 {selectedSubmission.executionTime && (
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Execution Time
-                    </Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500, fontFamily: 'monospace' }}>
+                  <div>
+                    <div className="text-muted" style={{ fontSize: '12px', marginBottom: '4px' }}>Execution Time</div>
+                    <div style={{ fontWeight: '600', fontFamily: 'monospace' }}>
                       {selectedSubmission.executionTime}ms
-                    </Typography>
-                  </Box>
+                    </div>
+                  </div>
                 )}
                 
                 {selectedSubmission.memoryUsed && (
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Memory Used
-                    </Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500, fontFamily: 'monospace' }}>
+                  <div>
+                    <div className="text-muted" style={{ fontSize: '12px', marginBottom: '4px' }}>Memory Used</div>
+                    <div style={{ fontWeight: '600', fontFamily: 'monospace' }}>
                       {Math.round(selectedSubmission.memoryUsed / 1024)}KB
-                    </Typography>
-                  </Box>
+                    </div>
+                  </div>
                 )}
-              </Box>
+              </div>
 
               {selectedSubmission.submissionTime && (
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Submitted
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <div className="text-muted" style={{ fontSize: '12px', marginBottom: '4px' }}>Submitted</div>
+                  <div style={{ fontWeight: '600' }}>
                     {formatDistanceToNow(new Date(selectedSubmission.submissionTime))} ago
-                    <br />
-                    <Typography variant="caption" color="text.secondary">
+                    <div className="text-muted" style={{ fontSize: '12px', fontWeight: 'normal', marginTop: '4px' }}>
                       {new Date(selectedSubmission.submissionTime).toLocaleString()}
-                    </Typography>
-                  </Typography>
-                </Box>
+                    </div>
+                  </div>
+                </div>
               )}
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSelectedSubmission(null)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+            </div>
+            <div className="card-actions flex justify-end">
+              <button 
+                className="btn btn-primary"
+                onClick={() => setSelectedSubmission(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* Footer */}
-      <Box sx={{ textAlign: 'center', mt: 2 }}>
-        <Typography variant="caption" color="text.secondary">
-          Showing {filteredSubmissions.length} submissions • Updates in real-time
-        </Typography>
-      </Box>
-    </Box>
+      <div className="text-center mt-3">
+        <div className="text-muted" style={{ fontSize: '12px' }}>
+          Showing {filteredSubmissions.length} submissions | Updates in real-time
+        </div>
+      </div>
+    </div>
   );
 };
 

@@ -1,14 +1,13 @@
-/**
- * Response Formatting Utilities
- * Provides standardized response formatting for the API
- */
+
 
 /**
- * Format success response
- * @param {Object} data - Response data
- * @param {string} message - Success message
- * @param {Object} metadata - Additional metadata (pagination, etc.)
+ * Creates a standardized success response object.
+ * @param {*} [data=null] - The response data
+ * @param {string} [message='Success'] - Success message
+ * @param {Object} [metadata=null] - Additional metadata like pagination info
  * @returns {Object} Formatted success response
+ * @example
+ * const response = successResponse({ id: 1, name: 'Team' }, 'Team created');
  */
 function successResponse(data = null, message = 'Success', metadata = null) {
   const response = {
@@ -29,11 +28,13 @@ function successResponse(data = null, message = 'Success', metadata = null) {
 }
 
 /**
- * Format error response
- * @param {string} message - Error message
- * @param {Array} errors - Array of specific error messages
- * @param {string} type - Error type
+ * Creates a standardized error response object.
+ * @param {string} [message='An error occurred'] - Error message
+ * @param {Array} [errors=null] - Array of specific error details
+ * @param {string} [type='error'] - Error type classification
  * @returns {Object} Formatted error response
+ * @example
+ * const response = errorResponse('Validation failed', ['Name required'], 'validation');
  */
 function errorResponse(message = 'An error occurred', errors = null, type = 'error') {
   const response = {
@@ -50,14 +51,17 @@ function errorResponse(message = 'An error occurred', errors = null, type = 'err
   return response;
 }
 
+
 /**
- * Format paginated response
- * @param {Array} data - Array of items
+ * Creates a standardized paginated response with pagination metadata.
+ * @param {Array} data - Array of data items
  * @param {number} page - Current page number
  * @param {number} limit - Items per page
  * @param {number} total - Total number of items
- * @param {string} message - Success message
- * @returns {Object} Formatted paginated response
+ * @param {string} [message='Success'] - Success message
+ * @returns {Object} Formatted paginated response with metadata
+ * @example
+ * const response = paginatedResponse(teams, 1, 10, 25, 'Teams retrieved');
  */
 function paginatedResponse(data, page, limit, total, message = 'Success') {
   const totalPages = Math.ceil(total / limit);
@@ -79,7 +83,18 @@ function paginatedResponse(data, page, limit, total, message = 'Success') {
 }
 
 /**
- * Express middleware to add response helpers to res object
+ * Express middleware that adds response helper methods to the response object.
+ * Extends the Express response object with convenient methods for sending
+ * standardized success, error, and specialized responses.
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next function
+ * @example
+ * app.use(responseHelpers);
+ * 
+ * // In route handler:
+ * res.success({ message: 'Hello' });
+ * res.error('Something went wrong', 400);
  */
 function responseHelpers(req, res, next) {
   /**

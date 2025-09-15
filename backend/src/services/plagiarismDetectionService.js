@@ -1,8 +1,3 @@
-/**
- * CS Club Hackathon Platform - Plagiarism Detection Service
- * Phase 6.3: Code similarity analysis and plagiarism detection
- */
-
 const { db } = require('../utils/db');
 const logger = require('../utils/logger');
 const crypto = require('crypto');

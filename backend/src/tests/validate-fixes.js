@@ -64,11 +64,11 @@ try {
     const themePath = path.join(__dirname, 'client/src/utils/theme.ts');
     const themeContent = fs.readFileSync(themePath, 'utf8');
     
-    const hasHackathonColors = themeContent.includes('#1976d2') && // Hackathon Blue
-                         themeContent.includes('#2e7d32') && // Hackathon Green
+    const hasContestColors = themeContent.includes('#1976d2') && // Contest Blue
+                         themeContent.includes('#2e7d32') && // Contest Green
                          themeContent.includes('contest:');   // Contest palette
-    console.log(`  ${hasHackathonColors ? '✅' : '❌'} Hackathon theme colors configured`);
-    validationResults.frontendFixes.push({ check: 'Hackathon theme colors', passed: hasHackathonColors });
+    console.log(`  ${hasContestColors ? '✅' : '❌'} Programming contest theme colors configured`);
+    validationResults.frontendFixes.push({ check: 'Programming contest theme colors', passed: hasContestColors });
     
     const hasVerdictHelpers = themeContent.includes('getVerdictColor') && 
                              themeContent.includes('getVerdictIcon');

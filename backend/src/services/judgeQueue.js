@@ -1,14 +1,16 @@
-/**
- * CS Club Hackathon Platform - Judge Queue System
- * Phase 4.3: Redis-based submission queue with Bull Queue library
- */
-
 const Queue = require('bull');
 const redis = require('redis');
 const { testConnection, db } = require('../utils/db');
 const performanceStatsStorage = require('./performanceStatsStorage');
 
+/**
+ * Judge Queue Service for managing submission processing queues
+ * Uses Redis and Bull Queue for scalable submission handling and worker management
+ */
 class JudgeQueueService {
+  /**
+   * Initialize judge queue service with Redis connection and metrics tracking
+   */
   constructor() {
     this.redisClient = null;
     this.judgeQueue = null;

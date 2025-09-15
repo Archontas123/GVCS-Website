@@ -1,22 +1,28 @@
-/**
- * CS Club Hackathon Platform - Dashboard Service
- * Phase 6.3: Real-time analytics dashboards
- */
-
 const { db } = require('../utils/db');
 const logger = require('../utils/logger');
 const websocketService = require('./websocketService');
 const analyticsService = require('./analyticsService');
 
+/**
+ * Dashboard Service for real-time analytics and data visualization
+ * Manages dashboard configurations, widgets, and live data updates
+ */
 class DashboardService {
+  /**
+   * Initialize dashboard service with tracking maps and default settings
+   */
   constructor() {
     this.activeDashboards = new Map();
     this.updateIntervals = new Map();
-    this.defaultRefreshRate = 30000; // 30 seconds
+    this.defaultRefreshRate = 30000;
   }
 
   /**
    * Create or update dashboard configuration
+   * @param {Object} dashboardConfig - Dashboard configuration data
+   * @param {number} adminId - Admin user ID
+   * @returns {Promise<Object>} Created dashboard object
+   * @throws {Error} When creation fails
    */
   async createDashboard(dashboardConfig, adminId) {
     try {
@@ -55,7 +61,10 @@ class DashboardService {
   }
 
   /**
-   * Get dashboard configuration
+   * Get dashboard configuration with parsed JSON fields
+   * @param {number} dashboardId - Dashboard ID
+   * @returns {Promise<Object>} Dashboard configuration object
+   * @throws {Error} When dashboard not found
    */
   async getDashboard(dashboardId) {
     try {
@@ -80,6 +89,10 @@ class DashboardService {
 
   /**
    * Get dashboard data for real-time updates
+   * @param {number} dashboardId - Dashboard ID
+   * @param {number|null} contestId - Optional contest ID filter
+   * @returns {Promise<Object>} Dashboard data with widget results
+   * @throws {Error} When data retrieval fails
    */
   async getDashboardData(dashboardId, contestId = null) {
     try {

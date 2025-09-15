@@ -1,6 +1,19 @@
 /**
- * CS Club Hackathon Platform - Submission Management API  
- * Phase 4.3: Queue-integrated submission processing
+ * @module SubmissionRoutes
+ * @description Submission Management API for Programming Contest Platform
+ * 
+ * This module provides comprehensive submission processing and management:
+ * - Code submission with queue integration and validation
+ * - Real-time submission status tracking and monitoring
+ * - Team submission history with pagination and filtering
+ * - Queue position tracking for pending submissions
+ * - WebSocket integration for real-time status updates
+ * - Contest timing validation and freeze period handling
+ * - Multi-language support with execution limits
+ * - Fair prioritization based on team submission frequency
+ * 
+ * Integrates with judge queue service for scalable submission processing
+ * and provides both team-facing and administrative monitoring capabilities.
  */
 
 const express = require('express');
@@ -10,16 +23,83 @@ const { authenticateTeam } = require('../middleware/auth');
 const { testConnection, db } = require('../utils/db');
 const judgeQueueService = require('../services/judgeQueue');
 
-// Validation schemas
+/**
+ * @description Joi validation schemas for request validation
+ */
+/**
+ * @description Joi schema for submission validation
+ * @type {Object}
+ */
 const submissionSchema = Joi.object({
+    /** Problem ID must be positive integer */
     problemId: Joi.number().integer().positive().required(),
+    /** Language must be one of supported languages */
     language: Joi.string().valid('cpp', 'java', 'python').required(),
+    /** Code must be non-empty string with 50KB limit */
     code: Joi.string().min(1).max(50000).required()
 });
 
 /**
+ * @route POST /api/submissions/submit
+ * @description Submit code for judging through the queue system
+ * 
+ * Processes code submission including validation, contest timing checks,
+ * database storage, and queue integration. Implements fair prioritization
+ * based on team submission frequency and provides job tracking.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body with submission data
+ * @param {number} req.body.problemId - Problem ID to submit solution for
+ * @param {string} req.body.language - Programming language (cpp|java|python)
+ * @param {string} req.body.code - Source code implementation (max 50KB)
+ * @param {Object} req.team - Authenticated team data from middleware
+ * @param {number} req.team.id - Team identifier
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @returns {Object} Response object with submission confirmation
+ * @returns {boolean} returns.success - Operation success status
+ * @returns {Object} returns.data - Submission data
+ * @returns {number} returns.data.submissionId - Created submission identifier
+ * @returns {string} returns.data.jobId - Queue job identifier
+ * @returns {string} returns.data.status - Initial status ('queued')
+ * @returns {number} returns.data.priority - Queue priority level
+ * @returns {string} returns.data.estimatedWaitTime - Estimated processing wait time
+ * 
+ * @throws {400} Invalid input data or contest timing violations
+ * @throws {404} Problem not found
+ * @throws {500} Database or queue service errors
+ * 
+ * @requires Team authentication via authenticateTeam middleware
+ * 
+ * Validation checks:
+ * - Problem exists and belongs to active contest
+ * - Contest is currently running (not before start or after end)
+ * - Contest is not frozen
+ * - Code meets size and format requirements
+ * 
+ * @example
  * POST /api/submissions/submit
- * Submit code for judging through queue system
+ * Authorization: Bearer <team-jwt-token>
+ * Content-Type: application/json
+ * 
+ * {
+ *   "problemId": 123,
+ *   "language": "python",
+ *   "code": "def solve(n, arr):\n    return sum(arr)"
+ * }
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "submissionId": 456,
+ *     "jobId": "job_789",
+ *     "status": "queued",
+ *     "priority": 100,
+ *     "estimatedWaitTime": "~15 seconds"
+ *   }
+ * }
  */
 router.post('/submit', authenticateTeam, async (req, res) => {
     let submissionId = null;
@@ -154,8 +234,66 @@ router.post('/submit', authenticateTeam, async (req, res) => {
 });
 
 /**
- * GET /api/submissions/:id/status
- * Get submission status and result
+ * @route GET /api/submissions/:id/status
+ * @description Get detailed submission status and execution results
+ * 
+ * Retrieves comprehensive status information for a submission including
+ * execution results, queue information for pending submissions, and
+ * problem details. Teams can only access their own submissions.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Submission ID to get status for
+ * @param {Object} req.team - Authenticated team data from middleware
+ * @param {number} req.team.id - Team identifier for authorization
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @returns {Object} Response object with submission status
+ * @returns {boolean} returns.success - Operation success status
+ * @returns {Object} returns.data - Submission status data
+ * @returns {number} returns.data.submissionId - Submission identifier
+ * @returns {string} returns.data.problemLetter - Problem letter (A, B, C, etc.)
+ * @returns {string} returns.data.problemTitle - Problem title
+ * @returns {string} returns.data.language - Programming language used
+ * @returns {string} returns.data.status - Current status (pending|judging|accepted|rejected)
+ * @returns {string} [returns.data.result] - Detailed result message if completed
+ * @returns {string} returns.data.submissionTime - Submission timestamp
+ * @returns {string} [returns.data.judgedAt] - Judgment completion timestamp
+ * @returns {number} [returns.data.executionTime] - Execution time in milliseconds
+ * @returns {number} [returns.data.memoryUsed] - Memory used in MB
+ * @returns {Object} [returns.data.queueInfo] - Queue information if pending
+ * @returns {string} [returns.data.queueInfo.position] - Position in queue
+ * @returns {string} [returns.data.queueInfo.estimatedWaitTime] - Estimated wait time
+ * @returns {number} [returns.data.queueInfo.activeWorkers] - Active workers count
+ * @returns {number} [returns.data.queueInfo.queueLength] - Current queue length
+ * 
+ * @throws {400} Invalid submission ID
+ * @throws {404} Submission not found or access denied
+ * @throws {500} Database or queue service errors
+ * 
+ * @requires Team authentication via authenticateTeam middleware
+ * 
+ * @example
+ * GET /api/submissions/456/status
+ * Authorization: Bearer <team-jwt-token>
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "submissionId": 456,
+ *     "problemLetter": "A",
+ *     "problemTitle": "Sum Array",
+ *     "language": "python",
+ *     "status": "accepted",
+ *     "result": "All test cases passed",
+ *     "submissionTime": "2025-01-15T10:30:00.000Z",
+ *     "judgedAt": "2025-01-15T10:30:15.000Z",
+ *     "executionTime": 150,
+ *     "memoryUsed": 12.5
+ *   }
+ * }
  */
 router.get('/:id/status', authenticateTeam, async (req, res) => {
     try {
@@ -230,8 +368,74 @@ router.get('/:id/status', authenticateTeam, async (req, res) => {
 });
 
 /**
- * GET /api/submissions/team/:teamId
- * Get all submissions for a team (with pagination)
+ * @route GET /api/submissions/team/:teamId
+ * @description Get paginated submission history for a team
+ * 
+ * Retrieves all submissions for a specific team with pagination support.
+ * Includes problem information, submission status, and timing details.
+ * Teams can only access their own submission history.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.teamId - Team ID to get submissions for
+ * @param {Object} req.query - Query parameters
+ * @param {number} [req.query.page=1] - Page number for pagination
+ * @param {number} [req.query.limit=50] - Items per page (max 100)
+ * @param {Object} req.team - Authenticated team data from middleware
+ * @param {number} req.team.id - Team identifier for authorization
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @returns {Object} Response object with submission history
+ * @returns {boolean} returns.success - Operation success status
+ * @returns {Object} returns.data - Submission history data
+ * @returns {Array} returns.data.submissions - Array of submission objects
+ * @returns {number} returns.data.submissions[].id - Submission identifier
+ * @returns {string} returns.data.submissions[].problem_letter - Problem letter
+ * @returns {string} returns.data.submissions[].title - Problem title
+ * @returns {string} returns.data.submissions[].language - Programming language
+ * @returns {string} returns.data.submissions[].status - Submission status
+ * @returns {string} returns.data.submissions[].submission_time - Submission timestamp
+ * @returns {string} [returns.data.submissions[].judged_at] - Judgment timestamp
+ * @returns {number} [returns.data.submissions[].execution_time] - Execution time (ms)
+ * @returns {number} [returns.data.submissions[].memory_used] - Memory used (MB)
+ * @returns {Object} returns.data.pagination - Pagination information
+ * @returns {number} returns.data.pagination.page - Current page number
+ * @returns {number} returns.data.pagination.limit - Items per page
+ * @returns {number} returns.data.pagination.total - Total submission count
+ * @returns {number} returns.data.pagination.pages - Total page count
+ * 
+ * @throws {403} Access denied - team can only view own submissions
+ * @throws {500} Database query errors
+ * 
+ * @requires Team authentication via authenticateTeam middleware
+ * 
+ * @example
+ * GET /api/submissions/team/456?page=1&limit=20
+ * Authorization: Bearer <team-jwt-token>
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "submissions": [
+ *       {
+ *         "id": 789,
+ *         "problem_letter": "A",
+ *         "title": "Sum Array",
+ *         "language": "python",
+ *         "status": "accepted",
+ *         "submission_time": "2025-01-15T10:30:00.000Z"
+ *       }
+ *     ],
+ *     "pagination": {
+ *       "page": 1,
+ *       "limit": 20,
+ *       "total": 45,
+ *       "pages": 3
+ *     }
+ *   }
+ * }
  */
 router.get('/team/:teamId', authenticateTeam, async (req, res) => {
     try {
@@ -286,8 +490,55 @@ router.get('/team/:teamId', authenticateTeam, async (req, res) => {
 });
 
 /**
- * GET /api/submissions/:submissionId/queue-position
- * Get current queue position for a submission - Phase 4.5
+ * @route GET /api/submissions/:submissionId/queue-position
+ * @description Get current queue position for a pending submission
+ * 
+ * Retrieves the current queue position and status for a pending or queued
+ * submission. Provides real-time updates on submission processing progress.
+ * Teams can only check positions for their own submissions.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.submissionId - Submission ID to check position for
+ * @param {Object} req.team - Authenticated team data from middleware
+ * @param {number} req.team.id - Team identifier for authorization
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @returns {Object} Response object with queue position data
+ * @returns {boolean} returns.success - Operation success status
+ * @returns {Object} returns.data - Queue position data
+ * @returns {number} returns.data.submissionId - Submission identifier
+ * @returns {string} returns.data.currentStatus - Current submission status
+ * @returns {Object} [returns.data.queuePosition] - Queue position info (if pending)
+ * @returns {number} [returns.data.queuePosition.position] - Position in queue
+ * @returns {string} [returns.data.queuePosition.status] - Queue status
+ * @returns {string} [returns.data.queuePosition.estimatedWaitTime] - Estimated wait time
+ * @returns {string} returns.data.lastUpdated - Last update timestamp
+ * 
+ * @throws {404} Submission not found or access denied
+ * @throws {500} Queue service errors
+ * 
+ * @requires Team authentication via authenticateTeam middleware
+ * 
+ * @example
+ * GET /api/submissions/456/queue-position
+ * Authorization: Bearer <team-jwt-token>
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "submissionId": 456,
+ *     "currentStatus": "pending",
+ *     "queuePosition": {
+ *       "position": 3,
+ *       "status": "waiting",
+ *       "estimatedWaitTime": "~45 seconds"
+ *     },
+ *     "lastUpdated": "2025-01-15T10:30:00.000Z"
+ *   }
+ * }
  */
 router.get('/:submissionId/queue-position', authenticateTeam, async (req, res) => {
     try {
@@ -337,8 +588,60 @@ router.get('/:submissionId/queue-position', authenticateTeam, async (req, res) =
 });
 
 /**
- * POST /api/submissions/:submissionId/notify-status  
- * Manually trigger status notification for a submission - Phase 4.5
+ * @route POST /api/submissions/:submissionId/notify-status
+ * @description Manually trigger status notification for a submission
+ * 
+ * Forces a status notification broadcast for a submission via WebSocket.
+ * Useful for ensuring real-time updates reach connected clients or for
+ * testing notification systems. Teams can only trigger notifications
+ * for their own submissions.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.submissionId - Submission ID to notify about
+ * @param {Object} req.team - Authenticated team data from middleware
+ * @param {number} req.team.id - Team identifier for authorization
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @returns {Object} Response object with notification confirmation
+ * @returns {boolean} returns.success - Operation success status
+ * @returns {Object} returns.data - Notification operation data
+ * @returns {number} returns.data.submissionId - Submission identifier
+ * @returns {boolean} returns.data.notificationSent - Notification success flag
+ * @returns {string} returns.data.currentStatus - Current submission status
+ * @returns {Object} [returns.data.queuePosition] - Current queue position info
+ * @returns {number} [returns.data.queuePosition.position] - Position in queue
+ * @returns {string} [returns.data.queuePosition.status] - Queue status
+ * @returns {string} [returns.data.queuePosition.estimatedWaitTime] - Wait time estimate
+ * 
+ * @throws {404} Submission not found or access denied
+ * @throws {500} WebSocket service or queue service errors
+ * 
+ * @requires Team authentication via authenticateTeam middleware
+ * 
+ * WebSocket Broadcast Details:
+ * - Sends submission status update to connected clients
+ * - Includes queue position and timing information
+ * - Broadcasts to team-specific channels and contest channels
+ * 
+ * @example
+ * POST /api/submissions/456/notify-status
+ * Authorization: Bearer <team-jwt-token>
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "submissionId": 456,
+ *     "notificationSent": true,
+ *     "currentStatus": "judging",
+ *     "queuePosition": {
+ *       "position": 1,
+ *       "status": "processing"
+ *     }
+ *   }
+ * }
  */
 router.post('/:submissionId/notify-status', authenticateTeam, async (req, res) => {
     try {
@@ -395,7 +698,41 @@ router.post('/:submissionId/notify-status', authenticateTeam, async (req, res) =
 });
 
 /**
- * Helper function to estimate wait time based on queue stats
+ * @function estimateWaitTime
+ * @description Helper function to estimate submission processing wait time
+ * 
+ * Calculates human-readable estimated wait time based on current queue
+ * statistics including queue length, average processing time, and worker
+ * capacity. Provides user-friendly time estimates for submission interfaces.
+ * 
+ * @param {Object} [queueStats=null] - Queue statistics object
+ * @param {number} [queueStats.avgProcessingTime=5000] - Average processing time (ms)
+ * @param {number} [queueStats.waiting=0] - Number of jobs waiting in queue
+ * @param {Array} queueStats.workers - Array of worker objects
+ * @param {boolean} queueStats.workers[].isHealthy - Worker health status
+ * 
+ * @returns {string} Human-readable time estimate
+ * 
+ * Time estimate ranges:
+ * - '< 10 seconds': Very short wait (< 10s)
+ * - '~N seconds': Short wait (10s - 1min)
+ * - '~N minutes': Medium wait (1min - 5min)
+ * - '> 5 minutes': Long wait (> 5min)
+ * - 'unknown': Unable to calculate (no stats)
+ * 
+ * Calculation factors:
+ * - Current queue length and position
+ * - Average processing time per submission
+ * - Number of healthy workers available
+ * - Worker capacity and parallel processing
+ * 
+ * @example
+ * const estimate = estimateWaitTime({
+ *   avgProcessingTime: 4000,
+ *   waiting: 8,
+ *   workers: [{ isHealthy: true }, { isHealthy: true }, { isHealthy: false }]
+ * });
+ * // Returns: "~16 seconds"
  */
 function estimateWaitTime(queueStats = null) {
     if (!queueStats) return 'unknown';

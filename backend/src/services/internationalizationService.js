@@ -1,14 +1,13 @@
-/**
- * CS Club Hackathon Platform - Internationalization Service
- * Phase 6.3: Multi-language support and localization
- */
-
 const { db } = require('../utils/db');
 const logger = require('../utils/logger');
 const fs = require('fs').promises;
 const path = require('path');
 
 class InternationalizationService {
+  /**
+   * Initialize the Internationalization Service.
+   * Sets up translation storage, supported languages, and loads initial data.
+   */
   constructor() {
     this.translations = new Map();
     this.supportedLanguages = new Map();
@@ -18,7 +17,8 @@ class InternationalizationService {
   }
 
   /**
-   * Initialize internationalization service
+   * Initialize internationalization service by loading languages and translations.
+   * @throws {Error} If initialization fails
    */
   async initializeService() {
     try {
@@ -31,7 +31,8 @@ class InternationalizationService {
   }
 
   /**
-   * Load supported languages from database
+   * Load supported languages from database with their configuration.
+   * @throws {Error} If database query fails
    */
   async loadSupportedLanguages() {
     try {
@@ -65,7 +66,9 @@ class InternationalizationService {
   }
 
   /**
-   * Load translations from files and database
+   * Load translations from both JSON files and database for all supported languages.
+   * Database translations override file translations when conflicts exist.
+   * @throws {Error} If translation loading fails
    */
   async loadTranslations() {
     try {
@@ -84,7 +87,9 @@ class InternationalizationService {
   }
 
   /**
-   * Load translations for a specific language
+   * Load translations for a specific language from file and database sources.
+   * @param {string} languageCode - Language code to load translations for
+   * @throws {Error} If language loading fails
    */
   async loadLanguageTranslations(languageCode) {
     try {
@@ -120,7 +125,12 @@ class InternationalizationService {
   }
 
   /**
-   * Get translated string
+   * Get translated string for a given key with parameter interpolation.
+   * Falls back to default language if translation not found, then to key itself.
+   * @param {string} key - Translation key
+   * @param {string|null} languageCode - Target language code, uses default if null
+   * @param {Object} params - Parameters to interpolate into translation
+   * @returns {string} Translated string with interpolated parameters
    */
   translate(key, languageCode = null, params = {}) {
     const lang = languageCode || this.defaultLanguage;
@@ -150,7 +160,11 @@ class InternationalizationService {
   }
 
   /**
-   * Get multiple translations at once
+   * Get multiple translations at once for efficiency.
+   * @param {string[]} keys - Array of translation keys
+   * @param {string|null} languageCode - Target language code
+   * @param {Object} params - Parameters to interpolate into translations
+   * @returns {Object} Object mapping keys to translated strings
    */
   translateBatch(keys, languageCode = null, params = {}) {
     const result = {};
@@ -161,7 +175,10 @@ class InternationalizationService {
   }
 
   /**
-   * Interpolate parameters in translation string
+   * Interpolate parameters in translation string using {{param}} syntax.
+   * @param {string} translation - Translation string with parameter placeholders
+   * @param {Object} params - Parameters to interpolate
+   * @returns {string} Translation string with parameters replaced
    */
   interpolateParams(translation, params) {
     let result = translation;
@@ -175,7 +192,13 @@ class InternationalizationService {
   }
 
   /**
-   * Add or update translation
+   * Add or update translation in both database and memory cache.
+   * @param {string} key - Translation key
+   * @param {string} value - Translation value
+   * @param {string} languageCode - Language code for the translation
+   * @param {string} category - Category for organizing translations
+   * @returns {Promise<boolean>} True if successful
+   * @throws {Error} If database operation fails
    */
   async setTranslation(key, value, languageCode, category = 'general') {
     try {
@@ -210,7 +233,12 @@ class InternationalizationService {
   }
 
   /**
-   * Import translations from JSON file
+   * Import translations from JSON file into database and memory cache.
+   * @param {string} languageCode - Target language code
+   * @param {string} filePath - Path to JSON file containing translations
+   * @param {string} category - Category to assign to imported translations
+   * @returns {Promise<number>} Number of translations imported
+   * @throws {Error} If file reading or import fails
    */
   async importTranslations(languageCode, filePath, category = 'imported') {
     try {
@@ -232,7 +260,11 @@ class InternationalizationService {
   }
 
   /**
-   * Export translations to JSON file
+   * Export translations to JSON file for backup or distribution.
+   * @param {string} languageCode - Language code to export
+   * @param {string|null} filePath - Output file path, auto-generated if null
+   * @returns {Promise<string>} Path to exported file
+   * @throws {Error} If export fails or language not found
    */
   async exportTranslations(languageCode, filePath = null) {
     try {
@@ -258,7 +290,10 @@ class InternationalizationService {
   }
 
   /**
-   * Get translation statistics
+   * Get translation statistics for one or all languages.
+   * @param {string|null} languageCode - Specific language code or null for all
+   * @returns {Promise<Object>} Statistics including translation counts and last update times
+   * @throws {Error} If statistics query fails
    */
   async getTranslationStats(languageCode = null) {
     try {
@@ -288,7 +323,10 @@ class InternationalizationService {
   }
 
   /**
-   * Find missing translations
+   * Find missing translations by comparing against base language.
+   * @param {string|null} baseLanguage - Base language to compare against, uses default if null
+   * @returns {Promise<Object>} Object mapping language codes to arrays of missing keys
+   * @throws {Error} If base language not found
    */
   async findMissingTranslations(baseLanguage = null) {
     const base = baseLanguage || this.defaultLanguage;
@@ -316,7 +354,11 @@ class InternationalizationService {
   }
 
   /**
-   * Format date according to language settings
+   * Format date according to language-specific settings and locale.
+   * @param {Date} date - Date to format
+   * @param {string|null} languageCode - Language code for formatting, uses default if null
+   * @param {Object} options - Additional formatting options for Intl.DateTimeFormat
+   * @returns {string} Formatted date string
    */
   formatDate(date, languageCode = null, options = {}) {
     const lang = languageCode || this.defaultLanguage;
@@ -337,7 +379,11 @@ class InternationalizationService {
   }
 
   /**
-   * Format time according to language settings
+   * Format time according to language-specific settings and locale.
+   * @param {Date} date - Date object to extract time from
+   * @param {string|null} languageCode - Language code for formatting
+   * @param {Object} options - Additional formatting options
+   * @returns {string} Formatted time string
    */
   formatTime(date, languageCode = null, options = {}) {
     const lang = languageCode || this.defaultLanguage;
@@ -358,7 +404,11 @@ class InternationalizationService {
   }
 
   /**
-   * Format number according to language settings
+   * Format number according to language-specific locale settings.
+   * @param {number} number - Number to format
+   * @param {string|null} languageCode - Language code for formatting
+   * @param {Object} options - Additional formatting options for Intl.NumberFormat
+   * @returns {string} Formatted number string
    */
   formatNumber(number, languageCode = null, options = {}) {
     const lang = languageCode || this.defaultLanguage;
@@ -372,21 +422,28 @@ class InternationalizationService {
   }
 
   /**
-   * Get language information
+   * Get detailed information for a specific language.
+   * @param {string} languageCode - Language code to get information for
+   * @returns {Object|undefined} Language information object or undefined if not found
    */
   getLanguageInfo(languageCode) {
     return this.supportedLanguages.get(languageCode);
   }
 
   /**
-   * Get all supported languages
+   * Get array of all supported languages with their configuration.
+   * @returns {Object[]} Array of language information objects
    */
   getSupportedLanguages() {
     return Array.from(this.supportedLanguages.values());
   }
 
   /**
-   * Add new supported language
+   * Add new supported language to the system.
+   * @param {Object} languageData - Language configuration data
+   * @param {string} adminId - ID of admin user adding the language
+   * @returns {Promise<Object>} Created language record
+   * @throws {Error} If database insertion fails
    */
   async addLanguage(languageData, adminId) {
     try {
@@ -420,7 +477,11 @@ class InternationalizationService {
   }
 
   /**
-   * Get localized contest data
+   * Get contest data with localized strings for a specific language.
+   * @param {number} contestId - Contest ID to get data for
+   * @param {string} languageCode - Language code for localization
+   * @returns {Promise<Object>} Contest data with localized strings
+   * @throws {Error} If contest not found or database query fails
    */
   async getLocalizedContestData(contestId, languageCode) {
     try {
@@ -471,18 +532,22 @@ class InternationalizationService {
   }
 
   /**
-   * Auto-translate using basic patterns (placeholder for real translation service)
+   * Auto-translate text using basic patterns (placeholder for real translation service).
+   * @param {string} text - Text to translate
+   * @param {string} fromLanguage - Source language code
+   * @param {string} toLanguage - Target language code
+   * @returns {Promise<string>} Translated text (currently just marked as auto-translated)
    */
   async autoTranslate(text, fromLanguage, toLanguage) {
-    // This is a placeholder - in production, integrate with translation APIs like Google Translate
     logger.info(`Auto-translate requested: ${fromLanguage} -> ${toLanguage}`);
     
-    // For now, just return the original text with a note
     return `[AUTO-TRANSLATED from ${fromLanguage}] ${text}`;
   }
 
   /**
-   * Helper methods
+   * Get last update time for translations in a specific language.
+   * @param {string} languageCode - Language code to check
+   * @returns {Promise<string|null>} ISO timestamp of last update or null if none found
    */
   async getLastUpdateTime(languageCode) {
     try {
@@ -499,7 +564,9 @@ class InternationalizationService {
   }
 
   /**
-   * Validate translation key format
+   * Validate translation key format (category.subcategory.item pattern).
+   * @param {string} key - Translation key to validate
+   * @returns {boolean} True if key format is valid
    */
   validateKey(key) {
     // Keys should be in format: category.subcategory.item
@@ -508,7 +575,9 @@ class InternationalizationService {
   }
 
   /**
-   * Get translation categories
+   * Get list of all translation categories, optionally filtered by language.
+   * @param {string|null} languageCode - Language code to filter by, or null for all
+   * @returns {Promise<string[]>} Array of category names
    */
   async getCategories(languageCode = null) {
     try {
@@ -529,7 +598,8 @@ class InternationalizationService {
   }
 
   /**
-   * Clean up unused translations
+   * Clean up unused translations that have been inactive for over 90 days.
+   * @returns {Promise<number>} Number of translations deleted
    */
   async cleanupUnusedTranslations() {
     try {

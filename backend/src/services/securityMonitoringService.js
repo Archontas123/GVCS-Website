@@ -1,8 +1,3 @@
-/**
- * CS Club Hackathon Platform - Security Monitoring Service
- * Phase 6.4: Real-time security monitoring and threat detection
- */
-
 const { db } = require('../utils/db');
 const logger = require('../utils/logger');
 const EventEmitter = require('events');

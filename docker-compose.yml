@@ -3,12 +3,12 @@ version: '3.8'
 services:
   postgres:
     image: postgres:16
-    container_name: hackathon_postgres
+    container_name: programming_contest_postgres
     restart: always
     environment:
-      POSTGRES_DB: hackathon_db
-      POSTGRES_USER: hackathon_user
-      POSTGRES_PASSWORD: hackathon_password
+      POSTGRES_DB: programming_contest_db
+      POSTGRES_USER: programming_contest_user
+      POSTGRES_PASSWORD: programming_contest_password
       POSTGRES_HOST_AUTH_METHOD: md5
     ports:
       - "5432:5432"
@@ -16,14 +16,14 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hackathon_user -d hackathon_db"]
+      test: ["CMD-SHELL", "pg_isready -U programming_contest_user -d programming_contest_db"]
       interval: 30s
       timeout: 10s
       retries: 3
 
   redis:
     image: redis:7-alpine
-    container_name: hackathon_redis
+    container_name: programming_contest_redis
     restart: always
     ports:
       - "6379:6379"
@@ -41,15 +41,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    container_name: hackathon_backend
+    container_name: programming_contest_backend
     restart: always
     environment:
       - NODE_ENV=development
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_NAME=hackathon_db
-      - DB_USER=hackathon_user
-      - DB_PASSWORD=hackathon_password
+      - DB_NAME=programming_contest_db
+      - DB_USER=programming_contest_user
+      - DB_PASSWORD=programming_contest_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - JWT_SECRET=your_jwt_secret_change_in_production
@@ -76,7 +76,7 @@ services:
       args:
         - REACT_APP_API_URL=http://localhost:3000
         - REACT_APP_WS_URL=ws://localhost:3000
-    container_name: hackathon_frontend
+    container_name: programming_contest_frontend
     restart: always
     ports:
       - "80:80"
@@ -93,7 +93,7 @@ services:
     build:
       context: ./backend/docker
       dockerfile: Dockerfile
-    container_name: hackathon_judge
+    container_name: programming_contest_judge
     restart: "no"
     profiles:
       - judge

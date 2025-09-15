@@ -1,8 +1,3 @@
-/**
- * CS Club Hackathon Platform - Penetration Testing Service
- * Phase 6.4: Advanced security penetration testing
- */
-
 const { db } = require('../utils/db');
 const logger = require('../utils/logger');
 const crypto = require('crypto');

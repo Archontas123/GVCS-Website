@@ -1,10 +1,10 @@
 @echo off
-:: CS Club Hackathon Platform - Windows Setup Script (Batch Version)
+:: CS Club Programming Contest Platform - Windows Setup Script (Batch Version)
 :: Simple batch script to install compilers via Chocolatey
 
 echo.
 echo ==========================================
-echo CS Club Hackathon Platform - Windows Setup  
+echo CS Club Programming Contest Platform - Windows Setup  
 echo ==========================================
 echo.
 

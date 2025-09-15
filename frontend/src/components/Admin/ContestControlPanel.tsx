@@ -1,36 +1,17 @@
-/**
- * Contest Control Panel - Phase 2.5 Task 5
- * Contest control buttons and system monitoring
- */
 
 import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  Button,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Alert,
-  Chip,
-  Stack,
-  LinearProgress,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Divider,
-  Tooltip,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-} from '@mui/material';
+import { 
+  MdStorage, 
+  MdBarChart,
+  MdRefresh,
+  MdPlayArrow,
+  MdPause,
+  MdStop,
+  MdWarning,
+  MdSchedule,
+  MdTimer,
+  MdSettings
+} from 'react-icons/md';
 
 interface Contest {
   id: number;
@@ -84,7 +65,6 @@ const ContestControlPanel: React.FC = () => {
   }>({ open: false, action: null });
   const [loading, setLoading] = useState(false);
 
-  // Mock data - in real app, this would come from API
   useEffect(() => {
     fetchContests();
     fetchSystemStatus();
@@ -106,7 +86,6 @@ const ContestControlPanel: React.FC = () => {
       if (response.ok) {
         const result = await response.json();
         if (result.success && result.data) {
-          // Get progress data for each contest
           const contestPromises = result.data.map(async (contest: any) => {
             try {
               const progressResponse = await fetch(`/api/admin/contests/${contest.id}/progress`, {
@@ -247,7 +226,6 @@ const ContestControlPanel: React.FC = () => {
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
-          // Refresh contests to get updated data
           await fetchContests();
           setControlDialog({ open: false, action: null });
           setSelectedContest(null);
@@ -296,300 +274,790 @@ const ContestControlPanel: React.FC = () => {
   };
 
   return (
-    <Box>
-      {/* Header */}
-      <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>
+    <div style={{
+      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+      maxWidth: '1400px',
+      margin: '0 auto',
+      padding: '24px'
+    }}>
+      <h1 style={{
+        fontWeight: 700,
+        fontSize: '1.75rem',
+        color: '#1d4ed8',
+        marginBottom: '32px',
+        letterSpacing: '-0.02em'
+      }}>
         Contest Control Panel
-      </Typography>
+      </h1>
 
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
-        {/* Contest Controls */}
-        <Box sx={{ flex: 2, minWidth: 0 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: window.innerWidth < 768 ? 'column' : 'row',
+        gap: '24px'
+      }}>
+        <div style={{ flex: 2, minWidth: 0 }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            padding: '32px',
+            boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)'
+          }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '32px'
+              }}>
+                <h2 style={{
+                  fontWeight: 600,
+                  fontSize: '1.25rem',
+                  color: '#1f2937',
+                  margin: 0
+                }}>
                   Active Contest Controls
-                </Typography>
-                <Button
-                  size="small"
+                </h2>
+                <button
                   onClick={fetchContests}
+                  style={{
+                    padding: '8px 16px',
+                    border: '2px solid #e2e8f0',
+                    backgroundColor: '#ffffff',
+                    color: '#475569',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: 500,
+                    fontSize: '0.9rem',
+                    transition: 'all 0.2s ease',
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#cbd5e0';
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#e2e8f0';
+                    e.currentTarget.style.backgroundColor = '#ffffff';
+                  }}
                 >
-                  ↻ Refresh
-                </Button>
-              </Box>
+                  <MdRefresh style={{ fontSize: '16px' }} />
+                  Refresh
+                </button>
+              </div>
 
               {contests.length === 0 ? (
-                <Alert severity="info">No contests available for control</Alert>
+                <div style={{
+                  backgroundColor: '#e3f2fd',
+                  color: '#1e40af',
+                  border: '1px solid #bae6fd',
+                  padding: '16px 20px',
+                  borderRadius: '12px',
+                  fontSize: '0.95rem',
+                  fontWeight: 500
+                }}>
+                  No contests available for control
+                </div>
               ) : (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {contests.map((contest) => (
-                    <Card key={contest.id} variant="outlined">
-                      <CardContent>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                          <Box>
-                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    <div key={contest.id} style={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      padding: '24px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          marginBottom: '16px'
+                        }}>
+                          <div>
+                            <h3 style={{
+                              fontWeight: 600,
+                              fontSize: '1.125rem',
+                              color: '#1f2937',
+                              margin: '0 0 12px 0'
+                            }}>
                               {contest.contest_name}
-                            </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                              <Chip
-                                label={contest.status.replace('_', ' ')}
-                                color={getStatusColor(contest.status) as any}
-                                size="small"
-                                sx={{ textTransform: 'capitalize' }}
-                              />
-                              <Typography variant="body2" color="text.secondary">
+                            </h3>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                padding: '4px 12px',
+                                borderRadius: '16px',
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                textTransform: 'capitalize',
+                                backgroundColor: getStatusColor(contest.status) === 'success' ? '#dcfce7' :
+                                                getStatusColor(contest.status) === 'warning' ? '#fef3c7' :
+                                                getStatusColor(contest.status) === 'info' ? '#dbeafe' : '#f3f4f6',
+                                color: getStatusColor(contest.status) === 'success' ? '#166534' :
+                                       getStatusColor(contest.status) === 'warning' ? '#92400e' :
+                                       getStatusColor(contest.status) === 'info' ? '#1e40af' : '#374151'
+                              }}>
+                                {contest.status.replace('_', ' ')}
+                              </span>
+                              <span style={{
+                                fontSize: '0.875rem',
+                                color: '#6b7280'
+                              }}>
                                 {contest.teams_count} teams • Code: {contest.registration_code}
-                              </Typography>
-                            </Box>
-                          </Box>
+                              </span>
+                            </div>
+                          </div>
                           
-                          {/* Control Buttons */}
-                          <Box sx={{ display: 'flex', gap: 1 }}>
+                          <div style={{ display: 'flex', gap: '8px' }}>
                             {contest.status === 'not_started' && (
-                              <Button
-                                variant="contained"
-                                color="success"
+                              <button
                                 onClick={() => handleContestAction(contest, 'start')}
-                                size="small"
+                                style={{
+                                  padding: '8px 16px',
+                                  border: '2px solid #22c55e',
+                                  backgroundColor: '#22c55e',
+                                  color: '#ffffff',
+                                  borderRadius: '8px',
+                                  cursor: 'pointer',
+                                  fontWeight: 600,
+                                  fontSize: '0.875rem',
+                                  transition: 'all 0.2s ease',
+                                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#16a34a';
+                                  e.currentTarget.style.borderColor = '#16a34a';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#22c55e';
+                                  e.currentTarget.style.borderColor = '#22c55e';
+                                }}
                               >
-                                ▶ Start
-                              </Button>
+                                <MdPlayArrow style={{ fontSize: '16px' }} />
+                                Start
+                              </button>
                             )}
                             
                             {contest.status === 'running' && (
                               <>
-                                <Button
-                                  variant="outlined"
-                                  color="warning"
+                                <button
                                   onClick={() => handleContestAction(contest, 'freeze')}
-                                  size="small"
+                                  style={{
+                                    padding: '8px 16px',
+                                    border: '2px solid #f59e0b',
+                                    backgroundColor: '#ffffff',
+                                    color: '#f59e0b',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    fontWeight: 600,
+                                    fontSize: '0.875rem',
+                                    transition: 'all 0.2s ease',
+                                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#fffbeb';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#ffffff';
+                                  }}
                                 >
-                                  ⏸ Freeze
-                                </Button>
-                                <Button
-                                  variant="outlined"
-                                  color="error"
+                                  <MdPause style={{ fontSize: '16px' }} />
+                                  Freeze
+                                </button>
+                                <button
                                   onClick={() => handleContestAction(contest, 'end')}
-                                  size="small"
+                                  style={{
+                                    padding: '8px 16px',
+                                    border: '2px solid #ef4444',
+                                    backgroundColor: '#ffffff',
+                                    color: '#ef4444',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    fontWeight: 600,
+                                    fontSize: '0.875rem',
+                                    transition: 'all 0.2s ease',
+                                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#fef2f2';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#ffffff';
+                                  }}
                                 >
-                                  ⏹ End
-                                </Button>
+                                  <MdStop style={{ fontSize: '16px' }} />
+                                  End
+                                </button>
                               </>
                             )}
                             
                             {contest.status === 'frozen' && (
-                              <Button
-                                variant="outlined"
-                                color="error"
+                              <button
                                 onClick={() => handleContestAction(contest, 'end')}
-                                size="small"
+                                style={{
+                                  padding: '8px 16px',
+                                  border: '2px solid #ef4444',
+                                  backgroundColor: '#ffffff',
+                                  color: '#ef4444',
+                                  borderRadius: '8px',
+                                  cursor: 'pointer',
+                                  fontWeight: 600,
+                                  fontSize: '0.875rem',
+                                  transition: 'all 0.2s ease',
+                                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#fef2f2';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#ffffff';
+                                }}
                               >
-                                ⏹ End
-                              </Button>
+                                <MdStop style={{ fontSize: '16px' }} />
+                                End
+                              </button>
                             )}
 
-                            <Tooltip title="Emergency Stop">
-                              <IconButton
-                                color="error"
-                                onClick={() => handleContestAction(contest, 'emergency_stop')}
-                                size="small"
-                              >
-                                ⚠
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        </Box>
+                            <button
+                              onClick={() => handleContestAction(contest, 'emergency_stop')}
+                              title="Emergency Stop"
+                              style={{
+                                padding: '8px 12px',
+                                border: '2px solid #ef4444',
+                                backgroundColor: '#ffffff',
+                                color: '#ef4444',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                                fontSize: '0.875rem',
+                                transition: 'all 0.2s ease',
+                                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                                display: 'flex',
+                                alignItems: 'center'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#fef2f2';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '#ffffff';
+                              }}
+                            >
+                              <MdWarning style={{ fontSize: '16px' }} />
+                            </button>
+                          </div>
+                        </div>
 
-                        {/* Progress Bar for Running Contests */}
                         {contest.status === 'running' && (
-                          <Box sx={{ mt: 2 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                              <Typography variant="body2" color="text.secondary">
+                          <div style={{ marginTop: '16px' }}>
+                            <div style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              marginBottom: '8px'
+                            }}>
+                              <span style={{
+                                fontSize: '0.875rem',
+                                color: '#6b7280'
+                              }}>
                                 Contest Progress
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
+                              </span>
+                              <span style={{
+                                fontSize: '0.875rem',
+                                color: '#6b7280'
+                              }}>
                                 {Math.floor(contest.time_remaining_seconds / 60)}m remaining
-                              </Typography>
-                            </Box>
-                            <LinearProgress
-                              variant="determinate"
-                              value={contest.progress_percentage}
-                              color="success"
-                              sx={{ height: 6, borderRadius: 3 }}
-                            />
-                          </Box>
+                              </span>
+                            </div>
+                            <div style={{
+                              width: '100%',
+                              height: '8px',
+                              backgroundColor: '#f3f4f6',
+                              borderRadius: '6px',
+                              overflow: 'hidden'
+                            }}>
+                              <div style={{
+                                width: `${contest.progress_percentage}%`,
+                                height: '100%',
+                                backgroundColor: '#22c55e',
+                                borderRadius: '6px',
+                                transition: 'width 0.3s ease'
+                              }} />
+                            </div>
+                          </div>
                         )}
-                      </CardContent>
-                    </Card>
+                    </div>
                   ))}
-                </Box>
+                </div>
               )}
-            </CardContent>
-          </Card>
-        </Box>
+          </div>
+        </div>
 
-        {/* System Monitoring */}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            padding: '32px',
+            boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)'
+          }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '24px'
+              }}>
+                <h2 style={{
+                  fontWeight: 600,
+                  fontSize: '1.25rem',
+                  color: '#1f2937',
+                  margin: 0
+                }}>
                   System Monitor
-                </Typography>
-                <Chip
-                  label={getSystemHealthColor() === 'success' ? 'Healthy' : 
-                        getSystemHealthColor() === 'warning' ? 'Warning' : 'Critical'}
-                  color={getSystemHealthColor()}
-                  size="small"
-                />
-              </Box>
+                </h2>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '4px 12px',
+                  borderRadius: '16px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  backgroundColor: getSystemHealthColor() === 'success' ? '#dcfce7' :
+                                  getSystemHealthColor() === 'warning' ? '#fef3c7' : '#fecaca',
+                  color: getSystemHealthColor() === 'success' ? '#166534' :
+                         getSystemHealthColor() === 'warning' ? '#92400e' : '#dc2626'
+                }}>
+                  {getSystemHealthColor() === 'success' ? 'Healthy' : 
+                   getSystemHealthColor() === 'warning' ? 'Warning' : 'Critical'}
+                </span>
+              </div>
 
-              <List dense>
-                {/* Judge Queue Status */}
-                <ListItem>
-                  <ListItemIcon>
-                    <Typography sx={{ color: systemStatus.judge_queue.pending > 20 ? 'error.main' : 'success.main' }}>⏱</Typography>
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Judge Queue"
-                    secondary={`${systemStatus.judge_queue.pending} pending, ${systemStatus.judge_queue.workers_active} workers`}
-                  />
-                </ListItem>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  padding: '12px 0'
+                }}>
+                  <div style={{
+                    color: systemStatus.judge_queue.pending > 20 ? '#dc2626' : '#16a34a',
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: '20px'
+                  }}>
+                    <MdTimer />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{
+                      fontWeight: 600,
+                      fontSize: '0.95rem',
+                      color: '#1f2937',
+                      marginBottom: '4px'
+                    }}>
+                      Judge Queue
+                    </div>
+                    <div style={{
+                      fontSize: '0.875rem',
+                      color: '#6b7280'
+                    }}>
+                      {systemStatus.judge_queue.pending} pending, {systemStatus.judge_queue.workers_active} workers
+                    </div>
+                  </div>
+                </div>
 
-                {/* Database Status */}
-                <ListItem>
-                  <ListItemIcon>
-                    <Typography sx={{ color: systemStatus.database.status === 'connected' ? 'success.main' : 'error.main' }}>💾</Typography>
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Database"
-                    secondary={`${systemStatus.database.status} (${systemStatus.database.response_time}ms)`}
-                  />
-                </ListItem>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  padding: '12px 0'
+                }}>
+                  <div style={{
+                    color: systemStatus.database.status === 'connected' ? '#16a34a' : '#dc2626',
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: '20px'
+                  }}>
+                    <MdStorage />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{
+                      fontWeight: 600,
+                      fontSize: '0.95rem',
+                      color: '#1f2937',
+                      marginBottom: '4px'
+                    }}>
+                      Database
+                    </div>
+                    <div style={{
+                      fontSize: '0.875rem',
+                      color: '#6b7280'
+                    }}>
+                      {systemStatus.database.status} ({systemStatus.database.response_time}ms)
+                    </div>
+                  </div>
+                </div>
 
-                {/* Server Resources */}
-                <ListItem>
-                  <ListItemIcon>
-                    <Typography sx={{ color: systemStatus.server.memory_usage > 80 ? 'warning.main' : 'success.main' }}>📊</Typography>
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Server Resources"
-                    secondary={
-                      <span>
-                        <Typography variant="caption" sx={{ display: 'block' }}>
-                          CPU: {systemStatus.server.cpu_usage}% | RAM: {systemStatus.server.memory_usage}%
-                        </Typography>
-                        <LinearProgress
-                          variant="determinate"
-                          value={Math.max(systemStatus.server.cpu_usage, systemStatus.server.memory_usage)}
-                          color={systemStatus.server.cpu_usage > 80 || systemStatus.server.memory_usage > 80 ? 'warning' : 'success'}
-                          sx={{ height: 3, mt: 0.5 }}
-                        />
-                      </span>
-                    }
-                  />
-                </ListItem>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '16px',
+                  padding: '12px 0'
+                }}>
+                  <div style={{
+                    color: systemStatus.server.memory_usage > 80 ? '#f59e0b' : '#16a34a',
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: '20px',
+                    marginTop: '2px'
+                  }}>
+                    <MdBarChart />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{
+                      fontWeight: 600,
+                      fontSize: '0.95rem',
+                      color: '#1f2937',
+                      marginBottom: '6px'
+                    }}>
+                      Server Resources
+                    </div>
+                    <div style={{
+                      fontSize: '0.75rem',
+                      color: '#6b7280',
+                      marginBottom: '6px'
+                    }}>
+                      CPU: {systemStatus.server.cpu_usage}% | RAM: {systemStatus.server.memory_usage}%
+                    </div>
+                    <div style={{
+                      width: '100%',
+                      height: '4px',
+                      backgroundColor: '#f3f4f6',
+                      borderRadius: '2px',
+                      overflow: 'hidden'
+                    }}>
+                      <div style={{
+                        width: `${Math.max(systemStatus.server.cpu_usage, systemStatus.server.memory_usage)}%`,
+                        height: '100%',
+                        backgroundColor: systemStatus.server.cpu_usage > 80 || systemStatus.server.memory_usage > 80 ? '#f59e0b' : '#16a34a',
+                        borderRadius: '2px',
+                        transition: 'width 0.3s ease'
+                      }} />
+                    </div>
+                  </div>
+                </div>
 
-                {/* Contest Scheduler */}
-                <ListItem>
-                  <ListItemIcon>
-                    <Typography sx={{ color: systemStatus.contests_scheduler.status === 'running' ? 'success.main' : 'error.main' }}>🕰</Typography>
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Contest Scheduler"
-                    secondary={`${systemStatus.contests_scheduler.status} (${systemStatus.contests_scheduler.scheduled_tasks} tasks)`}
-                  />
-                </ListItem>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  padding: '12px 0'
+                }}>
+                  <div style={{
+                    color: systemStatus.contests_scheduler.status === 'running' ? '#16a34a' : '#dc2626',
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: '20px'
+                  }}>
+                    <MdSchedule />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{
+                      fontWeight: 600,
+                      fontSize: '0.95rem',
+                      color: '#1f2937',
+                      marginBottom: '4px'
+                    }}>
+                      Contest Scheduler
+                    </div>
+                    <div style={{
+                      fontSize: '0.875rem',
+                      color: '#6b7280'
+                    }}>
+                      {systemStatus.contests_scheduler.status} ({systemStatus.contests_scheduler.scheduled_tasks} tasks)
+                    </div>
+                  </div>
+                </div>
 
-                <Divider sx={{ my: 1 }} />
+                <div style={{
+                  height: '1px',
+                  backgroundColor: '#e5e7eb',
+                  margin: '12px 0'
+                }} />
 
-                {/* System Uptime */}
-                <ListItem>
-                  <ListItemIcon>
-                    <Typography>⏲</Typography>
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="System Uptime"
-                    secondary={formatUptime(systemStatus.server.uptime)}
-                  />
-                </ListItem>
-              </List>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  padding: '12px 0'
+                }}>
+                  <div style={{
+                    color: '#6b7280',
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: '20px'
+                  }}>
+                    <MdTimer />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{
+                      fontWeight: 600,
+                      fontSize: '0.95rem',
+                      color: '#1f2937',
+                      marginBottom: '4px'
+                    }}>
+                      System Uptime
+                    </div>
+                    <div style={{
+                      fontSize: '0.875rem',
+                      color: '#6b7280'
+                    }}>
+                      {formatUptime(systemStatus.server.uptime)}
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-              {/* Quick System Actions */}
-              <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                <Button
-                  size="small"
-                  variant="outlined"
+              <div style={{
+                marginTop: '24px',
+                display: 'flex',
+                gap: '8px',
+                flexWrap: 'wrap'
+              }}>
+                <button
                   onClick={fetchSystemStatus}
+                  style={{
+                    padding: '8px 16px',
+                    border: '2px solid #e2e8f0',
+                    backgroundColor: '#ffffff',
+                    color: '#475569',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: 500,
+                    fontSize: '0.875rem',
+                    transition: 'all 0.2s ease',
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#cbd5e0';
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#e2e8f0';
+                    e.currentTarget.style.backgroundColor = '#ffffff';
+                  }}
                 >
-                  ↻ Refresh Status
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
+                  <MdRefresh style={{ fontSize: '14px' }} />
+                  Refresh Status
+                </button>
+                <button
                   disabled
+                  style={{
+                    padding: '8px 16px',
+                    border: '2px solid #e2e8f0',
+                    backgroundColor: '#f9fafb',
+                    color: '#9ca3af',
+                    borderRadius: '8px',
+                    cursor: 'not-allowed',
+                    fontWeight: 500,
+                    fontSize: '0.875rem',
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
                 >
-                  ⚙ System Config
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-        </Box>
-      </Stack>
+                  <MdSettings style={{ fontSize: '14px' }} />
+                  System Config
+                </button>
+              </div>
+          </div>
+        </div>
+      </div>
 
-      {/* Contest Action Confirmation Dialog */}
-      <Dialog open={controlDialog.open} onClose={() => setControlDialog({ open: false, action: null })}>
-        <DialogTitle>
-          Confirm Contest Action
-        </DialogTitle>
-        <DialogContent>
+      {controlDialog.open && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          }}>
+            <div style={{
+              padding: '24px 32px 16px',
+              borderBottom: '1px solid #e5e7eb'
+            }}>
+              <h2 style={{
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                color: '#1f2937',
+                margin: 0
+              }}>
+                Confirm Contest Action
+              </h2>
+            </div>
+            <div style={{
+              padding: '24px 32px'
+            }}>
           {selectedContest && controlDialog.action && (
-            <Box>
-              <Alert 
-                severity={controlDialog.action === 'emergency_stop' ? 'error' : 'warning'}
-                sx={{ mb: 2 }}
-              >
+            <div>
+              <div style={{
+                backgroundColor: controlDialog.action === 'emergency_stop' ? '#fef2f2' : '#fffbeb',
+                color: controlDialog.action === 'emergency_stop' ? '#dc2626' : '#92400e',
+                border: `1px solid ${controlDialog.action === 'emergency_stop' ? '#fecaca' : '#fed7aa'}`,
+                padding: '16px 20px',
+                borderRadius: '12px',
+                marginBottom: '20px',
+                fontSize: '0.95rem',
+                fontWeight: 500
+              }}>
                 {controlDialog.action === 'start' && 'This will start the contest and allow team submissions.'}
                 {controlDialog.action === 'freeze' && 'This will freeze the leaderboard. Teams can still submit but rankings will be hidden.'}
                 {controlDialog.action === 'end' && 'This will end the contest immediately and stop accepting submissions.'}
                 {controlDialog.action === 'emergency_stop' && 'This will immediately stop the contest and all related processes. Use only in emergencies.'}
-              </Alert>
+              </div>
               
-              <Typography variant="body1" gutterBottom>
+              <div style={{
+                fontSize: '1rem',
+                color: '#374151',
+                lineHeight: 1.6,
+                marginBottom: '8px'
+              }}>
                 <strong>Contest:</strong> {selectedContest.contest_name}
-              </Typography>
-              <Typography variant="body1" gutterBottom>
+              </div>
+              <div style={{
+                fontSize: '1rem',
+                color: '#374151',
+                lineHeight: 1.6,
+                marginBottom: '8px'
+              }}>
                 <strong>Current Status:</strong> {selectedContest.status.replace('_', ' ')}
-              </Typography>
-              <Typography variant="body1" gutterBottom>
+              </div>
+              <div style={{
+                fontSize: '1rem',
+                color: '#374151',
+                lineHeight: 1.6,
+                marginBottom: '12px'
+              }}>
                 <strong>Registered Teams:</strong> {selectedContest.teams_count}
-              </Typography>
+              </div>
               
               {controlDialog.action === 'start' && (
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                <div style={{
+                  fontSize: '0.875rem',
+                  color: '#6b7280',
+                  marginTop: '16px'
+                }}>
                   Make sure all problems and test cases are properly configured before starting.
-                </Typography>
+                </div>
               )}
-            </Box>
+            </div>
           )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setControlDialog({ open: false, action: null })}>
-            Cancel
-          </Button>
-          <Button
-            onClick={executeContestAction}
-            variant="contained"
-            color={controlDialog.action === 'emergency_stop' ? 'error' : 
-                   controlDialog.action === 'start' ? 'success' : 'warning'}
-            disabled={loading}
-          >
-            {loading ? 'Processing...' : `Confirm ${controlDialog.action?.replace('_', ' ')}`}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+            </div>
+            <div style={{
+              padding: '16px 32px 24px',
+              borderTop: '1px solid #e5e7eb',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '12px'
+            }}>
+              <button
+                onClick={() => setControlDialog({ open: false, action: null })}
+                style={{
+                  padding: '10px 20px',
+                  border: '2px solid #e2e8f0',
+                  backgroundColor: '#ffffff',
+                  color: '#475569',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                  transition: 'all 0.2s ease',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#cbd5e0';
+                  e.currentTarget.style.backgroundColor = '#f8fafc';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#e2e8f0';
+                  e.currentTarget.style.backgroundColor = '#ffffff';
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeContestAction}
+                disabled={loading}
+                style={{
+                  padding: '10px 20px',
+                  border: `2px solid ${
+                    controlDialog.action === 'emergency_stop' ? '#ef4444' :
+                    controlDialog.action === 'start' ? '#22c55e' : '#f59e0b'
+                  }`,
+                  backgroundColor: controlDialog.action === 'emergency_stop' ? '#ef4444' :
+                                  controlDialog.action === 'start' ? '#22c55e' : '#f59e0b',
+                  color: '#ffffff',
+                  borderRadius: '8px',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.6 : 1,
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                  transition: 'all 0.2s ease',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    const darkerColor = controlDialog.action === 'emergency_stop' ? '#dc2626' :
+                                       controlDialog.action === 'start' ? '#16a34a' : '#d97706';
+                    e.currentTarget.style.backgroundColor = darkerColor;
+                    e.currentTarget.style.borderColor = darkerColor;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) {
+                    const originalColor = controlDialog.action === 'emergency_stop' ? '#ef4444' :
+                                         controlDialog.action === 'start' ? '#22c55e' : '#f59e0b';
+                    e.currentTarget.style.backgroundColor = originalColor;
+                    e.currentTarget.style.borderColor = originalColor;
+                  }
+                }}
+              >
+                {loading ? 'Processing...' : `Confirm ${controlDialog.action?.replace('_', ' ')}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

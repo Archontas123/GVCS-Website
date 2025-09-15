@@ -1,42 +1,17 @@
-/**
- * System Monitoring Dashboard - Phase 2.5 Task 6
- * Comprehensive system monitoring with metrics and logs
- */
-
 import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  LinearProgress,
-  Chip,
-  IconButton,
-  Button,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  ListItemSecondaryAction,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Alert,
-  Divider,
-  Tabs,
-  Tab,
-  Switch,
-  FormControlLabel,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-} from '@mui/material';
+import { 
+  MdStorage, 
+  MdBarChart, 
+  MdTrendingUp,
+  MdRefresh,
+  MdSettings,
+  MdWarning,
+  MdCheckCircle,
+  MdError,
+  MdInfo,
+  MdDownload,
+  MdFilterList
+} from 'react-icons/md';
 
 interface SystemMetrics {
   cpu: {
@@ -138,7 +113,6 @@ const SystemMonitoringDashboard: React.FC = () => {
 
   const fetchMetrics = async () => {
     try {
-      // Fetch real system metrics from API
       const response = await fetch('/api/admin/system/metrics', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
@@ -155,7 +129,6 @@ const SystemMonitoringDashboard: React.FC = () => {
         console.error('Failed to fetch system metrics');
       }
 
-      // Fetch system status including queue and database status
       const statusResponse = await fetch('/api/admin/system/status', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
@@ -168,7 +141,6 @@ const SystemMonitoringDashboard: React.FC = () => {
         if (statusResult.success) {
           const systemStatus = statusResult.data;
           
-          // Update queue status
           if (systemStatus.judge_queue) {
             setQueueStatus([{
               name: 'Judge Queue',
@@ -182,7 +154,6 @@ const SystemMonitoringDashboard: React.FC = () => {
             }]);
           }
 
-          // Update database status
           if (systemStatus.database) {
             setDbStatus({
               status: systemStatus.database.status || 'disconnected',
@@ -267,441 +238,1027 @@ const SystemMonitoringDashboard: React.FC = () => {
   const healthStatus = getHealthStatus();
 
   return (
-    <Box>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600 }}>
-          System Monitoring Dashboard
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Chip
-            label={`System ${healthStatus.status}`}
-            color={healthStatus.color as any}
-icon={healthStatus.status === 'healthy' ? '✓' : 
-                  healthStatus.status === 'warning' ? '!' : '!'}
-            sx={{ textTransform: 'capitalize' }}
-          />
-          <FormControlLabel
-            control={
-              <Switch
-                checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-                size="small"
-              />
-            }
-            label="Auto-refresh"
-          />
-          <IconButton onClick={fetchMetrics} disabled={autoRefresh}>
-            ↻
-          </IconButton>
-        </Box>
-      </Box>
-
-      {/* Overview Cards */}
-      <Box sx={{ 
-        display: 'grid', 
-        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, 
-        gap: 3, 
-        mb: 3 
+    <div style={{
+      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+      maxWidth: '1400px',
+      margin: '0 auto',
+      padding: '24px'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '32px'
       }}>
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <Typography sx={{ mr: 1, color: 'primary.main' }}>💻</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                CPU Usage
-              </Typography>
-            </Box>
-            <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-              {metrics.cpu.usage_percent}%
-            </Typography>
-            <LinearProgress
-              variant="determinate"
-              value={metrics.cpu.usage_percent}
-              color={metrics.cpu.usage_percent > 80 ? 'error' : metrics.cpu.usage_percent > 60 ? 'warning' : 'success'}
-              sx={{ height: 6, borderRadius: 3 }}
+        <h1 style={{
+          fontSize: '1.75rem',
+          fontWeight: 700,
+          color: '#1d4ed8',
+          margin: 0,
+          letterSpacing: '-0.02em'
+        }}>
+          System Monitoring Dashboard
+        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '6px 12px',
+            borderRadius: '16px',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            textTransform: 'capitalize',
+            backgroundColor: healthStatus.status === 'healthy' ? '#dcfce7' :
+                            healthStatus.status === 'warning' ? '#fef3c7' : '#fef2f2',
+            color: healthStatus.status === 'healthy' ? '#166534' :
+                   healthStatus.status === 'warning' ? '#92400e' : '#dc2626',
+            border: `1px solid ${
+              healthStatus.status === 'healthy' ? '#bbf7d0' :
+              healthStatus.status === 'warning' ? '#fcd34d' : '#fecaca'
+            }`
+          }}>
+            <span style={{ fontSize: '14px' }}>
+              {healthStatus.status === 'healthy' ? <MdCheckCircle /> : 
+               healthStatus.status === 'warning' ? <MdWarning /> : <MdError />}
+            </span>
+            System {healthStatus.status}
+          </div>
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '0.875rem',
+            color: '#374151',
+            cursor: 'pointer'
+          }}>
+            <input
+              type="checkbox"
+              checked={autoRefresh}
+              onChange={(e) => setAutoRefresh(e.target.checked)}
+              style={{
+                width: '16px',
+                height: '16px',
+                accentColor: '#1d4ed8'
+              }}
             />
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-              Load: {metrics.cpu.load_average[0].toFixed(2)}
-            </Typography>
-          </CardContent>
-        </Card>
+            Auto-refresh
+          </label>
+          <button
+            onClick={fetchMetrics}
+            disabled={autoRefresh}
+            style={{
+              padding: '8px',
+              border: '2px solid #e2e8f0',
+              backgroundColor: autoRefresh ? '#f3f4f6' : '#ffffff',
+              color: autoRefresh ? '#9ca3af' : '#475569',
+              borderRadius: '8px',
+              cursor: autoRefresh ? 'not-allowed' : 'pointer',
+              fontWeight: 500,
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+            onMouseEnter={(e) => {
+              if (!autoRefresh) {
+                e.currentTarget.style.borderColor = '#cbd5e0';
+                e.currentTarget.style.backgroundColor = '#f8fafc';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!autoRefresh) {
+                e.currentTarget.style.borderColor = '#e2e8f0';
+                e.currentTarget.style.backgroundColor = '#ffffff';
+              }
+            }}
+          >
+            <MdRefresh style={{ fontSize: '16px' }} />
+          </button>
+        </div>
+      </div>
 
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <Typography sx={{ mr: 1, color: 'secondary.main' }}>💾</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Memory Usage
-              </Typography>
-            </Box>
-            <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-              {metrics.memory.usage_percent}%
-            </Typography>
-            <LinearProgress
-              variant="determinate"
-              value={metrics.memory.usage_percent}
-              color={metrics.memory.usage_percent > 85 ? 'error' : metrics.memory.usage_percent > 70 ? 'warning' : 'success'}
-              sx={{ height: 6, borderRadius: 3 }}
-            />
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-              {formatBytes(metrics.memory.used_mb * 1024 * 1024)} / {formatBytes(metrics.memory.total_mb * 1024 * 1024)}
-            </Typography>
-          </CardContent>
-        </Card>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: window.innerWidth >= 768 ? 'repeat(4, 1fr)' : window.innerWidth >= 640 ? 'repeat(2, 1fr)' : '1fr',
+        gap: '24px',
+        marginBottom: '32px'
+      }}>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ marginRight: '12px', color: '#1d4ed8', fontSize: '24px', display: 'flex', alignItems: 'center' }}>
+              <MdBarChart />
+            </div>
+            <h3 style={{
+              fontSize: '1.125rem',
+              fontWeight: 600,
+              color: '#1f2937',
+              margin: 0
+            }}>
+              CPU Usage
+            </h3>
+          </div>
+          <div style={{
+            fontSize: '2.25rem',
+            fontWeight: 600,
+            color: '#1f2937',
+            marginBottom: '12px'
+          }}>
+            {metrics.cpu.usage_percent}%
+          </div>
+          <div style={{
+            width: '100%',
+            height: '6px',
+            backgroundColor: '#f3f4f6',
+            borderRadius: '3px',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              width: `${metrics.cpu.usage_percent}%`,
+              height: '100%',
+              backgroundColor: metrics.cpu.usage_percent > 80 ? '#ef4444' : metrics.cpu.usage_percent > 60 ? '#f59e0b' : '#22c55e',
+              borderRadius: '3px',
+              transition: 'width 0.3s ease'
+            }} />
+          </div>
+          <div style={{
+            fontSize: '0.75rem',
+            color: '#6b7280',
+            marginTop: '8px'
+          }}>
+            Load: {metrics.cpu.load_average[0].toFixed(2)}
+          </div>
+        </div>
 
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <Typography sx={{ mr: 1, color: 'info.main' }}>💾</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Disk Usage
-              </Typography>
-            </Box>
-            <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-              {metrics.disk.usage_percent}%
-            </Typography>
-            <LinearProgress
-              variant="determinate"
-              value={metrics.disk.usage_percent}
-              color={metrics.disk.usage_percent > 90 ? 'error' : metrics.disk.usage_percent > 75 ? 'warning' : 'success'}
-              sx={{ height: 6, borderRadius: 3 }}
-            />
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-              {metrics.disk.used_gb} GB / {metrics.disk.total_gb} GB
-            </Typography>
-          </CardContent>
-        </Card>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ marginRight: '12px', color: '#7c3aed', fontSize: '24px', display: 'flex', alignItems: 'center' }}>
+              <MdStorage />
+            </div>
+            <h3 style={{
+              fontSize: '1.125rem',
+              fontWeight: 600,
+              color: '#1f2937',
+              margin: 0
+            }}>
+              Memory Usage
+            </h3>
+          </div>
+          <div style={{
+            fontSize: '2.25rem',
+            fontWeight: 600,
+            color: '#1f2937',
+            marginBottom: '12px'
+          }}>
+            {metrics.memory.usage_percent}%
+          </div>
+          <div style={{
+            width: '100%',
+            height: '6px',
+            backgroundColor: '#f3f4f6',
+            borderRadius: '3px',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              width: `${metrics.memory.usage_percent}%`,
+              height: '100%',
+              backgroundColor: metrics.memory.usage_percent > 85 ? '#ef4444' : metrics.memory.usage_percent > 70 ? '#f59e0b' : '#22c55e',
+              borderRadius: '3px',
+              transition: 'width 0.3s ease'
+            }} />
+          </div>
+          <div style={{
+            fontSize: '0.75rem',
+            color: '#6b7280',
+            marginTop: '8px'
+          }}>
+            {formatBytes(metrics.memory.used_mb * 1024 * 1024)} / {formatBytes(metrics.memory.total_mb * 1024 * 1024)}
+          </div>
+        </div>
 
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <Typography sx={{ mr: 1, color: 'success.main' }}>⏲</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Uptime
-              </Typography>
-            </Box>
-            <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-              {formatUptime(metrics.uptime_seconds)}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {metrics.processes.total} processes running
-            </Typography>
-          </CardContent>
-        </Card>
-      </Box>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ marginRight: '12px', color: '#0891b2', fontSize: '24px', display: 'flex', alignItems: 'center' }}>
+              <MdStorage />
+            </div>
+            <h3 style={{
+              fontSize: '1.125rem',
+              fontWeight: 600,
+              color: '#1f2937',
+              margin: 0
+            }}>
+              Disk Usage
+            </h3>
+          </div>
+          <div style={{
+            fontSize: '2.25rem',
+            fontWeight: 600,
+            color: '#1f2937',
+            marginBottom: '12px'
+          }}>
+            {metrics.disk.usage_percent}%
+          </div>
+          <div style={{
+            width: '100%',
+            height: '6px',
+            backgroundColor: '#f3f4f6',
+            borderRadius: '3px',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              width: `${metrics.disk.usage_percent}%`,
+              height: '100%',
+              backgroundColor: metrics.disk.usage_percent > 90 ? '#ef4444' : metrics.disk.usage_percent > 75 ? '#f59e0b' : '#22c55e',
+              borderRadius: '3px',
+              transition: 'width 0.3s ease'
+            }} />
+          </div>
+          <div style={{
+            fontSize: '0.75rem',
+            color: '#6b7280',
+            marginTop: '8px'
+          }}>
+            {metrics.disk.used_gb} GB / {metrics.disk.total_gb} GB
+          </div>
+        </div>
 
-      {/* Detailed Monitoring Tabs */}
-      <Card>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={selectedTab} onChange={(_, newValue) => setSelectedTab(newValue)}>
-            <Tab label="Queue Status" />
-            <Tab label="Database" />
-            <Tab label="System Logs" />
-            <Tab label="Configuration" />
-          </Tabs>
-        </Box>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ marginRight: '12px', color: '#22c55e', fontSize: '24px', display: 'flex', alignItems: 'center' }}>
+              <MdTrendingUp />
+            </div>
+            <h3 style={{
+              fontSize: '1.125rem',
+              fontWeight: 600,
+              color: '#1f2937',
+              margin: 0
+            }}>
+              Uptime
+            </h3>
+          </div>
+          <div style={{
+            fontSize: '2.25rem',
+            fontWeight: 600,
+            color: '#1f2937',
+            marginBottom: '12px'
+          }}>
+            {formatUptime(metrics.uptime_seconds)}
+          </div>
+          <div style={{
+            fontSize: '0.75rem',
+            color: '#6b7280'
+          }}>
+            {metrics.processes.total} processes running
+          </div>
+        </div>
+      </div>
 
-        <CardContent>
-          {/* Queue Status Tab */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)'
+      }}>
+        <div style={{
+          borderBottom: '1px solid #e5e7eb',
+          padding: '0 24px'
+        }}>
+          <div style={{
+            display: 'flex',
+            borderBottom: '1px solid #e5e7eb'
+          }}>
+            {[
+              { label: 'Queue Status', index: 0 },
+              { label: 'Database', index: 1 },
+              { label: 'System Logs', index: 2 },
+              { label: 'Configuration', index: 3 }
+            ].map(tab => (
+              <button
+                key={tab.index}
+                onClick={() => setSelectedTab(tab.index)}
+                style={{
+                  padding: '16px 24px',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  color: selectedTab === tab.index ? '#1d4ed8' : '#6b7280',
+                  cursor: 'pointer',
+                  fontWeight: selectedTab === tab.index ? 600 : 500,
+                  fontSize: '0.95rem',
+                  borderBottom: `3px solid ${selectedTab === tab.index ? '#1d4ed8' : 'transparent'}`,
+                  transition: 'all 0.2s ease',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedTab !== tab.index) {
+                    e.currentTarget.style.color = '#4b5563';
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedTab !== tab.index) {
+                    e.currentTarget.style.color = '#6b7280';
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ padding: '24px' }}>
           {selectedTab === 0 && (
-            <Box>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+            <div>
+              <h3 style={{
+                fontSize: '1.125rem',
+                fontWeight: 600,
+                color: '#1f2937',
+                marginBottom: '20px'
+              }}>
                 Queue Status & Workers
-              </Typography>
-              <Box sx={{ 
-                display: 'grid', 
-                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
-                gap: 2 
+              </h3>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: window.innerWidth >= 768 ? 'repeat(2, 1fr)' : '1fr',
+                gap: '16px'
               }}>
                 {queueStatus.map((queue, index) => (
-                  <Paper key={index} sx={{ p: 2, border: 1, borderColor: 'divider' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        {queue.name}
-                      </Typography>
-                      <Chip
-                        label={`${queue.workers_active}/${queue.workers_total} workers`}
-                        color={queue.workers_active === queue.workers_total ? 'success' : 'warning'}
-                        size="small"
-                      />
-                    </Box>
-                    
-                    <Box sx={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: '1fr 1fr', 
-                      gap: 2 
+                  <div key={index} style={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '12px',
+                    padding: '20px'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '16px'
                     }}>
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">Pending</Typography>
-                        <Typography variant="h5" sx={{ fontWeight: 600 }}>{queue.pending}</Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">Processing</Typography>
-                        <Typography variant="h5" sx={{ fontWeight: 600 }}>{queue.processing}</Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">Completed</Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 600 }}>{queue.completed}</Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">Failed</Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 600, color: 'error.main' }}>{queue.failed}</Typography>
-                      </Box>
-                    </Box>
+                      <h4 style={{
+                        fontSize: '1.125rem',
+                        fontWeight: 600,
+                        color: '#1f2937',
+                        margin: 0
+                      }}>
+                        {queue.name}
+                      </h4>
+                      <span style={{
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        backgroundColor: queue.workers_active === queue.workers_total ? '#dcfce7' : '#fef3c7',
+                        color: queue.workers_active === queue.workers_total ? '#166534' : '#92400e'
+                      }}>
+                        {queue.workers_active}/{queue.workers_total} workers
+                      </span>
+                    </div>
+                    
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, 1fr)',
+                      gap: '16px'
+                    }}>
+                      <div>
+                        <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '4px' }}>Pending</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1f2937' }}>{queue.pending}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '4px' }}>Processing</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1f2937' }}>{queue.processing}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '4px' }}>Completed</div>
+                        <div style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937' }}>{queue.completed}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '4px' }}>Failed</div>
+                        <div style={{ fontSize: '1rem', fontWeight: 600, color: '#ef4444' }}>{queue.failed}</div>
+                      </div>
+                    </div>
                       
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="body2" color="text.secondary">
+                    <div style={{ marginTop: '16px' }}>
+                      <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '8px' }}>
                         Avg. Processing Time: {queue.avg_processing_time_seconds.toFixed(1)}s
-                      </Typography>
-                      <LinearProgress
-                        variant="determinate"
-                        value={Math.min(100, (queue.pending / (queue.pending + queue.completed)) * 100)}
-                        color={queue.pending > 20 ? 'error' : 'success'}
-                        sx={{ mt: 1, height: 4 }}
-                      />
-                    </Box>
-                  </Paper>
+                      </div>
+                      <div style={{
+                        width: '100%',
+                        height: '4px',
+                        backgroundColor: '#f3f4f6',
+                        borderRadius: '2px',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{
+                          width: `${Math.min(100, (queue.pending / (queue.pending + queue.completed)) * 100)}%`,
+                          height: '100%',
+                          backgroundColor: queue.pending > 20 ? '#ef4444' : '#22c55e',
+                          borderRadius: '2px',
+                          transition: 'width 0.3s ease'
+                        }} />
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
 
-          {/* Database Tab */}
           {selectedTab === 1 && (
-            <Box>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+            <div>
+              <h3 style={{
+                fontSize: '1.125rem',
+                fontWeight: 600,
+                color: '#1f2937',
+                marginBottom: '20px'
+              }}>
                 Database Status
-              </Typography>
-              <Box sx={{ 
-                display: 'grid', 
-                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
-                gap: 3 
+              </h3>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: window.innerWidth >= 768 ? 'repeat(2, 1fr)' : '1fr',
+                gap: '24px'
               }}>
-                <Box>
-                  <List>
-                    <ListItem>
-                      <ListItemIcon>
-                        <Typography sx={{ color: dbStatus.status === 'connected' ? 'success.main' : 'error.main' }}>🔗</Typography>
-                      </ListItemIcon>
-                      <ListItemText
-                        primary="Connection Status"
-                        secondary={dbStatus.status}
-                      />
-                      <ListItemSecondaryAction>
-                        <Chip
-                          label={dbStatus.status}
-                          color={dbStatus.status === 'connected' ? 'success' : 'error'}
-                          size="small"
-                          sx={{ textTransform: 'capitalize' }}
-                        />
-                      </ListItemSecondaryAction>
-                    </ListItem>
+                <div>
+                  <div style={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '12px',
+                    padding: '0'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '16px 20px',
+                      borderBottom: '1px solid #f3f4f6'
+                    }}>
+                      <div style={{
+                        marginRight: '16px',
+                        color: dbStatus.status === 'connected' ? '#22c55e' : '#ef4444',
+                        fontSize: '20px',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}>
+                        {dbStatus.status === 'connected' ? <MdCheckCircle /> : <MdError />}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, color: '#1f2937', marginBottom: '2px' }}>Connection Status</div>
+                        <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>{dbStatus.status}</div>
+                      </div>
+                      <span style={{
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        textTransform: 'capitalize',
+                        backgroundColor: dbStatus.status === 'connected' ? '#dcfce7' : '#fef2f2',
+                        color: dbStatus.status === 'connected' ? '#166534' : '#dc2626'
+                      }}>
+                        {dbStatus.status}
+                      </span>
+                    </div>
 
-                    <ListItem>
-                      <ListItemIcon>
-                        <Typography>📊</Typography>
-                      </ListItemIcon>
-                      <ListItemText
-                        primary="Response Time"
-                        secondary={`${dbStatus.response_time_ms}ms average`}
-                      />
-                    </ListItem>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '16px 20px',
+                      borderBottom: '1px solid #f3f4f6'
+                    }}>
+                      <div style={{
+                        marginRight: '16px',
+                        color: '#1d4ed8',
+                        fontSize: '20px',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}>
+                        <MdBarChart />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#1f2937', marginBottom: '2px' }}>Response Time</div>
+                        <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>{dbStatus.response_time_ms}ms average</div>
+                      </div>
+                    </div>
 
-                    <ListItem>
-                      <ListItemIcon>
-                        <Typography>☁</Typography>
-                      </ListItemIcon>
-                      <ListItemText
-                        primary="Active Connections"
-                        secondary={`${dbStatus.connections_active} / ${dbStatus.connections_max}`}
-                      />
-                      <ListItemSecondaryAction>
-                        <LinearProgress
-                          variant="determinate"
-                          value={(dbStatus.connections_active / dbStatus.connections_max) * 100}
-                          sx={{ width: 60, height: 6 }}
-                        />
-                      </ListItemSecondaryAction>
-                    </ListItem>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '16px 20px',
+                      borderBottom: '1px solid #f3f4f6'
+                    }}>
+                      <div style={{
+                        marginRight: '16px',
+                        color: '#0891b2',
+                        fontSize: '20px',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}>
+                        <MdStorage />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, color: '#1f2937', marginBottom: '2px' }}>Active Connections</div>
+                        <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>{dbStatus.connections_active} / {dbStatus.connections_max}</div>
+                      </div>
+                      <div style={{
+                        width: '60px',
+                        height: '6px',
+                        backgroundColor: '#f3f4f6',
+                        borderRadius: '3px',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{
+                          width: `${(dbStatus.connections_active / dbStatus.connections_max) * 100}%`,
+                          height: '100%',
+                          backgroundColor: '#1d4ed8',
+                          borderRadius: '3px'
+                        }} />
+                      </div>
+                    </div>
 
-                    <ListItem>
-                      <ListItemIcon>
-                        <Typography>📈</Typography>
-                      </ListItemIcon>
-                      <ListItemText
-                        primary="Queries per Second"
-                        secondary={dbStatus.queries_per_second.toString()}
-                      />
-                    </ListItem>
-                  </List>
-                </Box>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '16px 20px'
+                    }}>
+                      <div style={{
+                        marginRight: '16px',
+                        color: '#22c55e',
+                        fontSize: '20px',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}>
+                        <MdTrendingUp />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#1f2937', marginBottom: '2px' }}>Queries per Second</div>
+                        <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>{dbStatus.queries_per_second.toString()}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-                <Box>
-                  <Alert severity={dbStatus.status === 'connected' ? 'success' : 'error'}>
+                <div>
+                  <div style={{
+                    padding: '16px 20px',
+                    borderRadius: '12px',
+                    backgroundColor: dbStatus.status === 'connected' ? '#dcfce7' : '#fef2f2',
+                    color: dbStatus.status === 'connected' ? '#166534' : '#dc2626',
+                    border: `1px solid ${dbStatus.status === 'connected' ? '#bbf7d0' : '#fecaca'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <span style={{ fontSize: '18px' }}>
+                      {dbStatus.status === 'connected' ? <MdCheckCircle /> : <MdError />}
+                    </span>
                     Database is {dbStatus.status === 'connected' ? 'operating normally' : 'experiencing issues'}
-                  </Alert>
-                </Box>
-              </Box>
-            </Box>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
-          {/* System Logs Tab */}
           {selectedTab === 2 && (
-            <Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Recent System Logs
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <FormControl size="small" sx={{ minWidth: 100 }}>
-                    <InputLabel>Filter</InputLabel>
-                    <Select
-                      value={logFilter}
-                      label="Filter"
-                      onChange={(e) => setLogFilter(e.target.value as any)}
-                    >
-                      <MenuItem value="all">All</MenuItem>
-                      <MenuItem value="error">Errors</MenuItem>
-                      <MenuItem value="warning">Warnings</MenuItem>
-                      <MenuItem value="info">Info</MenuItem>
-                    </Select>
-                  </FormControl>
-                  <Button size="small">↓ Export</Button>
-                  <Button size="small" color="error">🗑 Clear</Button>
-                </Box>
-              </Box>
-
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Timestamp</TableCell>
-                      <TableCell>Level</TableCell>
-                      <TableCell>Service</TableCell>
-                      <TableCell>Message</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {filteredLogs.map((log) => (
-                      <TableRow key={log.id}>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {new Date(log.timestamp).toLocaleString()}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={log.level}
-                            color={getLogLevelColor(log.level) as any}
-                            size="small"
-                            sx={{ textTransform: 'uppercase' }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                            {log.service}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {log.message}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <IconButton size="small">
-                            👁
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Box>
-          )}
-
-          {/* Configuration Tab */}
-          {selectedTab === 3 && (
-            <Box>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                Monitoring Configuration
-              </Typography>
-              <Box sx={{ 
-                display: 'grid', 
-                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
-                gap: 3 
+            <div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '16px'
               }}>
-                <Box>
-                  <FormControl fullWidth sx={{ mb: 2 }}>
-                    <InputLabel>Refresh Interval</InputLabel>
-                    <Select
-                      value={refreshInterval}
-                      label="Refresh Interval"
-                      onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                <h3 style={{
+                  fontSize: '1.125rem',
+                  fontWeight: 600,
+                  color: '#1f2937',
+                  margin: 0
+                }}>
+                  Recent System Logs
+                </h3>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      value={logFilter}
+                      onChange={(e) => setLogFilter(e.target.value as any)}
+                      style={{
+                        padding: '8px 32px 8px 12px',
+                        border: '2px solid #e2e8f0',
+                        borderRadius: '8px',
+                        fontSize: '0.875rem',
+                        backgroundColor: '#ffffff',
+                        color: '#374151',
+                        cursor: 'pointer',
+                        appearance: 'none',
+                        minWidth: '100px'
+                      }}
                     >
-                      <MenuItem value={1}>1 second</MenuItem>
-                      <MenuItem value={5}>5 seconds</MenuItem>
-                      <MenuItem value={10}>10 seconds</MenuItem>
-                      <MenuItem value={30}>30 seconds</MenuItem>
-                      <MenuItem value={60}>1 minute</MenuItem>
-                    </Select>
-                  </FormControl>
+                      <option value="all">All</option>
+                      <option value="error">Errors</option>
+                      <option value="warning">Warnings</option>
+                      <option value="info">Info</option>
+                    </select>
+                    <div style={{
+                      position: 'absolute',
+                      right: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      pointerEvents: 'none',
+                      color: '#6b7280'
+                    }}>
+                      <MdFilterList style={{ fontSize: '16px' }} />
+                    </div>
+                  </div>
+                  <button style={{
+                    padding: '8px 12px',
+                    border: '2px solid #e2e8f0',
+                    backgroundColor: '#ffffff',
+                    color: '#475569',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <MdDownload style={{ fontSize: '14px' }} /> Export
+                  </button>
+                  <button style={{
+                    padding: '8px 12px',
+                    border: '2px solid #ef4444',
+                    backgroundColor: '#ef4444',
+                    color: '#ffffff',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <MdError style={{ fontSize: '14px' }} /> Clear
+                  </button>
+                </div>
+              </div>
 
-                  <TextField
-                    fullWidth
-                    label="CPU Alert Threshold (%)"
-                    type="number"
-                    defaultValue={80}
-                    sx={{ mb: 2 }}
-                  />
-
-                  <TextField
-                    fullWidth
-                    label="Memory Alert Threshold (%)"
-                    type="number"
-                    defaultValue={85}
-                    sx={{ mb: 2 }}
-                  />
-                </Box>
-
-                <Box>
-                  <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
-                    Alert Settings
-                  </Typography>
-                  <FormControlLabel
-                    control={<Switch defaultChecked />}
-                    label="Email notifications"
-                  />
-                  <FormControlLabel
-                    control={<Switch defaultChecked />}
-                    label="High CPU alerts"
-                  />
-                  <FormControlLabel
-                    control={<Switch defaultChecked />}
-                    label="Memory alerts"
-                  />
-                  <FormControlLabel
-                    control={<Switch />}
-                    label="Disk space alerts"
-                  />
-                </Box>
-              </Box>
-
-              <Box sx={{ mt: 3 }}>
-                <Button variant="contained" sx={{ mr: 2 }}>
-                  Save Configuration
-                </Button>
-                <Button variant="outlined">
-                  Reset to Defaults
-                </Button>
-              </Box>
-            </Box>
+              <div style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid #e5e7eb',
+                borderRadius: '12px',
+                overflow: 'hidden'
+              }}>
+                <table style={{
+                  width: '100%',
+                  borderCollapse: 'collapse'
+                }}>
+                  <thead style={{
+                    backgroundColor: '#f8fafc',
+                    borderBottom: '2px solid #e5e7eb'
+                  }}>
+                    <tr>
+                      <th style={{
+                        padding: '12px 16px',
+                        textAlign: 'left',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                        color: '#374151'
+                      }}>Timestamp</th>
+                      <th style={{
+                        padding: '12px 16px',
+                        textAlign: 'left',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                        color: '#374151'
+                      }}>Level</th>
+                      <th style={{
+                        padding: '12px 16px',
+                        textAlign: 'left',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                        color: '#374151'
+                      }}>Service</th>
+                      <th style={{
+                        padding: '12px 16px',
+                        textAlign: 'left',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                        color: '#374151'
+                      }}>Message</th>
+                      <th style={{
+                        padding: '12px 16px',
+                        textAlign: 'left',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                        color: '#374151'
+                      }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredLogs.map((log) => (
+                      <tr key={log.id} style={{
+                        borderBottom: '1px solid #f3f4f6'
+                      }}>
+                        <td style={{ padding: '12px 16px', fontSize: '0.875rem', color: '#1f2937' }}>
+                          {new Date(log.timestamp).toLocaleString()}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span style={{
+                            padding: '4px 8px',
+                            borderRadius: '12px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            backgroundColor: log.level === 'error' ? '#fef2f2' : 
+                                           log.level === 'warning' ? '#fef3c7' : '#f0f9ff',
+                            color: log.level === 'error' ? '#dc2626' : 
+                                   log.level === 'warning' ? '#92400e' : '#1d4ed8'
+                          }}>
+                            {log.level}
+                          </span>
+                        </td>
+                        <td style={{
+                          padding: '12px 16px',
+                          fontSize: '0.875rem',
+                          color: '#1f2937',
+                          fontFamily: 'monospace'
+                        }}>
+                          {log.service}
+                        </td>
+                        <td style={{ padding: '12px 16px', fontSize: '0.875rem', color: '#1f2937' }}>
+                          {log.message}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <button style={{
+                            padding: '4px',
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            color: '#6b7280',
+                            cursor: 'pointer',
+                            borderRadius: '4px',
+                            fontSize: '16px'
+                          }}>
+                            <MdInfo />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
-        </CardContent>
-      </Card>
-    </Box>
+
+          {selectedTab === 3 && (
+            <div>
+              <h3 style={{
+                fontSize: '1.125rem',
+                fontWeight: 600,
+                color: '#1f2937',
+                marginBottom: '20px'
+              }}>
+                Monitoring Configuration
+              </h3>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: window.innerWidth >= 768 ? 'repeat(2, 1fr)' : '1fr',
+                gap: '24px'
+              }}>
+                <div>
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      color: '#374151',
+                      marginBottom: '8px'
+                    }}>
+                      Refresh Interval
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <select
+                        value={refreshInterval}
+                        onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                        style={{
+                          width: '100%',
+                          padding: '12px 32px 12px 16px',
+                          border: '2px solid #e2e8f0',
+                          borderRadius: '8px',
+                          fontSize: '1rem',
+                          backgroundColor: '#ffffff',
+                          color: '#1f2937',
+                          cursor: 'pointer',
+                          appearance: 'none'
+                        }}
+                      >
+                        <option value={1}>1 second</option>
+                        <option value={5}>5 seconds</option>
+                        <option value={10}>10 seconds</option>
+                        <option value={30}>30 seconds</option>
+                        <option value={60}>1 minute</option>
+                      </select>
+                      <div style={{
+                        position: 'absolute',
+                        right: '12px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        pointerEvents: 'none',
+                        color: '#6b7280'
+                      }}>
+                        <MdSettings style={{ fontSize: '16px' }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      color: '#374151',
+                      marginBottom: '8px'
+                    }}>
+                      CPU Alert Threshold (%)
+                    </label>
+                    <input
+                      type="number"
+                      defaultValue={80}
+                      style={{
+                        width: '100%',
+                        border: '2px solid #e2e8f0',
+                        borderRadius: '8px',
+                        fontSize: '1rem',
+                        padding: '12px 16px',
+                        backgroundColor: '#ffffff',
+                        color: '#1f2937'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      color: '#374151',
+                      marginBottom: '8px'
+                    }}>
+                      Memory Alert Threshold (%)
+                    </label>
+                    <input
+                      type="number"
+                      defaultValue={85}
+                      style={{
+                        width: '100%',
+                        border: '2px solid #e2e8f0',
+                        borderRadius: '8px',
+                        fontSize: '1rem',
+                        padding: '12px 16px',
+                        backgroundColor: '#ffffff',
+                        color: '#1f2937'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <h4 style={{
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    color: '#1f2937',
+                    marginBottom: '16px'
+                  }}>
+                    Alert Settings
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '0.875rem',
+                      color: '#374151',
+                      cursor: 'pointer'
+                    }}>
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{
+                          width: '16px',
+                          height: '16px',
+                          accentColor: '#1d4ed8'
+                        }}
+                      />
+                      Email notifications
+                    </label>
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '0.875rem',
+                      color: '#374151',
+                      cursor: 'pointer'
+                    }}>
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{
+                          width: '16px',
+                          height: '16px',
+                          accentColor: '#1d4ed8'
+                        }}
+                      />
+                      High CPU alerts
+                    </label>
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '0.875rem',
+                      color: '#374151',
+                      cursor: 'pointer'
+                    }}>
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        style={{
+                          width: '16px',
+                          height: '16px',
+                          accentColor: '#1d4ed8'
+                        }}
+                      />
+                      Memory alerts
+                    </label>
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '0.875rem',
+                      color: '#374151',
+                      cursor: 'pointer'
+                    }}>
+                      <input
+                        type="checkbox"
+                        style={{
+                          width: '16px',
+                          height: '16px',
+                          accentColor: '#1d4ed8'
+                        }}
+                      />
+                      Disk space alerts
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
+                <button style={{
+                  padding: '12px 24px',
+                  border: '2px solid #1d4ed8',
+                  background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+                  color: '#ffffff',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                  transition: 'all 0.2s ease',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                }}>
+                  Save Configuration
+                </button>
+                <button style={{
+                  padding: '12px 24px',
+                  border: '2px solid #e2e8f0',
+                  backgroundColor: '#ffffff',
+                  color: '#475569',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                  transition: 'all 0.2s ease',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                }}>
+                  Reset to Defaults
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

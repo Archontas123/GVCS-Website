@@ -1,17 +1,18 @@
-/**
- * Hackathon Judging Engine - Phase 4.2
- * Handles test case execution, verdict determination, and output comparison
- */
-
 const multiLangExecutor = require('./multiLangExecutor');
 const ExecutionMonitor = require('./executionMonitor');
 const { db } = require('../utils/db');
 const fs = require('fs').promises;
 const path = require('path');
 
+/**
+ * Judge Engine Service for executing and evaluating code submissions
+ * Manages test case execution, verdict determination, and performance monitoring
+ */
 class JudgeEngine {
+  /**
+   * Initialize judge engine with performance monitoring and scoring configuration
+   */
   constructor() {
-    // Initialize performance monitor
     this.performanceMonitor = new ExecutionMonitor();
     
     this.verdicts = {
@@ -131,23 +132,14 @@ class JudgeEngine {
         judgeResult.accepted = true;
         judgeResult.score = this.scoring.AC_POINTS;
         
-        // Check if this is the first solve
-        const isFirstSolve = await this.checkFirstSolve(problemId, contestId, teamId);
-        if (isFirstSolve) {
-          judgeResult.firstSolve = true;
-        }
         
-        // Update team score
         await this.updateTeamScore(contestId, teamId, problemId, judgeResult);
       } else {
-        // Wrong submission adds penalty
         await this.addPenalty(contestId, teamId, problemId);
       }
 
-      // Step 4: Update submission in database
       await this.updateSubmissionResult(submissionId, judgeResult, true);
       
-      // Step 5: Broadcast final result
       await this.broadcastSubmissionResult({
         ...judgeResult,
         submissionId,
@@ -174,6 +166,11 @@ class JudgeEngine {
 
   /**
    * Compile code using multi-language executor
+   * @param {string} code - Source code to compile
+   * @param {string} language - Programming language
+   * @param {number} timeLimit - Maximum compilation time in milliseconds
+   * @returns {Promise<Object>} Compilation result with success status and error details
+   * @throws {Error} If compilation system error occurs
    */
   async compileCode(code, language, timeLimit) {
     try {
@@ -191,6 +188,13 @@ class JudgeEngine {
 
   /**
    * Run all test cases with all-or-nothing evaluation
+   * @param {string} code - Source code to execute
+   * @param {string} language - Programming language
+   * @param {Array} testCases - Array of test case objects with input/output
+   * @param {number} timeLimit - Maximum execution time per test case in milliseconds
+   * @param {number} memoryLimit - Maximum memory usage in MB
+   * @returns {Promise<Object>} Test execution result with verdict and performance data
+   * @throws {Error} If system error occurs during testing
    */
   async runAllTestCases(code, language, testCases, timeLimit, memoryLimit) {
     let result = {
@@ -202,13 +206,11 @@ class JudgeEngine {
       details: []
     };
 
-    // Run all test cases, stop on first failure
     for (let i = 0; i < testCases.length; i++) {
       const testCase = testCases[i];
       result.testCasesRun++;
 
       try {
-        // Use performance monitor for enhanced execution monitoring
         const executeResult = await multiLangExecutor.executeCode(
           code, 
           language, 
@@ -224,7 +226,6 @@ class JudgeEngine {
         result.totalTime += executeResult.executionTime || 0;
         result.maxMemory = Math.max(result.maxMemory, executeResult.memoryUsed || 0);
 
-        // Collect performance metrics if available
         if (executeResult.monitoring) {
           judgeResult.performanceMetrics.netExecutionTime += executeResult.netExecutionTime || 0;
           judgeResult.performanceMetrics.containerOverhead += executeResult.monitoring.containerOverhead || 0;
@@ -233,7 +234,6 @@ class JudgeEngine {
           judgeResult.performanceMetrics.systemCalls += executeResult.monitoring.systemCalls || 0;
         }
 
-        // Analyze execution result
         const testVerdict = this.analyzeExecution(executeResult, testCase, timeLimit, memoryLimit);
         
         result.details.push({
@@ -252,7 +252,6 @@ class JudgeEngine {
         if (testVerdict === this.verdicts.AC) {
           result.testCasesPassed++;
         } else {
-          // Stop on first failure
           result.verdict = testVerdict;
           break;
         }
@@ -273,21 +272,23 @@ class JudgeEngine {
 
   /**
    * Analyze execution result and determine verdict
+   * @param {Object} executeResult - Result from code execution
+   * @param {Object} testCase - Test case with expected output
+   * @param {number} timeLimit - Time limit in milliseconds
+   * @param {number} memoryLimit - Memory limit in MB
+   * @returns {string} Verdict code (AC, WA, TLE, RTE, etc.)
    */
   analyzeExecution(executeResult, testCase, timeLimit, memoryLimit) {
-    // Check for compilation error (shouldn't happen here, but safety check)
     if (executeResult.verdict === 'Compilation Error') {
       return this.verdicts.CE;
     }
 
-    // Check for time limit exceeded
     if (executeResult.executionTime > timeLimit || 
         executeResult.verdict === 'Time Limit Exceeded' ||
         executeResult.error.includes('Time limit exceeded')) {
       return this.verdicts.TLE;
     }
 
-    // Check for memory limit exceeded
     if (executeResult.memoryUsed > memoryLimit ||
         executeResult.verdict === 'Memory Limit Exceeded' ||
         executeResult.error.includes('Memory limit') ||
@@ -295,7 +296,6 @@ class JudgeEngine {
       return this.verdicts.MLE;
     }
 
-    // Check for runtime error
     if (executeResult.exitCode !== 0 || 
         executeResult.verdict === 'Runtime Error' ||
         executeResult.error.includes('Segmentation fault') ||
@@ -304,12 +304,10 @@ class JudgeEngine {
       return this.verdicts.RTE;
     }
 
-    // Check for system error
     if (!executeResult.success && executeResult.verdict === 'System Error') {
       return this.verdicts.SE;
     }
 
-    // Compare output for correctness
     const outputMatch = this.compareOutputs(
       executeResult.output || '', 
       testCase.output
@@ -319,34 +317,41 @@ class JudgeEngine {
   }
 
   /**
-   * Compare program output with expected output (exact matching)
+   * Compare program output with expected output using exact string matching
+   * @param {string} actualOutput - Program's actual output
+   * @param {string} expectedOutput - Expected output from test case
+   * @returns {boolean} True if outputs match after normalization
    */
   compareOutputs(actualOutput, expectedOutput) {
-    // Normalize both outputs
     const normalizedActual = this.normalizeOutput(actualOutput);
     const normalizedExpected = this.normalizeOutput(expectedOutput);
     
-    // Use exact string matching after normalization
     return normalizedActual === normalizedExpected;
   }
 
   /**
-   * Normalize output for comparison
+   * Normalize output for comparison by removing trailing whitespace and newlines
+   * @param {string} output - Raw output string
+   * @returns {string} Normalized output string
    */
   normalizeOutput(output) {
     if (!output) return '';
     
     return output
       .toString()
-      .split('\n')                    // Split into lines
-      .map(line => line.trimEnd())    // Remove trailing whitespace from each line
-      .join('\n')                     // Rejoin
-      .replace(/\n+$/, '')           // Remove trailing newlines
-      .replace(/^\n+/, '');          // Remove leading newlines
+      .split('\n')
+      .map(line => line.trimEnd())
+      .join('\n')
+      .replace(/\n+$/, '')
+      .replace(/^\n+/, '');
   }
 
   /**
-   * Compare floating point numbers with tolerance (for future use)
+   * Compare floating point numbers with tolerance for future extensibility
+   * @param {string|number} actual - Actual floating point value
+   * @param {string|number} expected - Expected floating point value
+   * @param {number} tolerance - Comparison tolerance (default: 1e-6)
+   * @returns {boolean} True if values are within tolerance
    */
   compareFloatingPoint(actual, expected, tolerance = 1e-6) {
     const actualNum = parseFloat(actual);
@@ -362,34 +367,19 @@ class JudgeEngine {
     return diff <= Math.max(tolerance, relativeTolerance);
   }
 
-  /**
-   * Check if this is the first solve for virtual balloon award
-   */
-  async checkFirstSolve(problemId, contestId, teamId) {
-    try {
-      const firstSolve = await db('submissions')
-        .where({
-          contest_id: contestId,
-          problem_id: problemId,
-          verdict: 'Accepted'
-        })
-        .orderBy('submitted_at', 'asc')
-        .first();
-
-      return !firstSolve; // This is first solve if no previous accepted submission
-    } catch (error) {
-      console.error('Error checking first solve:', error);
-      return false;
-    }
-  }
 
 
   /**
    * Update team score after accepted submission
+   * @param {number} contestId - Contest identifier
+   * @param {number} teamId - Team identifier
+   * @param {number} problemId - Problem identifier
+   * @param {Object} judgeResult - Judge result with score and timing data
+   * @returns {Promise<void>}
+   * @throws {Error} If database update fails
    */
   async updateTeamScore(contestId, teamId, problemId, judgeResult) {
     try {
-      // Get contest start time for penalty calculation
       const contest = await db('contests').where('contest_id', contestId).first();
       if (!contest) return;
 
@@ -397,7 +387,6 @@ class JudgeEngine {
       const contestStart = new Date(contest.start_time);
       const minutesFromStart = Math.floor((solveTime - contestStart) / (1000 * 60));
 
-      // Get previous wrong attempts for penalty calculation
       const wrongAttempts = await db('submissions')
         .where({
           contest_id: contestId,
@@ -412,7 +401,6 @@ class JudgeEngine {
       const penalty = wrongAttempts ? wrongAttempts.count * this.scoring.PENALTY_MINUTES : 0;
       const totalTime = minutesFromStart + penalty;
 
-      // Update or create team score entry
       await db('team_scores')
         .insert({
           contest_id: contestId,
@@ -442,6 +430,11 @@ class JudgeEngine {
 
   /**
    * Add penalty for wrong submission
+   * @param {number} contestId - Contest identifier
+   * @param {number} teamId - Team identifier
+   * @param {number} problemId - Problem identifier
+   * @returns {Promise<void>}
+   * @throws {Error} If database update fails
    */
   async addPenalty(contestId, teamId, problemId) {
     try {
@@ -470,6 +463,11 @@ class JudgeEngine {
 
   /**
    * Update submission result in database
+   * @param {number} submissionId - Submission identifier
+   * @param {Object} judgeResult - Complete judging result
+   * @param {boolean} countAsAttempt - Whether to count this as an attempt
+   * @returns {Promise<void>}
+   * @throws {Error} If database update fails
    */
   async updateSubmissionResult(submissionId, judgeResult, countAsAttempt) {
     try {
@@ -494,7 +492,10 @@ class JudgeEngine {
   }
 
   /**
-   * Get judging statistics
+   * Get judging statistics for contest or all contests
+   * @param {number|null} contestId - Optional contest identifier to filter by
+   * @returns {Promise<Object>} Verdict statistics with counts
+   * @throws {Error} If database error occurs
    */
   async getJudgingStats(contestId = null) {
     try {
@@ -522,7 +523,10 @@ class JudgeEngine {
   }
 
   /**
-   * Get detailed judging result
+   * Get detailed judging result for a specific submission
+   * @param {number} submissionId - Submission identifier
+   * @returns {Promise<Object|null>} Detailed judging result or null if not found
+   * @throws {Error} If database error occurs
    */
   async getJudgingResult(submissionId) {
     try {
@@ -557,11 +561,13 @@ class JudgeEngine {
   }
 
   /**
-   * Re-judge submission (admin function)
+   * Re-judge submission with current test cases (admin function)
+   * @param {number} submissionId - Submission identifier
+   * @returns {Promise<Object>} Re-judging result
+   * @throws {Error} If submission not found or re-judging fails
    */
   async reJudgeSubmission(submissionId) {
     try {
-      // Get submission details
       const submission = await db('submissions')
         .join('problems', 'submissions.problem_id', 'problems.problem_id')
         .where('submissions.id', submissionId)
@@ -571,13 +577,11 @@ class JudgeEngine {
         throw new Error('Submission not found');
       }
 
-      // Get test cases
       const testCases = await db('test_cases')
         .where('problem_id', submission.problem_id)
         .orderBy('test_case_order')
         .select('input', 'expected_output as output');
 
-      // Re-judge
       return await this.judgeSubmission({
         code: submission.source_code,
         language: submission.language,
@@ -598,20 +602,24 @@ class JudgeEngine {
 
   /**
    * Get performance statistics from the execution monitor
+   * @returns {Object} Performance statistics from execution monitor
    */
   getPerformanceStats() {
     return this.performanceMonitor.getPerformanceStats();
   }
 
   /**
-   * Get performance statistics for a specific language
+   * Get performance statistics for a specific programming language
+   * @param {string} language - Programming language identifier
+   * @returns {Object} Language-specific performance statistics
    */
   getLanguagePerformanceStats(language) {
     return this.performanceMonitor.getLanguagePerformanceStats(language);
   }
 
   /**
-   * Get judge-specific performance metrics
+   * Get comprehensive judge-specific performance metrics
+   * @returns {Object} Combined performance metrics including system resources
    */
   getJudgePerformanceMetrics() {
     const executionStats = this.performanceMonitor.getPerformanceStats();
@@ -630,15 +638,13 @@ class JudgeEngine {
   }
 
   /**
-   * Reset performance statistics
+   * Reset all performance statistics
+   * @returns {void}
    */
   resetPerformanceStats() {
     this.performanceMonitor.resetPerformanceStats();
   }
 
-  // ===================================================================
-  // PHASE 4.5 - VERDICT COMMUNICATION INTEGRATION
-  // ===================================================================
 
   /**
    * Broadcast submission result via WebSocket
@@ -650,7 +656,6 @@ class JudgeEngine {
       await websocketService.broadcastSubmissionResult(submissionResult);
     } catch (error) {
       console.error('Failed to broadcast submission result:', error);
-      // Don't throw - WebSocket failures shouldn't stop judging
     }
   }
 
@@ -664,7 +669,6 @@ class JudgeEngine {
       await websocketService.broadcastVerdictUpdate(verdictUpdate);
     } catch (error) {
       console.error('Failed to broadcast verdict update:', error);
-      // Don't throw - WebSocket failures shouldn't stop judging
     }
   }
 }

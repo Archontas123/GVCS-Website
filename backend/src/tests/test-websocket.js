@@ -151,7 +151,7 @@ class WebSocketTester {
       process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
       { 
         expiresIn: '1h',
-        issuer: 'hackathon-platform',
+        issuer: 'programming_contest-platform',
         audience: 'team-client'
       }
     );
@@ -166,7 +166,7 @@ class WebSocketTester {
       process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
       { 
         expiresIn: '1h',
-        issuer: 'hackathon-platform',
+        issuer: 'programming_contest-platform',
         audience: 'team-client'
       }
     );

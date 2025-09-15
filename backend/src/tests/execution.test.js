@@ -1,5 +1,5 @@
 /**
- * CS Club Hackathon Platform - Docker Execution Environment Tests
+ * CS Club Programming Contest Platform - Docker Execution Environment Tests
  * Phase 1.3: Test Docker code execution functionality
  */
 
@@ -19,7 +19,7 @@ describe('Phase 1.3: Docker Code Execution Environment', () => {
     describe('DockerExecutor Service', () => {
         test('should create DockerExecutor instance', () => {
             expect(dockerExecutor).toBeInstanceOf(DockerExecutor);
-            expect(dockerExecutor.containerImage).toBe('hackathon-judge');
+            expect(dockerExecutor.containerImage).toBe('programming_contest-judge');
         });
 
         test('should have language configurations', () => {

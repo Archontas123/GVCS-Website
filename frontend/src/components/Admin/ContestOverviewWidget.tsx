@@ -1,29 +1,7 @@
-/**
- * Contest Overview Widget - Phase 2.5 Task 2
- * Display active contests and real-time statistics
- */
 
 import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  Button,
-  Chip,
-  LinearProgress,
-  IconButton,
-  Tooltip,
-  Stack,
-  Paper,
-  Avatar,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  ListItemSecondaryAction,
-} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { MdEmojiEvents, MdBarChart, MdTrendingUp, MdRefresh, MdSettings, MdAccessTime, MdPeople } from 'react-icons/md';
 
 interface ContestStats {
   total_submissions: number;
@@ -59,7 +37,6 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(new Date());
 
-  // Mock data - in real app, this would come from API
   useEffect(() => {
     fetchActiveContests();
     const interval = setInterval(fetchActiveContests, refreshInterval);
@@ -82,12 +59,10 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
       const result = await response.json();
       
       if (result.success && result.data) {
-        // Filter for active/running contests and get their progress data
         const contestPromises = result.data
           .filter((contest: any) => contest.is_active)
           .map(async (contest: any) => {
             try {
-              // Get contest progress
               const progressResponse = await fetch(`/api/admin/contests/${contest.id}/progress`, {
                 headers: {
                   'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
@@ -97,8 +72,6 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
               
               const progressData = await progressResponse.json();
               const progress = progressData.success ? progressData.data : null;
-              
-              // Get contest live stats
               const statsResponse = await fetch(`/api/admin/contests/${contest.id}/live-stats`, {
                 headers: {
                   'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
@@ -180,183 +153,491 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
 
   if (loading) {
     return (
-      <Card>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>Contest Overview</Typography>
-          <LinearProgress />
-        </CardContent>
-      </Card>
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        padding: '32px',
+        boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)',
+        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+      }}>
+        <h2 style={{
+          fontSize: '1.25rem',
+          fontWeight: 600,
+          color: '#1f2937',
+          marginBottom: '24px'
+        }}>
+          Contest Overview
+        </h2>
+        <div style={{
+          width: '100%',
+          height: '4px',
+          backgroundColor: '#f3f4f6',
+          borderRadius: '2px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            width: '100%',
+            height: '100%',
+            background: 'linear-gradient(90deg, #e5e7eb 25%, transparent 25%, transparent 50%, #e5e7eb 50%, #e5e7eb 75%, transparent 75%, transparent)',
+            backgroundSize: '40px 100%',
+            animation: 'loading 1s linear infinite'
+          }} />
+        </div>
+        <style>
+          {`
+            @keyframes loading {
+              0% { background-position: 0% 0%; }
+              100% { background-position: 40px 0%; }
+            }
+          `}
+        </style>
+      </div>
     );
   }
 
   return (
-    <Box>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600 }}>
+    <div style={{
+      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+      maxWidth: '1400px',
+      margin: '0 auto'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '32px'
+      }}>
+        <h1 style={{
+          fontSize: '1.75rem',
+          fontWeight: 700,
+          color: '#1d4ed8',
+          margin: 0,
+          letterSpacing: '-0.02em'
+        }}>
           Active Contests
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography variant="body2" color="text.secondary">
+        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{
+            fontSize: '0.875rem',
+            color: '#6b7280'
+          }}>
             Last updated: {lastUpdate.toLocaleTimeString()}
-          </Typography>
-          <Tooltip title="Refresh">
-            <IconButton size="small" onClick={fetchActiveContests}>
-              ↻
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
+          </span>
+          <button
+            onClick={fetchActiveContests}
+            title="Refresh"
+            style={{
+              padding: '8px',
+              border: '2px solid #e2e8f0',
+              backgroundColor: '#ffffff',
+              color: '#475569',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 500,
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#cbd5e0';
+              e.currentTarget.style.backgroundColor = '#f8fafc';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#e2e8f0';
+              e.currentTarget.style.backgroundColor = '#ffffff';
+            }}
+          >
+            <MdRefresh style={{ fontSize: '16px' }} />
+          </button>
+        </div>
+      </div>
 
       {activeContests.length === 0 ? (
-        <Card>
-          <CardContent sx={{ textAlign: 'center', py: 4 }}>
-            <Typography variant="h3" color="text.secondary" sx={{ mb: 2 }}>
-              🏆
-            </Typography>
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No active contests
-            </Typography>
-            <Typography color="text.secondary" sx={{ mb: 3 }}>
-              All contests have ended or haven't started yet
-            </Typography>
-            <Button
-              variant="contained"
-              onClick={() => navigate('/admin/contests')}
-            >
-              Manage Contests
-            </Button>
-          </CardContent>
-        </Card>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          padding: '64px 32px',
+          boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)',
+          textAlign: 'center'
+        }}>
+          <div style={{
+            color: '#6b7280',
+            marginBottom: '20px',
+            display: 'flex',
+            justifyContent: 'center'
+          }}>
+            <MdEmojiEvents style={{ fontSize: '64px' }} />
+          </div>
+          <h2 style={{
+            fontSize: '1.5rem',
+            fontWeight: 600,
+            color: '#6b7280',
+            marginBottom: '12px'
+          }}>
+            No active contests
+          </h2>
+          <p style={{
+            color: '#6b7280',
+            fontSize: '1rem',
+            marginBottom: '32px',
+            lineHeight: 1.6
+          }}>
+            All contests have ended or haven't started yet
+          </p>
+          <button
+            onClick={() => navigate('/admin/contests')}
+            style={{
+              padding: '12px 24px',
+              border: '2px solid #1d4ed8',
+              background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+              color: '#ffffff',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '1rem',
+              transition: 'all 0.2s ease',
+              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+              boxShadow: '0 8px 25px rgba(29, 78, 216, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%)';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 12px 35px rgba(29, 78, 216, 0.35), 0 8px 20px rgba(37, 99, 235, 0.25)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 8px 25px rgba(29, 78, 216, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15)';
+            }}
+          >
+            Manage Contests
+          </button>
+        </div>
       ) : (
-        <Stack spacing={3} direction={{ xs: 'column', lg: 'row' }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: window.innerWidth < 1024 ? 'column' : 'row',
+          gap: '24px'
+        }}>
           {activeContests.map((contest) => (
-            <Box key={contest.id} sx={{ flex: { lg: 1 }, minWidth: 0 }}>
-              <Card sx={{ height: '100%' }}>
-                <CardContent>
-                  {/* Contest Header */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+            <div key={contest.id} style={{
+              flex: window.innerWidth >= 1024 ? 1 : 'none',
+              minWidth: 0
+            }}>
+              <div style={{
+                backgroundColor: '#ffffff',
+                borderRadius: '16px',
+                padding: '32px',
+                boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{
+                        fontSize: '1.25rem',
+                        fontWeight: 600,
+                        color: '#1f2937',
+                        marginBottom: '12px'
+                      }}>
                         {contest.contest_name}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <Chip
-                          label={getStatusText(contest.status)}
-                          color={getStatusColor(contest.status) as any}
-                          size="small"
-                        />
-                        <Typography variant="body2" color="text.secondary">
+                      </h3>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        marginBottom: '12px'
+                      }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '4px 12px',
+                          borderRadius: '16px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          backgroundColor: getStatusColor(contest.status) === 'success' ? '#dcfce7' :
+                                          getStatusColor(contest.status) === 'warning' ? '#fef3c7' :
+                                          getStatusColor(contest.status) === 'info' ? '#dbeafe' : '#f3f4f6',
+                          color: getStatusColor(contest.status) === 'success' ? '#166534' :
+                                 getStatusColor(contest.status) === 'warning' ? '#92400e' :
+                                 getStatusColor(contest.status) === 'info' ? '#1e40af' : '#374151'
+                        }}>
+                          {getStatusText(contest.status)}
+                        </span>
+                        <span style={{
+                          fontSize: '0.875rem',
+                          color: '#6b7280'
+                        }}>
                           Code: {contest.registration_code}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <IconButton 
-                      size="small"
+                        </span>
+                      </div>
+                    </div>
+                    <button
                       onClick={() => navigate(`/admin/contests/${contest.id}`)}
+                      style={{
+                        padding: '8px',
+                        border: '2px solid #e2e8f0',
+                        backgroundColor: '#ffffff',
+                        color: '#475569',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: 500,
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = '#cbd5e0';
+                        e.currentTarget.style.backgroundColor = '#f8fafc';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = '#e2e8f0';
+                        e.currentTarget.style.backgroundColor = '#ffffff';
+                      }}
                     >
-                      👁
-                    </IconButton>
-                  </Box>
+                      <MdSettings style={{ fontSize: '16px' }} />
+                    </button>
+                  </div>
 
-                  {/* Progress Bar */}
-                  <Box sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="body2" color="text.secondary">
+                  <div style={{ marginBottom: '20px' }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      marginBottom: '8px'
+                    }}>
+                      <span style={{
+                        fontSize: '0.875rem',
+                        color: '#6b7280'
+                      }}>
                         Progress
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      </span>
+                      <span style={{
+                        fontSize: '0.875rem',
+                        color: '#6b7280'
+                      }}>
                         {contest.progress_percentage.toFixed(1)}%
-                      </Typography>
-                    </Box>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={contest.progress_percentage}
-                      sx={{ height: 8, borderRadius: 4 }}
-                    />
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                      <Typography variant="caption" color="text.secondary">
+                      </span>
+                    </div>
+                    <div style={{
+                      width: '100%',
+                      height: '10px',
+                      backgroundColor: '#f3f4f6',
+                      borderRadius: '8px',
+                      overflow: 'hidden'
+                    }}>
+                      <div style={{
+                        width: `${contest.progress_percentage}%`,
+                        height: '100%',
+                        backgroundColor: '#1d4ed8',
+                        borderRadius: '8px',
+                        transition: 'width 0.3s ease'
+                      }} />
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      marginTop: '8px'
+                    }}>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: '#6b7280'
+                      }}>
                         Remaining: {formatTime(contest.time_remaining_seconds)}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      </span>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: '#6b7280'
+                      }}>
                         Duration: {contest.duration} min
-                      </Typography>
-                    </Box>
-                  </Box>
+                      </span>
+                    </div>
+                  </div>
 
-                  {/* Stats Grid */}
-                  <Stack direction="row" spacing={2}>
-                    <Paper sx={{ p: 1.5, textAlign: 'center', backgroundColor: 'background.default', flex: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
-                        <Typography sx={{ fontSize: 18, mr: 0.5, color: 'primary.main' }}>👥</Typography>
-                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  <div style={{
+                    display: 'flex',
+                    gap: '16px',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{
+                      flex: 1,
+                      backgroundColor: '#f8fafc',
+                      padding: '16px',
+                      textAlign: 'center',
+                      borderRadius: '12px',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: '6px'
+                      }}>
+                        <MdPeople style={{
+                          fontSize: '20px',
+                          marginRight: '6px',
+                          color: '#1d4ed8'
+                        }} />
+                        <span style={{
+                          fontSize: '1.25rem',
+                          fontWeight: 600,
+                          color: '#1f2937'
+                        }}>
                           {contest.teams_count}
-                        </Typography>
-                      </Box>
-                      <Typography variant="caption" color="text.secondary">
+                        </span>
+                      </div>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em'
+                      }}>
                         Teams
-                      </Typography>
-                    </Paper>
-                    <Paper sx={{ p: 1.5, textAlign: 'center', backgroundColor: 'background.default', flex: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
-                        <Typography sx={{ fontSize: 18, mr: 0.5, color: 'secondary.main' }}>📊</Typography>
-                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      </span>
+                    </div>
+                    <div style={{
+                      flex: 1,
+                      backgroundColor: '#f8fafc',
+                      padding: '16px',
+                      textAlign: 'center',
+                      borderRadius: '12px',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: '6px'
+                      }}>
+                        <MdBarChart style={{
+                          fontSize: '20px',
+                          marginRight: '6px',
+                          color: '#0891b2'
+                        }} />
+                        <span style={{
+                          fontSize: '1.25rem',
+                          fontWeight: 600,
+                          color: '#1f2937'
+                        }}>
                           {contest.submissions_count}
-                        </Typography>
-                      </Box>
-                      <Typography variant="caption" color="text.secondary">
+                        </span>
+                      </div>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em'
+                      }}>
                         Submissions
-                      </Typography>
-                    </Paper>
-                  </Stack>
+                      </span>
+                    </div>
+                  </div>
 
-                  {/* Additional Stats */}
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  <div style={{ marginTop: '20px' }}>
+                    <div style={{
+                      fontSize: '0.875rem',
+                      color: '#6b7280',
+                      marginBottom: '12px',
+                      fontWeight: 500
+                    }}>
                       Performance Metrics
-                    </Typography>
-                    <List dense>
-                      <ListItem>
-                        <ListItemAvatar>
-                          <Avatar sx={{ width: 24, height: 24, bgcolor: 'success.main' }}>
-                            <Typography sx={{ fontSize: 14 }}>📈</Typography>
-                          </Avatar>
-                        </ListItemAvatar>
-                        <ListItemText 
-                          primary="Problems Solved"
-                          secondary={`${contest.stats.problems_solved} total`}
-                        />
-                        <ListItemSecondaryAction>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {contest.stats.team_participation_rate.toFixed(1)}%
-                          </Typography>
-                        </ListItemSecondaryAction>
-                      </ListItem>
-                      <ListItem>
-                        <ListItemAvatar>
-                          <Avatar sx={{ width: 24, height: 24, bgcolor: 'info.main' }}>
-                            <Typography sx={{ fontSize: 14 }}>⏱</Typography>
-                          </Avatar>
-                        </ListItemAvatar>
-                        <ListItemText 
-                          primary="Avg. Solve Time"
-                          secondary="Per problem"
-                        />
-                        <ListItemSecondaryAction>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {contest.stats.average_solve_time.toFixed(1)}m
-                          </Typography>
-                        </ListItemSecondaryAction>
-                      </ListItem>
-                    </List>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
+                      }}>
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          backgroundColor: '#dcfce7',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#166534'
+                        }}>
+                          <MdTrendingUp style={{ fontSize: '16px' }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{
+                            fontWeight: 600,
+                            fontSize: '0.95rem',
+                            color: '#1f2937',
+                            marginBottom: '2px'
+                          }}>
+                            Problems Solved
+                          </div>
+                          <div style={{
+                            fontSize: '0.875rem',
+                            color: '#6b7280'
+                          }}>
+                            {contest.stats.problems_solved} total
+                          </div>
+                        </div>
+                        <div style={{
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          color: '#1f2937'
+                        }}>
+                          {contest.stats.team_participation_rate.toFixed(1)}%
+                        </div>
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
+                      }}>
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          backgroundColor: '#dbeafe',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#1e40af'
+                        }}>
+                          <MdAccessTime style={{ fontSize: '16px' }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{
+                            fontWeight: 600,
+                            fontSize: '0.95rem',
+                            color: '#1f2937',
+                            marginBottom: '2px'
+                          }}>
+                            Avg. Solve Time
+                          </div>
+                          <div style={{
+                            fontSize: '0.875rem',
+                            color: '#6b7280'
+                          }}>
+                            Per problem
+                          </div>
+                        </div>
+                        <div style={{
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          color: '#1f2937'
+                        }}>
+                          {contest.stats.average_solve_time.toFixed(1)}m
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+              </div>
+            </div>
           ))}
-        </Stack>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

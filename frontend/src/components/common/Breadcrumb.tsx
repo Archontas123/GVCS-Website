@@ -1,8 +1,3 @@
-/**
- * Breadcrumb Navigation Component
- * Used for admin navigation hierarchy
- */
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 

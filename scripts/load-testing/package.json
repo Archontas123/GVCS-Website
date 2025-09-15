@@ -1,7 +1,7 @@
 {
-  "name": "hackathon-load-testing",
+  "name": "programming-contest-load-testing",
   "version": "1.0.0",
-  "description": "Load testing suite for CS Club Hackathon Platform - Phase 6.1",
+  "description": "Load testing suite for CS Club Programming Contest Platform - Phase 6.1",
   "main": "index.js",
   "scripts": {
     "test:load": "node test-runner.js",
@@ -38,9 +38,9 @@
     "load-testing",
     "performance",
     "contest",
-    "hackathon",
+    "programming-contest",
     "stress-test"
   ],
-  "author": "CS Club Hackathon Platform",
+  "author": "CS Club Programming Contest Platform",
   "license": "MIT"
 }

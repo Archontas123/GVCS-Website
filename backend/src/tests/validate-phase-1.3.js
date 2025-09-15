@@ -1,5 +1,5 @@
 /**
- * CS Club Hackathon Platform - Phase 1.3 Validation Script
+ * CS Club Programming Contest Platform - Phase 1.3 Validation Script
  * Validates that all Phase 1.3 components are properly configured
  */
 

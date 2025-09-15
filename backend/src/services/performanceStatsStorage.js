@@ -1,8 +1,3 @@
-/**
- * Performance Statistics Storage Service - Phase 4.4
- * Handles database storage and retrieval of performance metrics
- */
-
 const { db } = require('../utils/db');
 
 class PerformanceStatsStorage {

@@ -1,10 +1,50 @@
-/**
- * Rich Text Editor Component
- * Mimics the editor shown in the problem creation screenshot
- */
-
 import React, { useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { MdLink, MdImage, MdClose } from 'react-icons/md';
+
+const markdownStyles = `
+  .markdown-preview h1,
+  .markdown-preview h2,
+  .markdown-preview h3,
+  .markdown-preview h4,
+  .markdown-preview h5,
+  .markdown-preview h6 {
+    color: #1e293b;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .markdown-preview p {
+    margin-bottom: 1rem;
+  }
+  
+  .markdown-preview ul,
+  .markdown-preview ol {
+    padding-left: 2rem;
+    margin-bottom: 1rem;
+  }
+  
+  .markdown-preview code {
+    background-color: #e2e8f0;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 14px;
+  }
+  
+  .markdown-preview pre {
+    background-color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow: auto;
+    margin-bottom: 1rem;
+  }
+  
+  .markdown-preview a {
+    color: #3b82f6;
+    text-decoration: underline;
+  }
+`;
 
 interface RichTextEditorProps {
   value: string;
@@ -43,7 +83,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     const newText = value.substring(0, start) + beforeText + selectedText + afterText + value.substring(end);
     onChange(newText);
     
-    // Set cursor position after the inserted text
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + beforeText.length, start + beforeText.length + selectedText.length);
@@ -75,10 +114,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         break;
       case 'code':
         if (selectedText.includes('\n')) {
-          // Multi-line code block
           insertText('```\n', '\n```');
         } else {
-          // Inline code
           insertText('`', '`');
         }
         break;
@@ -140,6 +177,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   return (
     <div>
+      <style>{markdownStyles}</style>
       {label && (
         <div style={{ marginBottom: '8px', fontWeight: 600, fontSize: '16px' }}>
           {label}
@@ -151,7 +189,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         overflow: 'hidden',
         border: '1px solid #e2e8f0',
       }}>
-        {/* Toolbar */}
         <div style={{
           backgroundColor: '#f8fafc',
           minHeight: '48px',
@@ -244,7 +281,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 fontSize: '14px'
               }}
             >
-              🔗
+              <MdLink />
             </button>
             <button
               onClick={() => handleFormatClick('image')}
@@ -258,7 +295,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 fontSize: '14px'
               }}
             >
-              🖼
+              <MdImage />
             </button>
           </div>
           
@@ -278,7 +315,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           </button>
         </div>
 
-        {/* Editor Area */}
         <div style={{ padding: 0 }}>
           <textarea
             ref={textAreaRef}
@@ -300,7 +336,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           />
         </div>
 
-        {/* Character Count */}
         {maxLength && (
           <div style={{
             padding: '8px 16px',
@@ -319,7 +354,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         )}
       </div>
 
-      {/* Preview Modal */}
       {previewModalOpen && (
         <div style={{
           position: 'fixed',
@@ -360,7 +394,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   color: '#6b7280'
                 }}
               >
-                ×
+                <MdClose />
               </button>
             </div>
             <div style={{ padding: '24px', flex: 1, overflow: 'auto' }}>
@@ -374,38 +408,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 border: '1px solid #e2e8f0',
               }}>
                 {value ? (
-                  <div style={{
-                    '& h1, & h2, & h3, & h4, & h5, & h6': {
-                      color: '#1e293b',
-                      marginTop: '1rem',
-                      marginBottom: '0.5rem',
-                    },
-                    '& p': {
-                      marginBottom: '1rem',
-                    },
-                    '& ul, & ol': {
-                      paddingLeft: '2rem',
-                      marginBottom: '1rem',
-                    },
-                    '& code': {
-                      backgroundColor: '#e2e8f0',
-                      padding: '2px 4px',
-                      borderRadius: '4px',
-                      fontFamily: 'monospace',
-                      fontSize: '14px',
-                    },
-                    '& pre': {
-                      backgroundColor: '#e2e8f0',
-                      padding: '16px',
-                      borderRadius: '8px',
-                      overflow: 'auto',
-                      marginBottom: '1rem',
-                    },
-                    '& a': {
-                      color: '#3b82f6',
-                      textDecoration: 'underline',
-                    },
-                  }}>
+                  <div className="markdown-preview">
                     <ReactMarkdown>{value}</ReactMarkdown>
                   </div>
                 ) : (
@@ -440,7 +443,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         </div>
       )}
 
-      {/* Link Modal */}
       {linkModalOpen && (
         <div style={{
           position: 'fixed',
@@ -536,7 +538,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         </div>
       )}
 
-      {/* Image Modal */}
       {imageModalOpen && (
         <div style={{
           position: 'fixed',

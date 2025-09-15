@@ -1,7 +1,7 @@
 {
-  "name": "hackathon-platform",
+  "name": "programming-contest-platform",
   "version": "1.0.0",
-  "description": "School Algorithmic Hackathon Platform with points-based scoring",
+  "description": "School Programming Contest Platform with ICPC-style scoring",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -26,9 +26,8 @@
     "setup:complete": "npm run db:setup && npm run db:migrate && npm run db:seed && npm run judge:build"
   },
   "keywords": [
-    "hackathon",
     "competitive-programming",
-    "points-based",
+    "icpc-scoring",
     "contest-platform",
     "algorithm",
     "coding-contest"

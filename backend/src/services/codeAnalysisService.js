@@ -1,20 +1,27 @@
-/**
- * CS Club Hackathon Platform - Code Analysis Service
- * Phase 6.3: Static code analysis and quality metrics
- */
-
 const { db } = require('../utils/db');
 const logger = require('../utils/logger');
 const crypto = require('crypto');
 
+/**
+ * Service for comprehensive static code analysis and quality metrics
+ * Provides detailed analysis of submitted code including complexity, style, and security
+ */
 class CodeAnalysisService {
+  /**
+   * Initialize code analysis service
+   * Sets up analysis caching and supported language definitions
+   */
   constructor() {
     this.analysisCache = new Map();
     this.supportedLanguages = ['cpp', 'java', 'python3', 'c', 'javascript'];
   }
 
   /**
-   * Perform comprehensive code analysis
+   * Perform comprehensive code analysis on a submission
+   * Analyzes metrics, complexity, quality, style, security, and performance
+   * @param {number} submissionId - Submission ID to analyze
+   * @returns {Promise<Object>} Complete analysis results with all metrics
+   * @throws {Error} When submission not found or analysis fails
    */
   async analyzeCode(submissionId) {
     try {
@@ -40,7 +47,6 @@ class CodeAnalysisService {
         analyzed_at: new Date().toISOString()
       };
 
-      // Store analysis results
       await this.storeAnalysisResults(submissionId, analysis);
 
       logger.info('Code analysis completed:', { 
@@ -57,7 +63,11 @@ class CodeAnalysisService {
   }
 
   /**
-   * Calculate basic code metrics
+   * Calculate basic code metrics including lines, functions, and variables
+   * Provides fundamental code measurement statistics
+   * @param {string} code - Source code to analyze
+   * @param {string} language - Programming language
+   * @returns {Promise<Object>} Basic metrics including LOC, function count, etc.
    */
   async calculateBasicMetrics(code, language) {
     const lines = code.split('\n');
@@ -77,7 +87,11 @@ class CodeAnalysisService {
   }
 
   /**
-   * Calculate complexity metrics
+   * Calculate complexity metrics including cyclomatic and cognitive complexity
+   * Measures code complexity for maintainability assessment
+   * @param {string} code - Source code to analyze
+   * @param {string} language - Programming language
+   * @returns {Promise<Object>} Complexity metrics including cyclomatic complexity
    */
   async calculateComplexityMetrics(code, language) {
     return {
@@ -89,7 +103,11 @@ class CodeAnalysisService {
   }
 
   /**
-   * Calculate quality metrics
+   * Calculate code quality metrics including maintainability and readability
+   * Assesses overall code quality and documentation standards
+   * @param {string} code - Source code to analyze
+   * @param {string} language - Programming language
+   * @returns {Promise<Object>} Quality metrics with overall score
    */
   async calculateQualityMetrics(code, language) {
     const metrics = {
@@ -100,14 +118,17 @@ class CodeAnalysisService {
       code_duplication: this.detectCodeDuplication(code, language)
     };
 
-    // Calculate overall score
     metrics.overall_score = this.calculateOverallQualityScore(metrics);
 
     return metrics;
   }
 
   /**
-   * Analyze code style
+   * Analyze code style and formatting conventions
+   * Checks indentation, naming, spacing, and consistency
+   * @param {string} code - Source code to analyze
+   * @param {string} language - Programming language
+   * @returns {Promise<Object>} Style analysis results with consistency scores
    */
   async analyzeCodeStyle(code, language) {
     return {
@@ -121,12 +142,15 @@ class CodeAnalysisService {
   }
 
   /**
-   * Perform basic security analysis
+   * Perform basic security analysis to identify potential vulnerabilities
+   * Scans for common security patterns and unsafe practices
+   * @param {string} code - Source code to analyze
+   * @param {string} language - Programming language
+   * @returns {Promise<Object>} Security analysis with issues and risk level
    */
   async performSecurityAnalysis(code, language) {
     const issues = [];
 
-    // Check for common security issues
     const securityPatterns = this.getSecurityPatterns(language);
     
     for (const pattern of securityPatterns) {
@@ -150,7 +174,11 @@ class CodeAnalysisService {
   }
 
   /**
-   * Generate performance hints
+   * Generate performance optimization hints and complexity estimates
+   * Identifies potential performance issues and suggests improvements
+   * @param {string} code - Source code to analyze
+   * @param {string} language - Programming language
+   * @returns {Promise<Object>} Performance hints with complexity and memory analysis
    */
   async generatePerformanceHints(code, language) {
     const hints = [];
@@ -175,20 +203,20 @@ class CodeAnalysisService {
   }
 
   /**
-   * Remove comments from code
+   * Remove comments from source code based on language syntax
+   * Strips single-line and multi-line comments for accurate metrics
+   * @param {string} code - Source code with comments
+   * @param {string} language - Programming language
+   * @returns {string} Code with comments removed
    */
   removeComments(code, language) {
     let cleaned = code;
 
     if (language === 'cpp' || language === 'java' || language === 'javascript' || language === 'c') {
-      // Remove single-line comments
       cleaned = cleaned.replace(/\/\/.*$/gm, '');
-      // Remove multi-line comments
       cleaned = cleaned.replace(/\/\*[\s\S]*?\*\//g, '');
     } else if (language === 'python3') {
-      // Remove single-line comments
       cleaned = cleaned.replace(/#.*$/gm, '');
-      // Remove multi-line comments (triple quotes)
       cleaned = cleaned.replace(/'''[\s\S]*?'''/g, '');
       cleaned = cleaned.replace(/"""[\s\S]*?"""/g, '');
     }
@@ -197,7 +225,11 @@ class CodeAnalysisService {
   }
 
   /**
-   * Count functions in code
+   * Count function definitions in source code
+   * Uses language-specific regex patterns to identify functions
+   * @param {string} code - Source code to analyze
+   * @param {string} language - Programming language
+   * @returns {number} Number of functions found
    */
   countFunctions(code, language) {
     let functionRegex;
@@ -225,7 +257,11 @@ class CodeAnalysisService {
   }
 
   /**
-   * Count variables in code
+   * Count variable declarations in source code
+   * Identifies typed and untyped variable declarations
+   * @param {string} code - Source code to analyze
+   * @param {string} language - Programming language
+   * @returns {number} Number of variable declarations found
    */
   countVariables(code, language) {
     let variableRegex;
@@ -253,7 +289,11 @@ class CodeAnalysisService {
   }
 
   /**
-   * Count classes in code
+   * Count class definitions in source code
+   * Finds class declarations across different language syntaxes
+   * @param {string} code - Source code to analyze
+   * @param {string} language - Programming language
+   * @returns {number} Number of class definitions found
    */
   countClasses(code, language) {
     let classRegex;
@@ -280,11 +320,15 @@ class CodeAnalysisService {
   }
 
   /**
-   * Calculate cyclomatic complexity
+   * Calculate cyclomatic complexity of source code
+   * Measures complexity based on control flow statements
+   * @param {string} code - Source code to analyze
+   * @param {string} language - Programming language
+   * @returns {number} Cyclomatic complexity value
    */
   calculateCyclomaticComplexity(code, language) {
     const controlFlowKeywords = this.getControlFlowKeywords(language);
-    let complexity = 1; // Base complexity
+    let complexity = 1;
 
     for (const keyword of controlFlowKeywords) {
       const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
@@ -298,7 +342,10 @@ class CodeAnalysisService {
   }
 
   /**
-   * Get control flow keywords for language
+   * Get control flow keywords specific to programming language
+   * Returns keywords that contribute to cyclomatic complexity
+   * @param {string} language - Programming language
+   * @returns {Array<string>} Array of control flow keywords
    */
   getControlFlowKeywords(language) {
     const commonKeywords = ['if', 'else', 'for', 'while', 'switch', 'case', 'catch', 'try'];
@@ -316,10 +363,13 @@ class CodeAnalysisService {
   }
 
   /**
-   * Calculate cognitive complexity (simplified)
+   * Calculate cognitive complexity using simplified algorithm
+   * Measures code complexity from a readability perspective
+   * @param {string} code - Source code to analyze
+   * @param {string} language - Programming language
+   * @returns {number} Cognitive complexity score
    */
   calculateCognitiveComplexity(code, language) {
-    // Simplified cognitive complexity calculation
     const lines = code.split('\n');
     let complexity = 0;
     let nestingLevel = 0;
@@ -327,17 +377,14 @@ class CodeAnalysisService {
     for (const line of lines) {
       const trimmedLine = line.trim();
       
-      // Check for nesting increase
       if (this.isNestingIncrease(trimmedLine, language)) {
         nestingLevel++;
       }
       
-      // Check for nesting decrease
       if (this.isNestingDecrease(trimmedLine, language)) {
         nestingLevel = Math.max(0, nestingLevel - 1);
       }
       
-      // Check for complexity-adding constructs
       if (this.addsComplexity(trimmedLine, language)) {
         complexity += 1 + nestingLevel;
       }
@@ -347,7 +394,11 @@ class CodeAnalysisService {
   }
 
   /**
-   * Calculate maximum nesting depth
+   * Calculate maximum nesting depth in source code
+   * Measures deepest level of nested control structures
+   * @param {string} code - Source code to analyze
+   * @param {string} language - Programming language
+   * @returns {number} Maximum nesting depth found
    */
   calculateMaxNestingDepth(code, language) {
     const lines = code.split('\n');
@@ -371,7 +422,11 @@ class CodeAnalysisService {
   }
 
   /**
-   * Store analysis results in database
+   * Store comprehensive analysis results in database
+   * Persists metrics and analysis data for future retrieval
+   * @param {number} submissionId - Submission ID
+   * @param {Object} analysis - Complete analysis results
+   * @throws {Error} When database storage fails
    */
   async storeAnalysisResults(submissionId, analysis) {
     try {
@@ -381,7 +436,7 @@ class CodeAnalysisService {
         cyclomatic_complexity: analysis.complexity_metrics.cyclomatic_complexity,
         function_count: analysis.basic_metrics.function_count,
         variable_count: analysis.basic_metrics.variable_count,
-        language_features: JSON.stringify({}), // Could be expanded
+        language_features: JSON.stringify({}),
         complexity_breakdown: JSON.stringify(analysis.complexity_metrics),
         readability_score: analysis.quality_metrics.readability_score,
         style_analysis: JSON.stringify(analysis.style_analysis),
@@ -400,7 +455,11 @@ class CodeAnalysisService {
   }
 
   /**
-   * Get analysis results for a submission
+   * Retrieve stored analysis results for a submission
+   * Returns parsed analysis data from database
+   * @param {number} submissionId - Submission ID to retrieve
+   * @returns {Promise<Object|null>} Analysis results or null if not found
+   * @throws {Error} When database query fails
    */
   async getAnalysisResults(submissionId) {
     try {
@@ -424,7 +483,11 @@ class CodeAnalysisService {
   }
 
   /**
-   * Batch analyze all submissions for a contest
+   * Batch analyze all submissions for an entire contest
+   * Processes all submissions and generates summary statistics
+   * @param {number} contestId - Contest ID to analyze
+   * @returns {Promise<Object>} Contest analysis summary with statistics
+   * @throws {Error} When contest analysis fails
    */
   async analyzeContest(contestId) {
     try {
@@ -470,7 +533,10 @@ class CodeAnalysisService {
   }
 
   /**
-   * Generate analysis summary
+   * Generate statistical summary of analysis results
+   * Computes averages, extremes, and quality distributions
+   * @param {Array} results - Array of analysis results
+   * @returns {Object} Statistical summary of analysis data
    */
   generateAnalysisSummary(results) {
     if (results.length === 0) return {};
@@ -488,29 +554,180 @@ class CodeAnalysisService {
     };
   }
 
-  // Placeholder methods - would implement full functionality in production
+  /**
+   * Calculate Halstead complexity metrics (placeholder)
+   * @param {string} code - Source code
+   * @param {string} language - Programming language
+   * @returns {Object} Halstead metrics
+   */
   calculateHalsteadMetrics(code, language) { return {}; }
+
+  /**
+   * Calculate maintainability index (placeholder)
+   * @param {string} code - Source code
+   * @param {string} language - Programming language
+   * @returns {number} Maintainability index score
+   */
   calculateMaintainabilityIndex(code, language) { return 50; }
+
+  /**
+   * Calculate code readability score (placeholder)
+   * @param {string} code - Source code
+   * @param {string} language - Programming language
+   * @returns {number} Readability score
+   */
   calculateReadabilityScore(code, language) { return 70; }
+
+  /**
+   * Calculate documentation to code ratio (placeholder)
+   * @param {string} code - Source code
+   * @param {string} language - Programming language
+   * @returns {number} Documentation ratio
+   */
   calculateDocumentationRatio(code, language) { return 0.1; }
+
+  /**
+   * Analyze naming quality in code (placeholder)
+   * @param {string} code - Source code
+   * @param {string} language - Programming language
+   * @returns {Object} Naming quality analysis
+   */
   analyzeNamingQuality(code, language) { return { score: 80 }; }
+
+  /**
+   * Detect code duplication (placeholder)
+   * @param {string} code - Source code
+   * @param {string} language - Programming language
+   * @returns {Object} Code duplication analysis
+   */
   detectCodeDuplication(code, language) { return { percentage: 0 }; }
+
+  /**
+   * Calculate overall quality score from metrics (placeholder)
+   * @param {Object} metrics - Quality metrics
+   * @returns {number} Overall quality score
+   */
   calculateOverallQualityScore(metrics) { return 75; }
+
+  /**
+   * Analyze indentation style (placeholder)
+   * @param {string} code - Source code
+   * @returns {Object} Indentation analysis
+   */
   analyzeIndentation(code) { return { style: 'spaces', consistency: 90 }; }
+
+  /**
+   * Analyze naming conventions (placeholder)
+   * @param {string} code - Source code
+   * @param {string} language - Programming language
+   * @returns {Object} Naming convention analysis
+   */
   analyzeNamingConventions(code, language) { return { score: 85 }; }
+
+  /**
+   * Analyze spacing consistency (placeholder)
+   * @param {string} code - Source code
+   * @returns {Object} Spacing analysis
+   */
   analyzeSpacing(code) { return { consistency: 80 }; }
+
+  /**
+   * Analyze bracket style (placeholder)
+   * @param {string} code - Source code
+   * @param {string} language - Programming language
+   * @returns {Object} Bracket style analysis
+   */
   analyzeBracketStyle(code, language) { return { style: 'allman', consistency: 95 }; }
+
+  /**
+   * Check line length violations (placeholder)
+   * @param {string} code - Source code
+   * @returns {Object} Line length violation analysis
+   */
   checkLineLengthViolations(code) { return { violations: 0, max_length: 80 }; }
+
+  /**
+   * Calculate style consistency score (placeholder)
+   * @param {string} code - Source code
+   * @param {string} language - Programming language
+   * @returns {number} Style consistency score
+   */
   calculateStyleConsistencyScore(code, language) { return 85; }
+
+  /**
+   * Get security patterns for language (placeholder)
+   * @param {string} language - Programming language
+   * @returns {Array} Security patterns
+   */
   getSecurityPatterns(language) { return []; }
+
+  /**
+   * Calculate risk level from security issues (placeholder)
+   * @param {Array} issues - Security issues
+   * @returns {string} Risk level
+   */
   calculateRiskLevel(issues) { return 'low'; }
+
+  /**
+   * Generate security recommendations (placeholder)
+   * @param {Array} issues - Security issues
+   * @returns {Array} Security recommendations
+   */
   generateSecurityRecommendations(issues) { return []; }
+
+  /**
+   * Find line numbers for pattern matches (placeholder)
+   * @param {string} code - Source code
+   * @param {RegExp} regex - Pattern regex
+   * @returns {Array} Line numbers
+   */
   findPatternLines(code, regex) { return []; }
+
+  /**
+   * Get performance patterns for language (placeholder)
+   * @param {string} language - Programming language
+   * @returns {Array} Performance patterns
+   */
   getPerformancePatterns(language) { return []; }
+
+  /**
+   * Estimate time complexity (placeholder)
+   * @param {string} code - Source code
+   * @param {string} language - Programming language
+   * @returns {string} Time complexity estimate
+   */
   estimateTimeComplexity(code, language) { return 'O(n)'; }
+
+  /**
+   * Analyze memory usage (placeholder)
+   * @param {string} code - Source code
+   * @param {string} language - Programming language
+   * @returns {Object} Memory usage analysis
+   */
   analyzeMemoryUsage(code, language) { return { hints: [] }; }
+
+  /**
+   * Check if line increases nesting (placeholder)
+   * @param {string} line - Code line
+   * @param {string} language - Programming language
+   * @returns {boolean} Whether line increases nesting
+   */
   isNestingIncrease(line, language) { return line.includes('{') || line.includes(':'); }
+
+  /**
+   * Check if line decreases nesting (placeholder)
+   * @param {string} line - Code line
+   * @param {string} language - Programming language
+   * @returns {boolean} Whether line decreases nesting
+   */
   isNestingDecrease(line, language) { return line.includes('}'); }
+
+  /**
+   * Check if line adds complexity (placeholder)
+   * @param {string} line - Code line
+   * @param {string} language - Programming language
+   * @returns {boolean} Whether line adds complexity
+   */
   addsComplexity(line, language) { return /\b(if|for|while|switch)\b/.test(line); }
 }
 

@@ -1,8 +1,3 @@
-/**
- * CS Club Hackathon Platform - Advanced Reporting Service
- * Phase 6.3: Report generation and data export
- */
-
 const { db } = require('../utils/db');
 const logger = require('../utils/logger');
 const fs = require('fs').promises;

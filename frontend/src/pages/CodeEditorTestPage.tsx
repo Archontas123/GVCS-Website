@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import CodeEditor from '../components/CodeEditor';
 import apiService from '../services/api';
+import { MdCheck, MdClose } from 'react-icons/md';
 
 const CodeEditorTestPage: React.FC = () => {
   const [testResult, setTestResult] = useState<{
@@ -92,7 +93,9 @@ const CodeEditorTestPage: React.FC = () => {
       {testResult && (
         <div className={`alert ${testResult.success ? 'alert-success' : 'alert-error'} mb-4`}>
           <div style={{ marginBottom: '12px' }}>
-            <strong>{testResult.success ? '✅ Execution Result:' : '❌ Execution Failed:'}</strong>
+            <strong style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              {testResult.success ? <><MdCheck /> Execution Result:</> : <><MdClose /> Execution Failed:</>}
+            </strong>
           </div>
           
           {testResult.success ? (

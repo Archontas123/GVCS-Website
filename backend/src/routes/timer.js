@@ -1,6 +1,8 @@
 /**
- * Contest Timer Routes - Phase 2.4
- * Real-time contest timing and synchronization endpoints
+ * Contest Timer Routes Module
+ * Provides real-time contest timing and synchronization endpoints for
+ * teams, administrators, and system monitoring
+ * @module routes/timer
  */
 
 const express = require('express');
@@ -11,24 +13,46 @@ const { validate } = require('../utils/validation');
 const Joi = require('joi');
 
 /**
- * GET /api/timer/contest/:contestCode
- * Get current contest timing information for teams
- * Public endpoint for contest status synchronization
+ * Get contest timing information by registration code (public endpoint)
+ * @route GET /api/timer/contest/:contestCode
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.contestCode - Contest registration code
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with contest timing information
+ * @throws {NotFoundError} 404 - Contest not found
+ * @throws {InternalServerError} 500 - Server error
+ * @example
+ * // GET /api/timer/contest/PROG2024
+ * // Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "contest": {
+ *       "id": 1,
+ *       "name": "Programming Contest 2024",
+ *       "registration_code": "PROG2024"
+ *     },
+ *     "timing": {
+ *       "status": "running",
+ *       "time_remaining_seconds": 3600,
+ *       "progress_percentage": 50.0
+ *     }
+ *   }
+ * }
  */
 router.get('/contest/:contestCode', async (req, res, next) => {
   try {
     const { contestCode } = req.params;
 
-    // Find contest by registration code
     const contest = await Contest.findByRegistrationCode(contestCode);
     if (!contest) {
       return res.notFound('Contest not found');
     }
 
-    // Get current contest status and timing
     const status = Contest.getContestStatus(contest);
 
-    // Return timing information
     res.success({
       contest: {
         id: contest.id,
@@ -44,9 +68,22 @@ router.get('/contest/:contestCode', async (req, res, next) => {
 });
 
 /**
- * GET /api/timer/sync
- * Server time synchronization endpoint
- * Returns precise server time for client synchronization
+ * Get server time for client synchronization
+ * @route GET /api/timer/sync
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} Response with precise server time information
+ * @example
+ * // Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "server_time": "2024-01-15T14:30:00.123Z",
+ *     "timestamp_ms": 1705326600123,
+ *     "timezone_offset": -300,
+ *     "sync_id": "sync_1705326600123_abc123def"
+ *   }
+ * }
  */
 router.get('/sync', (req, res) => {
   const serverTime = new Date();
@@ -61,15 +98,26 @@ router.get('/sync', (req, res) => {
 });
 
 /**
- * GET /api/timer/contest/:contestCode/status
- * Authenticated endpoint for teams to get detailed contest status
+ * Get detailed contest status for authenticated teams
+ * @route GET /api/timer/contest/:contestCode/status
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.contestCode - Contest registration code
+ * @param {Object} req.team - Team object from authentication middleware
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with detailed contest and team status
+ * @requires authenticateTeam - Team authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {ForbiddenError} 403 - Team not registered for this contest
+ * @throws {NotFoundError} 404 - Contest not found
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/contest/:contestCode/status', authenticateTeam, async (req, res, next) => {
   try {
     const { contestCode } = req.params;
     const team = req.team;
 
-    // Verify team is registered for this contest
     const contest = await Contest.findByRegistrationCode(contestCode);
     if (!contest) {
       return res.notFound('Contest not found');
@@ -79,10 +127,7 @@ router.get('/contest/:contestCode/status', authenticateTeam, async (req, res, ne
       return res.forbidden('Team not registered for this contest');
     }
 
-    // Get detailed contest status
     const status = Contest.getContestStatus(contest);
-
-    // Get team-specific information
     const teamStats = await Contest.getTeamStatistics(contest.id, team.id);
 
     res.success({
@@ -111,24 +156,31 @@ router.get('/contest/:contestCode/status', authenticateTeam, async (req, res, ne
 });
 
 /**
- * POST /api/timer/contest/:contestCode/ping
- * Team activity ping endpoint
- * Updates team's last_activity timestamp
+ * Update team activity timestamp (heartbeat endpoint)
+ * @route POST /api/timer/contest/:contestCode/ping
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.contestCode - Contest registration code
+ * @param {Object} req.team - Team object from authentication middleware
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with updated timing information
+ * @requires authenticateTeam - Team authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {ForbiddenError} 403 - Team not registered for this contest
+ * @throws {InternalServerError} 500 - Server error
  */
 router.post('/contest/:contestCode/ping', authenticateTeam, async (req, res, next) => {
   try {
     const { contestCode } = req.params;
     const team = req.team;
 
-    // Verify team is registered for this contest
     if (team.contestCode !== contestCode) {
       return res.forbidden('Team not registered for this contest');
     }
 
-    // Update team's last activity
     await Contest.updateTeamActivity(team.id);
 
-    // Return basic timing info
     const contest = await Contest.findByRegistrationCode(contestCode);
     const status = Contest.getContestStatus(contest);
 
@@ -147,8 +199,13 @@ router.post('/contest/:contestCode/ping', authenticateTeam, async (req, res, nex
 });
 
 /**
- * GET /api/timer/contests/active
- * Get all currently active contests (for admin monitoring)
+ * Get all currently active contests for monitoring
+ * @route GET /api/timer/contests/active
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with array of active contests and their status
+ * @throws {InternalServerError} 500 - Server error
  */
 router.get('/contests/active', async (req, res, next) => {
   try {
@@ -167,30 +224,62 @@ router.get('/contests/active', async (req, res, next) => {
 });
 
 /**
- * GET /api/timer/duration/recommendations
  * Get contest duration recommendations for different contest types
+ * @route GET /api/timer/duration/recommendations
+ * @param {Object} req - Express request object
+ * @param {Object} req.query - Query parameters
+ * @param {string} [req.query.type=standard] - Contest type (standard, short, long, practice)
+ * @param {Object} res - Express response object
+ * @returns {Object} Response with duration recommendations
+ * @example
+ * // GET /api/timer/duration/recommendations?type=standard
+ * // Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "requested_type": "standard",
+ *     "recommendation": {
+ *       "duration": 180,
+ *       "problems": "5-6",
+ *       "freeze_time": 60
+ *     },
+ *     "all_recommendations": {...}
+ *   }
+ * }
  */
 router.get('/duration/recommendations', (req, res) => {
-  const contestType = req.query.type || 'standard';
-  
-  const recommendation = Contest.getDurationRecommendations(contestType);
-  const allTypes = ['practice', 'beginner', 'standard', 'advanced', 'marathon'];
-  
-  const allRecommendations = {};
-  allTypes.forEach(type => {
-    allRecommendations[type] = Contest.getDurationRecommendations(type);
-  });
+  const allRecommendations = Contest.getDurationRecommendations();
+  const requestedType = req.query.type || 'standard';
+  const recommendation = allRecommendations[requestedType] || allRecommendations.standard;
 
   res.success({
-    requested_type: contestType,
+    requested_type: requestedType,
     recommendation,
     all_recommendations: allRecommendations
   }, 'Duration recommendations retrieved successfully');
 });
 
 /**
- * GET /api/timer/duration/optimal-freeze
- * Calculate optimal freeze time for a given duration
+ * Calculate optimal freeze time for a given contest duration
+ * @route GET /api/timer/duration/optimal-freeze
+ * @param {Object} req - Express request object
+ * @param {Object} req.query - Query parameters
+ * @param {number} req.query.duration - Contest duration in minutes (minimum 15)
+ * @param {Object} res - Express response object
+ * @returns {Object} Response with optimal freeze time calculation
+ * @throws {ValidationError} 400 - Invalid duration parameter
+ * @example
+ * // GET /api/timer/duration/optimal-freeze?duration=180
+ * // Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "duration_minutes": 180,
+ *     "optimal_freeze_time_minutes": 60,
+ *     "freeze_percentage": 33,
+ *     "recommendation": "For a 180-minute contest, freeze leaderboard 60 minutes before end (33% of duration)"
+ *   }
+ * }
  */
 router.get('/duration/optimal-freeze', (req, res) => {
   const duration = parseInt(req.query.duration);

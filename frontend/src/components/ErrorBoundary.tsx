@@ -1,8 +1,3 @@
-/**
- * CS Club Hackathon Platform - Error Boundary Component
- * Phase 1.4: React Error Boundary for graceful error handling (CSS-based, removed MUI)
- */
-
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import '../styles/theme.css';
 
@@ -40,9 +35,7 @@ class ErrorBoundary extends Component<Props, State> {
       errorInfo,
     });
 
-    // Log error to monitoring service in production
     if (process.env.NODE_ENV === 'production') {
-      // Here you would log to your error monitoring service
       console.error('Production error:', {
         error: error.message,
         stack: error.stack,
@@ -66,7 +59,6 @@ class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
-      // Custom fallback UI
       if (this.props.fallback) {
         return this.props.fallback;
       }
@@ -81,7 +73,6 @@ class ErrorBoundary extends Component<Props, State> {
         >
           <div className="card" style={{ maxWidth: '600px', width: '100%' }}>
             <div className="card-content p-4">
-              {/* Header */}
               <div className="text-center mb-4">
                 <div
                   style={{
@@ -90,8 +81,8 @@ class ErrorBoundary extends Component<Props, State> {
                     marginBottom: '16px',
                   }}
                 >
-                  🐛
-                </div>
+                  🐛 
+                </div> {/*TODO: Remove Emoji*/}
                 <h1
                   className="mb-2"
                   style={{ fontWeight: 600, fontSize: '2rem' }}
@@ -103,7 +94,6 @@ class ErrorBoundary extends Component<Props, State> {
                 </p>
               </div>
 
-              {/* Error Details (Development only) */}
               {process.env.NODE_ENV === 'development' && this.state.error && (
                 <div className="alert alert-error mb-3" style={{ textAlign: 'left' }}>
                   <div className="mb-2" style={{ fontSize: '0.875rem' }}>
@@ -130,14 +120,13 @@ class ErrorBoundary extends Component<Props, State> {
                 </div>
               )}
 
-              {/* Action Buttons */}
               <div className="flex justify-center" style={{ gap: '16px', flexWrap: 'wrap' }}>
                 <button
                   className="btn btn-primary"
                   onClick={this.handleRetry}
                   style={{ padding: '12px 24px' }}
                 >
-                  🔄 Try Again
+                  🔄 Try Again {/*TODO: Remove Emoji*/}
                 </button>
                 <button
                   className="btn btn-outlined"
@@ -148,7 +137,6 @@ class ErrorBoundary extends Component<Props, State> {
                 </button>
               </div>
 
-              {/* Support Info */}
               <div className="mt-4 text-center">
                 <p className="text-muted" style={{ fontSize: '0.875rem' }}>
                   If this problem persists, please contact the contest organizer.

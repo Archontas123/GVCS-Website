@@ -1,8 +1,3 @@
-/**
- * CS Club Hackathon Platform - Admin Protected Route Component
- * Phase 2.3: Route protection for admin pages
- */
-
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '../hooks/useAdminAuth';
@@ -24,7 +19,6 @@ const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ children }) =
   }
 
   if (!isAuthenticated) {
-    // Redirect to admin login with return URL
     return (
       <Navigate 
         to="/admin/login" 

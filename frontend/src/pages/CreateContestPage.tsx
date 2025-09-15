@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 import apiService from '../services/api';
+import { MdSave } from 'react-icons/md';
 
 interface ContestFormData {
   contest_name: string;
@@ -456,7 +457,11 @@ const CreateContestPage: React.FC = () => {
                     disabled={isLoading}
                   >
                     {isLoading && <div className="spinner"></div>}
-                    {isLoading ? 'Creating...' : '💾 Create Contest'}
+                    {isLoading ? 'Creating...' : (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <MdSave /> Create Contest
+                      </span>
+                    )}
                   </button>
                 </div>
               </div>

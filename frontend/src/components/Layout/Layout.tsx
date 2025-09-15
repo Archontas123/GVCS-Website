@@ -1,8 +1,3 @@
-/**
- * CS Club Hackathon Platform - Main Layout Component
- * Phase 1.4: Responsive layout with header and main content area (CSS-based, removed MUI)
- */
-
 import React, { ReactNode } from 'react';
 import Header from './Header';
 
@@ -33,7 +28,6 @@ const Layout: React.FC<LayoutProps> = ({
       display: 'flex',
       flexDirection: 'column'
     }}>
-      {/* Header */}
       <Header
         teamName={teamName}
         contestName={contestName}
@@ -43,7 +37,6 @@ const Layout: React.FC<LayoutProps> = ({
         contestId={contestId}
       />
 
-      {/* Main Content */}
       <main style={{ 
         flexGrow: 1, 
         padding: '32px 16px',
@@ -53,7 +46,6 @@ const Layout: React.FC<LayoutProps> = ({
         </div>
       </main>
 
-      {/* Footer (optional) */}
       <footer 
         style={{ 
           textAlign: 'center', 
@@ -65,7 +57,7 @@ const Layout: React.FC<LayoutProps> = ({
           fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
         }}
       >
-        CS Club Hackathon Platform - Powered by React & Modern CSS
+        Hack The Valley Platform
       </footer>
     </div>
   );

@@ -1,7 +1,7 @@
 {
-  "name": "cs-club-hackathon-platform",
+  "name": "cs-club-programming-contest-platform",
   "version": "1.0.0",
-  "description": "GVHS CS Club Hackathon Platform - ICPC-style contest management system",
+  "description": "GVHS CS Club Programming Contest Platform - ICPC-style contest management system",
   "private": true,
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
@@ -50,10 +50,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/cs-club-hackathon-platform.git"
+    "url": "https://github.com/your-org/cs-club-programming-contest-platform.git"
   },
   "keywords": [
-    "hackathon",
+    "programming-contest",
     "contest",
     "icpc",
     "programming",

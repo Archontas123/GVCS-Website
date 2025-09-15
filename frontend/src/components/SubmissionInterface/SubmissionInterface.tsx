@@ -1,20 +1,13 @@
-/**
- * CS Club Hackathon Platform - Submission Interface Component (Modern Admin Style)
- * Updated to match new design system
- */
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import '../../styles/theme.css';
 
-// Supported languages
 const SUPPORTED_LANGUAGES = [
   { id: 'cpp', name: 'C++', extension: '.cpp', timeMultiplier: 1.0 },
   { id: 'java', name: 'Java', extension: '.java', timeMultiplier: 2.0 },
   { id: 'python', name: 'Python', extension: '.py', timeMultiplier: 5.0 },
 ] as const;
 
-// Submission status types
 export type SubmissionStatus = 
   | 'pending'
   | 'judging'
@@ -34,8 +27,8 @@ export interface Submission {
   status: SubmissionStatus;
   submissionTime: string;
   judgedAt?: string;
-  executionTime?: number; // in ms
-  memoryUsed?: number; // in KB
+  executionTime?: number; 
+  memoryUsed?: number; 
   verdict?: string;
   errorMessage?: string;
   testCasesPassed?: number;
@@ -53,54 +46,9 @@ export interface SubmissionInterfaceProps {
     timeRemaining: number;
     canSubmit: boolean;
   };
-  maxFileSize?: number; // in bytes
+  maxFileSize?: number; 
 }
 
-// Mock submission data for demo
-const mockSubmissions: Submission[] = [
-  {
-    id: 1,
-    problemId: 1,
-    language: 'cpp',
-    code: '#include <iostream>\nusing namespace std;\n\nint main() {\n    int a, b;\n    cin >> a >> b;\n    cout << a + b << endl;\n    return 0;\n}',
-    status: 'accepted',
-    submissionTime: '2025-08-12T02:30:00Z',
-    judgedAt: '2025-08-12T02:30:05Z',
-    executionTime: 15,
-    memoryUsed: 1024,
-    verdict: 'Accepted',
-    testCasesPassed: 10,
-    totalTestCases: 10,
-  },
-  {
-    id: 2,
-    problemId: 1,
-    language: 'python',
-    code: 'a, b = map(int, input().split())\nprint(a + b)',
-    status: 'wrong_answer',
-    submissionTime: '2025-08-12T02:25:00Z',
-    judgedAt: '2025-08-12T02:25:03Z',
-    executionTime: 45,
-    memoryUsed: 2048,
-    verdict: 'Wrong Answer',
-    testCasesPassed: 8,
-    totalTestCases: 10,
-  },
-  {
-    id: 3,
-    problemId: 1,
-    language: 'java',
-    code: 'import java.util.*;\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int a = sc.nextInt();\n        int b = sc.nextInt();\n        System.out.println(a + b);\n    }\n}',
-    status: 'time_limit_exceeded',
-    submissionTime: '2025-08-12T02:20:00Z',
-    judgedAt: '2025-08-12T02:20:10Z',
-    executionTime: 2000,
-    memoryUsed: 4096,
-    verdict: 'Time Limit Exceeded',
-    testCasesPassed: 5,
-    totalTestCases: 10,
-  }
-];
 
 const SubmissionInterface: React.FC<SubmissionInterfaceProps> = ({
   problemId,
@@ -111,7 +59,7 @@ const SubmissionInterface: React.FC<SubmissionInterfaceProps> = ({
   contestStatus = { isRunning: true, timeRemaining: 3600, canSubmit: true },
   maxFileSize = 64 * 1024, // 64KB default
 }) => {
-  const [submissions, setSubmissions] = useState<Submission[]>(mockSubmissions);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -192,48 +140,9 @@ const SubmissionInterface: React.FC<SubmissionInterfaceProps> = ({
     setIsSubmitting(true);
     try {
       await onSubmit(code, language);
-      
-      // Add new submission to history (mock)
-      const newSubmission: Submission = {
-        id: Date.now(),
-        problemId,
-        language,
-        code,
-        status: 'pending',
-        submissionTime: new Date().toISOString(),
-      };
-      
-      setSubmissions(prev => [newSubmission, ...prev]);
       setLastSubmissionTime(new Date());
       setSubmissionCooldown(10); // 10 second cooldown
       setConfirmDialogOpen(false);
-      
-      // Simulate judging process
-      setTimeout(() => {
-        setSubmissions(prev => prev.map(sub => 
-          sub.id === newSubmission.id 
-            ? { ...sub, status: 'judging' }
-            : sub
-        ));
-        
-        setTimeout(() => {
-          setSubmissions(prev => prev.map(sub => 
-            sub.id === newSubmission.id 
-              ? { 
-                  ...sub, 
-                  status: 'accepted',
-                  judgedAt: new Date().toISOString(),
-                  executionTime: 25,
-                  memoryUsed: 1024,
-                  verdict: 'Accepted',
-                  testCasesPassed: 10,
-                  totalTestCases: 10,
-                }
-              : sub
-          ));
-        }, 3000);
-      }, 1000);
-      
     } catch (error) {
       console.error('Submission error:', error);
     } finally {
@@ -261,9 +170,9 @@ const SubmissionInterface: React.FC<SubmissionInterfaceProps> = ({
       case 'compilation_error':
         return { icon: 'CE', color: '#1d4ed8', bgColor: '#dbeafe', text: 'Compilation Error' };
       case 'presentation_error':
-        return { icon: '📝', color: '#d97706', bgColor: '#fef3c7', text: 'Presentation Error' };
+        return { icon: 'PE', color: '#d97706', bgColor: '#fef3c7', text: 'Presentation Error' };
       default:
-        return { icon: '❓', color: '#6b7280', bgColor: '#f3f4f6', text: 'Unknown' };
+        return { icon: 'UNK', color: '#6b7280', bgColor: '#f3f4f6', text: 'Unknown' };
     }
   };
 
@@ -272,216 +181,207 @@ const SubmissionInterface: React.FC<SubmissionInterfaceProps> = ({
   const lastAccepted = submissions.find(s => s.problemId === problemId && s.status === 'accepted');
 
   return (
-    <Box>
+    <div className="submission-interface">
       {/* Language Selection */}
-      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Code /> Submit Solution
-        </Typography>
+      <div className="submission-panel">
+        <h3 className="panel-title">
+          Submit Solution
+        </h3>
         
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>Language</InputLabel>
-            <Select
+        <div className="submission-controls">
+          <div className="form-group">
+            <label htmlFor="language-select">Language</label>
+            <select
+              id="language-select"
               value={language}
-              label="Language"
               onChange={(e) => onLanguageChange(e.target.value)}
+              className="language-select"
             >
+              <option value="">Select Language</option>
               {SUPPORTED_LANGUAGES.map((lang) => (
-                <MenuItem key={lang.id} value={lang.id}>
+                <option key={lang.id} value={lang.id}>
                   {lang.name}
-                </MenuItem>
+                </option>
               ))}
-            </Select>
-          </FormControl>
+            </select>
+          </div>
 
           {currentLanguage && (
-            <Chip
-              label={`Time multiplier: ${currentLanguage.timeMultiplier}x`}
-              size="small"
-              variant="outlined"
-              icon={<Timer />}
-            />
+            <span className="time-multiplier-chip">
+              Time multiplier: {currentLanguage.timeMultiplier}x
+            </span>
           )}
 
-          <Box sx={{ flexGrow: 1 }} />
+          <div className="spacer" />
 
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<History />}
+          <button
+            className={`history-button ${recentSubmissions.length > 0 ? 'has-submissions' : ''}`}
             onClick={() => setHistoryOpen(!historyOpen)}
-            color={recentSubmissions.length > 0 ? 'primary' : 'inherit'}
           >
             History ({recentSubmissions.length})
-          </Button>
-        </Box>
+          </button>
+        </div>
 
         {/* Validation Errors */}
         {validationErrors.length > 0 && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+          <div className="alert alert-error">
+            <div className="alert-title">
               Please fix the following issues:
-            </Typography>
-            <ul style={{ margin: 0, paddingLeft: '20px' }}>
+            </div>
+            <ul className="error-list">
               {validationErrors.map((error, index) => (
                 <li key={index}>{error}</li>
               ))}
             </ul>
-          </Alert>
+          </div>
         )}
 
         {/* Contest Status */}
         {!contestStatus.isRunning && (
-          <Alert severity="warning" sx={{ mb: 2 }}>
+          <div className="alert alert-warning">
             Contest is not currently running. Submissions are disabled.
-          </Alert>
+          </div>
         )}
 
         {contestStatus.timeRemaining < 300 && contestStatus.isRunning && (
-          <Alert severity="warning" sx={{ mb: 2 }}>
+          <div className="alert alert-warning">
             Warning: Less than 5 minutes remaining in the contest!
-          </Alert>
+          </div>
         )}
 
         {/* Last Accepted Solution */}
         {lastAccepted && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            <Typography variant="body2">
-              ✅ You have an accepted solution in {lastAccepted.language.toUpperCase()} 
+          <div className="alert alert-success">
+            <div>
+              You have an accepted solution in {lastAccepted.language.toUpperCase()} 
               ({formatDistanceToNow(new Date(lastAccepted.submissionTime))} ago)
-            </Typography>
-          </Alert>
+            </div>
+          </div>
         )}
 
         {/* Submission Button */}
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          <Button
-            variant="contained"
-            size="large"
-            startIcon={isSubmitting ? <LinearProgress size={20} /> : <Send />}
+        <div className="submission-button-section">
+          <button
+            className={`submit-button ${isSubmitting || !contestStatus.canSubmit || submissionCooldown > 0 ? 'disabled' : ''}`}
             onClick={() => setConfirmDialogOpen(true)}
             disabled={isSubmitting || !contestStatus.canSubmit || submissionCooldown > 0}
-            sx={{ 
-              minWidth: 150,
-              py: 1.5,
-              fontSize: '1.1rem',
-              fontWeight: 600,
-            }}
           >
+            {isSubmitting && <span className="loading-spinner"></span>}
             {isSubmitting ? 'Submitting...' : 
              submissionCooldown > 0 ? `Wait ${submissionCooldown}s` : 
              'Submit Solution'}
-          </Button>
+          </button>
 
-          <Box>
-            <Typography variant="body2" color="text.secondary">
+          <div className="code-size-info">
+            <div className="code-size">
               Code size: {Math.round(new Blob([code]).size / 1024 * 100) / 100} KB
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
+            </div>
+            <div className="max-size">
               Max: {Math.round(maxFileSize / 1024)} KB
-            </Typography>
-          </Box>
-        </Box>
-      </Paper>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Submission History */}
-      <Collapse in={historyOpen}>
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <History /> Submission History
-              <Tooltip title="Refresh">
-                <IconButton size="small" onClick={() => {}}>
-                  <Refresh />
-                </IconButton>
-              </Tooltip>
-            </Typography>
+      <div className={`history-section ${historyOpen ? 'open' : 'collapsed'}`}>
+        <div className="history-card">
+          <div className="history-header">
+            <h4 className="history-title">
+              Submission History
+            </h4>
+            <button className="refresh-button" onClick={() => {}} title="Refresh">
+              Refresh
+            </button>
+          </div>
 
-            {recentSubmissions.length === 0 ? (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-                No submissions yet for this problem
-              </Typography>
-            ) : (
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Time</TableCell>
-                      <TableCell>Language</TableCell>
-                      <TableCell>Verdict</TableCell>
-                      <TableCell>Runtime</TableCell>
-                      <TableCell>Memory</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {recentSubmissions.map((submission) => {
-                      const verdictInfo = getVerdictInfo(submission.status);
-                      return (
-                        <TableRow key={submission.id} hover>
-                          <TableCell>
-                            <Typography variant="body2">
+          {recentSubmissions.length === 0 ? (
+            <div className="no-submissions">
+              No submissions yet for this problem
+            </div>
+          ) : (
+            <div className="submissions-table-container">
+              <table className="submissions-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Language</th>
+                    <th>Verdict</th>
+                    <th>Runtime</th>
+                    <th>Memory</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentSubmissions.map((submission) => {
+                    const verdictInfo = getVerdictInfo(submission.status);
+                    return (
+                      <tr key={submission.id} className="submission-row">
+                        <td>
+                          <div className="time-cell">
+                            <div className="relative-time">
                               {formatDistanceToNow(new Date(submission.submissionTime))} ago
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
+                            </div>
+                            <div className="absolute-time">
                               {new Date(submission.submissionTime).toLocaleTimeString()}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip 
-                              label={submission.language.toUpperCase()} 
-                              size="small" 
-                              variant="outlined"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Box sx={{ color: verdictInfo.color }}>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="language-chip">
+                            {submission.language.toUpperCase()}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="verdict-cell">
+                            <div className="verdict-info">
+                              <span 
+                                className="verdict-icon" 
+                                style={{ color: verdictInfo.color }}
+                              >
                                 {verdictInfo.icon}
-                              </Box>
-                              <Typography 
-                                variant="body2" 
-                                sx={{ color: verdictInfo.color, fontWeight: 500 }}
+                              </span>
+                              <span 
+                                className="verdict-text" 
+                                style={{ color: verdictInfo.color }}
                               >
                                 {verdictInfo.text}
-                              </Typography>
+                              </span>
                               {submission.status === 'judging' && (
-                                <LinearProgress size={16} sx={{ width: 20 }} />
+                                <span className="judging-spinner"></span>
                               )}
-                            </Box>
+                            </div>
                             {submission.testCasesPassed !== undefined && (
-                              <Typography variant="caption" color="text.secondary">
+                              <div className="test-cases">
                                 {submission.testCasesPassed}/{submission.totalTestCases} tests
-                              </Typography>
+                              </div>
                             )}
-                          </TableCell>
-                          <TableCell>
-                            {submission.executionTime ? `${submission.executionTime}ms` : '-'}
-                          </TableCell>
-                          <TableCell>
-                            {submission.memoryUsed ? `${Math.round(submission.memoryUsed / 1024)}KB` : '-'}
-                          </TableCell>
-                          <TableCell>
-                            <Tooltip title="View Code">
-                              <IconButton 
-                                size="small" 
-                                onClick={() => setSelectedSubmission(submission)}
-                              >
-                                <Visibility />
-                              </IconButton>
-                            </Tooltip>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </CardContent>
-        </Card>
-      </Collapse>
+                          </div>
+                        </td>
+                        <td>
+                          {submission.executionTime ? `${submission.executionTime}ms` : '-'}
+                        </td>
+                        <td>
+                          {submission.memoryUsed ? `${Math.round(submission.memoryUsed / 1024)}KB` : '-'}
+                        </td>
+                        <td>
+                          <button 
+                            className="view-code-button"
+                            onClick={() => setSelectedSubmission(submission)}
+                            title="View Code"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Submission Confirmation Modal */}
       {confirmDialogOpen && (
@@ -809,7 +709,7 @@ const SubmissionInterface: React.FC<SubmissionInterfaceProps> = ({
           </div>
         </div>
       )}
-    </Box>
+    </div>
   );
 };
 

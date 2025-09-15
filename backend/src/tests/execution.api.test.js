@@ -1,5 +1,5 @@
 /**
- * CS Club Hackathon Platform - Execution API Tests
+ * CS Club Programming Contest Platform - Execution API Tests
  * Phase 1.3: Test execution API endpoints
  */
 
@@ -9,7 +9,7 @@ const request = require('supertest');
 jest.mock('../services/dockerExecutor', () => {
     return class MockDockerExecutor {
         constructor() {
-            this.containerImage = 'hackathon-judge';
+            this.containerImage = 'programming_contest-judge';
             this.maxConcurrentContainers = 10;
             this.activeContainers = new Map();
         }

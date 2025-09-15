@@ -1,13 +1,16 @@
-/**
- * Freeze Service
- * Manages leaderboard freeze state, frozen data storage, and freeze/unfreeze operations
- */
-
 const { db } = require('../utils/db');
 const scoringService = require('./scoringService');
 const notificationService = require('./notificationService');
 
+/**
+ * Freeze Service for managing contest leaderboard freeze functionality
+ * Handles automatic freezing, manual freeze/unfreeze, and frozen data management
+ */
 class FreezeService {
+  /**
+   * Initialize freeze service
+   */
+  constructor() {}
   /**
    * Check if contest should be automatically frozen
    * @param {number} contestId - Contest ID

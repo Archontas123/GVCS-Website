@@ -4,12 +4,7 @@
  */
 
 import React, { useState, KeyboardEvent } from 'react';
-import {
-  Box,
-  TextField,
-  Chip,
-  Typography,
-} from '@mui/material';
+import { MdClose } from 'react-icons/md';
 
 interface TagInputProps {
   tags: string[];
@@ -46,53 +41,42 @@ const TagInput: React.FC<TagInputProps> = ({
   };
 
   return (
-    <Box>
+    <div>
       {label && (
-        <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+        <div className="mb-2 font-semibold text-sm">
           {label}
-        </Typography>
+        </div>
       )}
       
-      <TextField
-        fullWidth
-        variant="outlined"
+      <input
+        type="text"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onKeyPress={handleKeyPress}
         onBlur={addTag}
         placeholder={placeholder}
-        sx={{
-          '& .MuiOutlinedInput-root': {
-            borderRadius: 2,
-            backgroundColor: '#ffffff',
-          },
-        }}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
 
       {tags.length > 0 && (
-        <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        <div className="mt-4 flex flex-wrap gap-2">
           {tags.map((tag, index) => (
-            <Chip
+            <div
               key={index}
-              label={tag}
-              onDelete={() => removeTag(tag)}
-              size="small"
-              sx={{
-                backgroundColor: '#f1f5f9',
-                color: '#1e293b',
-                border: '1px solid #cbd5e1',
-                '& .MuiChip-deleteIcon': {
-                  color: '#64748b',
-                  '&:hover': {
-                    color: '#1e293b',
-                  },
-                },
-              }}
-            />
+              className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 text-slate-800 border border-slate-300 rounded-full text-sm"
+            >
+              <span>{tag}</span>
+              <button
+                onClick={() => removeTag(tag)}
+                className="text-slate-500 hover:text-slate-800 ml-1"
+              >
+                <MdClose className="w-4 h-4" />
+              </button>
+            </div>
           ))}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

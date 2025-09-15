@@ -1,10 +1,9 @@
--- Hackathon Platform Database Initialization
 -- This script initializes the database with basic settings
 
--- Create extensions if needed
+-- Create extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Set timezone (adjust as needed)
+-- Set timezone 
 SET timezone = 'UTC';
 
 -- Basic database initialization complete

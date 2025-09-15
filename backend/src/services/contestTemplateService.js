@@ -1,12 +1,14 @@
-/**
- * CS Club Hackathon Platform - Contest Template Service
- * Phase 6.3: Advanced contest features and scheduling
- */
-
 const { db } = require('../utils/db');
 const logger = require('../utils/logger');
 
+/**
+ * Contest Template Service for managing reusable contest configurations
+ * Provides predefined templates and custom template management
+ */
 class ContestTemplateService {
+  /**
+   * Initialize contest template service with default templates
+   */
   constructor() {
     this.templates = new Map();
     this.initializeDefaultTemplates();
@@ -16,19 +18,18 @@ class ContestTemplateService {
    * Initialize default contest templates
    */
   initializeDefaultTemplates() {
-    // Hackathon-style template
-    this.templates.set('hackathon', {
-      name: 'Hackathon Contest',
-      description: 'Standard hackathon format with points-based scoring',
+    // Programming contest template
+    this.templates.set('programming_contest', {
+      name: 'Programming Contest',
+      description: 'Standard programming contest format with ICPC-style scoring',
       settings: {
         duration: 300, // 5 hours
         freeze_time: 60, // 1 hour before end
-        scoring_system: 'hackathon',
+        scoring_system: 'icpc',
         max_teams: 100,
         registration_required: true,
         show_standings: true,
         allow_clarifications: true,
-        balloon_delivery: true,
         language_restrictions: ['cpp', 'java', 'python3'],
         problem_count_range: [8, 15],
         difficulty_distribution: {
@@ -71,7 +72,6 @@ class ContestTemplateService {
         registration_required: false,
         show_standings: true,
         allow_clarifications: true,
-        balloon_delivery: false,
         hints_enabled: true,
         tutorial_links: true,
         language_restrictions: null,
@@ -96,7 +96,6 @@ class ContestTemplateService {
         registration_required: false,
         show_standings: true,
         allow_clarifications: false,
-        balloon_delivery: false,
         language_restrictions: ['cpp', 'python3'],
         problem_count_range: [6, 10],
         difficulty_distribution: {
@@ -119,7 +118,6 @@ class ContestTemplateService {
         registration_required: true,
         show_standings: true,
         allow_clarifications: true,
-        balloon_delivery: false,
         submission_limit: 50,
         language_restrictions: null,
         problem_count_range: [1, 3],
@@ -133,7 +131,8 @@ class ContestTemplateService {
   }
 
   /**
-   * Get all available templates
+   * Get all available templates including built-in and custom ones
+   * @returns {Array<Object>} Array of template objects with id and configuration
    */
   getTemplates() {
     return Array.from(this.templates.entries()).map(([id, template]) => ({
@@ -144,13 +143,20 @@ class ContestTemplateService {
 
   /**
    * Get a specific template by ID
+   * @param {string} templateId - Template identifier
+   * @returns {Object|undefined} Template object or undefined if not found
    */
   getTemplate(templateId) {
     return this.templates.get(templateId);
   }
 
   /**
-   * Create contest from template
+   * Create contest from template with merged settings
+   * @param {string} templateId - Template identifier
+   * @param {Object} contestData - Contest-specific data
+   * @param {number} adminId - Admin user ID
+   * @returns {Promise<Object>} Created contest object
+   * @throws {Error} When template not found or creation fails
    */
   async createContestFromTemplate(templateId, contestData, adminId) {
     const template = this.getTemplate(templateId);
@@ -282,7 +288,7 @@ class ContestTemplateService {
         settings: {
           duration: contest.duration,
           freeze_time: contest.freeze_time,
-          scoring_system: contest.settings?.scoring_system || 'hackathon',
+          scoring_system: contest.settings?.scoring_system || 'icpc',
           max_teams: contest.settings?.max_teams || 100,
           registration_required: contest.settings?.registration_required || true,
           show_standings: contest.settings?.show_standings !== false,

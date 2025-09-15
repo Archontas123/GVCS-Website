@@ -1,5 +1,5 @@
 /**
- * CS Club Hackathon Platform - Basic Execution Environment Tests
+ * CS Club Programming Contest Platform - Basic Execution Environment Tests
  * Phase 1.3: Test core functionality without Docker dependency
  */
 
@@ -15,7 +15,7 @@ describe('Phase 1.3: Docker Execution Environment (Basic Tests)', () => {
     describe('DockerExecutor Service Configuration', () => {
         test('should create DockerExecutor instance with correct configuration', () => {
             expect(dockerExecutor).toBeInstanceOf(DockerExecutor);
-            expect(dockerExecutor.containerImage).toBe('hackathon-judge');
+            expect(dockerExecutor.containerImage).toBe('programming_contest-judge');
             expect(dockerExecutor.maxConcurrentContainers).toBe(10);
         });
 
@@ -142,7 +142,7 @@ describe('Phase 1.3: Docker Execution Environment (Basic Tests)', () => {
         });
 
         test('should have correct temp directory configuration', () => {
-            expect(dockerExecutor.tempDir).toBe('/tmp/hackathon-executions');
+            expect(dockerExecutor.tempDir).toBe('/tmp/programming_contest-executions');
         });
     });
 

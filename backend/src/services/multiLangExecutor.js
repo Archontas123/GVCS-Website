@@ -1,20 +1,18 @@
-/**
- * Multi-language Executor Service - Phase 4.1
- * Handles compilation and execution of code in multiple programming languages
- */
-
 const fs = require('fs').promises;
 const path = require('path');
 const { spawn } = require('child_process');
 const os = require('os');
 const crypto = require('crypto');
 
-// Load language configurations
 const languageConfigs = require('../config/languages.json');
 const templates = require('../config/templates.json');
 const codeTemplateService = require('./codeTemplateService');
 
 class MultiLangExecutor {
+  /**
+   * Initialize the Multi-language Executor Service.
+   * Sets up supported languages, temporary directory, and ensures directory structure.
+   */
   constructor() {
     this.supportedLanguages = Object.keys(languageConfigs);
     this.tempDir = path.join(os.tmpdir(), 'code-execution');
@@ -22,7 +20,8 @@ class MultiLangExecutor {
   }
 
   /**
-   * Ensure temp directory exists
+   * Ensure temporary directory exists for code execution.
+   * @throws {Error} If directory creation fails
    */
   async ensureTempDir() {
     try {

@@ -1,42 +1,100 @@
+/**
+ * @module TeamRoutes
+ * @description Team Management API for Programming Contest Platform
+ * 
+ * This module provides comprehensive team management functionality:
+ * - Team registration with validation and contest enrollment
+ * - Secure authentication with JWT tokens and session management
+ * - Team status monitoring with contest timing and progress tracking
+ * - Contest problem access with proper authorization
+ * - Submission statistics and performance tracking
+ * - Session management with secure logout functionality
+ * 
+ * Supports multi-contest environments with proper isolation between contests
+ * and includes comprehensive validation and error handling.
+ */
+
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const { db } = require('../utils/db');
 const { generateToken, generateSessionToken } = require('../utils/auth');
 const { validate, teamRegistrationSchema, teamLoginSchema } = require('../utils/validation');
 const { authenticateTeam } = require('../middleware/auth');
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '../../uploads/projects');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, `project-${uniqueSuffix}-${file.originalname}`);
-  }
-});
 
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB limit
-  },
-  fileFilter: function (req, file, cb) {
-    if (file.mimetype === 'application/zip' || file.mimetype === 'application/x-zip-compressed') {
-      cb(null, true);
-    } else {
-      cb(new Error('Only ZIP files are allowed'), false);
-    }
-  }
-});
-
+/**
+ * @route POST /api/team/register
+ * @description Register a new team for a programming contest
+ * 
+ * Creates a new team registration including validation, password hashing,
+ * contest enrollment, and initial scoring setup. Generates JWT token for
+ * immediate authentication after successful registration.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Registration data (validated by teamRegistrationSchema)
+ * @param {string} req.body.teamName - Unique team name within contest
+ * @param {string} req.body.contestCode - Contest registration code
+ * @param {string} req.body.password - Team password (will be hashed)
+ * @param {string} req.body.schoolName - School or organization name
+ * @param {Array} req.body.memberNames - Array of team member names
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @returns {Object} Response object with registration confirmation
+ * @returns {boolean} returns.success - Registration success status
+ * @returns {string} returns.message - Success message
+ * @returns {Object} returns.data - Registration data
+ * @returns {number} returns.data.teamId - Generated team identifier
+ * @returns {string} returns.data.teamName - Registered team name
+ * @returns {number} returns.data.contestId - Contest identifier
+ * @returns {string} returns.data.contestCode - Contest code
+ * @returns {string} returns.data.contestName - Contest name
+ * @returns {string} returns.data.schoolName - School name
+ * @returns {Array} returns.data.memberNames - Team member names
+ * @returns {string} returns.data.token - JWT authentication token
+ * @returns {string} returns.data.registeredAt - Registration timestamp
+ * 
+ * @throws {400} Invalid contest code
+ * @throws {409} Team name already exists for this contest
+ * @throws {500} Database or registration errors
+ * 
+ * @requires Validation via teamRegistrationSchema
+ * 
+ * Registration Process:
+ * 1. Validates contest code and checks if contest is active
+ * 2. Checks for duplicate team names within the contest
+ * 3. Hashes the password securely using bcrypt
+ * 4. Creates team record with session token
+ * 5. Enrolls team in contest (team_contests table)
+ * 6. Initializes contest results record
+ * 7. Generates JWT token for authentication
+ * 
+ * @example
+ * POST /api/team/register
+ * Content-Type: application/json
+ * 
+ * {
+ *   "teamName": "CodeMasters",
+ *   "contestCode": "SPRING2025",
+ *   "password": "securePassword123",
+ *   "schoolName": "University of Technology",
+ *   "memberNames": ["Alice Smith", "Bob Johnson", "Carol Davis"]
+ * }
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "message": "Team registered successfully",
+ *   "data": {
+ *     "teamId": 123,
+ *     "teamName": "CodeMasters",
+ *     "contestId": 456,
+ *     "contestCode": "SPRING2025",
+ *     "contestName": "Spring Programming Contest",
+ *     "token": "eyJhbGciOiJIUzI1NiIs..."
+ *   }
+ * }
+ */
 router.post('/register', validate(teamRegistrationSchema), async (req, res, next) => {
   try {
     const { teamName, contestCode, password, schoolName, memberNames } = req.body;
@@ -142,6 +200,72 @@ router.post('/register', validate(teamRegistrationSchema), async (req, res, next
   }
 });
 
+/**
+ * @route POST /api/team/login
+ * @description Authenticate team with credentials
+ * 
+ * Authenticates team using team name and password, validates credentials,
+ * generates new session token for security, and returns JWT token for
+ * subsequent API requests.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Login credentials (validated by teamLoginSchema)
+ * @param {string} req.body.teamName - Team name for authentication
+ * @param {string} req.body.password - Team password
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @returns {Object} Response object with authentication data
+ * @returns {boolean} returns.success - Authentication success status
+ * @returns {string} returns.message - Success message
+ * @returns {Object} returns.data - Authentication data
+ * @returns {number} returns.data.teamId - Team identifier
+ * @returns {string} returns.data.teamName - Team name
+ * @returns {string} returns.data.contestCode - Contest code
+ * @returns {string} returns.data.contestName - Contest name
+ * @returns {string} returns.data.schoolName - School name
+ * @returns {Array} returns.data.memberNames - Team member names (parsed from JSON)
+ * @returns {string} returns.data.token - JWT authentication token
+ * @returns {string} returns.data.lastActivity - Login timestamp
+ * 
+ * @throws {401} Invalid credentials or inactive contest
+ * @throws {500} Database or authentication errors
+ * 
+ * @requires Validation via teamLoginSchema
+ * 
+ * Authentication Process:
+ * 1. Looks up team by name and checks if active
+ * 2. Verifies password using bcrypt comparison
+ * 3. Validates associated contest is active
+ * 4. Generates new session token for security
+ * 5. Updates last activity timestamp
+ * 6. Creates JWT token with team and session information
+ * 
+ * @example
+ * POST /api/team/login
+ * Content-Type: application/json
+ * 
+ * {
+ *   "teamName": "CodeMasters",
+ *   "password": "securePassword123"
+ * }
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "message": "Login successful",
+ *   "data": {
+ *     "teamId": 123,
+ *     "teamName": "CodeMasters",
+ *     "contestCode": "SPRING2025",
+ *     "contestName": "Spring Programming Contest",
+ *     "schoolName": "University of Technology",
+ *     "memberNames": ["Alice Smith", "Bob Johnson"],
+ *     "token": "eyJhbGciOiJIUzI1NiIs...",
+ *     "lastActivity": "2025-01-15T10:30:00.000Z"
+ *   }
+ * }
+ */
 router.post('/login', validate(teamLoginSchema), async (req, res, next) => {
   try {
     const { teamName, password } = req.body;
@@ -222,6 +346,84 @@ router.post('/login', validate(teamLoginSchema), async (req, res, next) => {
   }
 });
 
+/**
+ * @route GET /api/team/status
+ * @description Get comprehensive team status and contest information
+ * 
+ * Retrieves detailed team status including contest timing, progress,
+ * submission statistics, and current standings. Provides real-time
+ * contest state information for team dashboard displays.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.team - Authenticated team data from middleware
+ * @param {number} req.team.id - Team identifier
+ * @param {string} req.team.contestCode - Contest code
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @returns {Object} Response object with team status data
+ * @returns {boolean} returns.success - Operation success status
+ * @returns {Object} returns.data - Team status information
+ * @returns {Object} returns.data.team - Team information
+ * @returns {number} returns.data.team.id - Team identifier
+ * @returns {string} returns.data.team.name - Team name
+ * @returns {string} returns.data.team.registeredAt - Registration timestamp
+ * @returns {string} returns.data.team.lastActivity - Last activity timestamp
+ * @returns {Object} returns.data.contest - Contest information and timing
+ * @returns {number} returns.data.contest.id - Contest identifier
+ * @returns {string} returns.data.contest.name - Contest name
+ * @returns {string} returns.data.contest.code - Contest code
+ * @returns {string} returns.data.contest.status - Contest status (not_started|running|ended)
+ * @returns {string} returns.data.contest.startTime - Contest start time
+ * @returns {number} returns.data.contest.duration - Contest duration (minutes)
+ * @returns {number} [returns.data.contest.timeUntilStart] - Time until start (ms)
+ * @returns {number} [returns.data.contest.timeRemaining] - Time remaining (ms)
+ * @returns {string} [returns.data.contest.freezeTime] - Score freeze time
+ * @returns {Object} returns.data.results - Team performance and results
+ * @returns {number} returns.data.results.problemsSolved - Number of problems solved
+ * @returns {number} returns.data.results.penaltyTime - Accumulated penalty time
+ * @returns {number} [returns.data.results.rank] - Current team rank
+ * @returns {number} returns.data.results.totalSubmissions - Total submissions count
+ * 
+ * @throws {404} Contest not found
+ * @throws {500} Database query errors
+ * 
+ * @requires Team authentication via authenticateTeam middleware
+ * 
+ * Contest Status Calculation:
+ * - 'not_started': Current time is before contest start
+ * - 'running': Contest is currently active
+ * - 'ended': Contest has finished
+ * 
+ * @example
+ * GET /api/team/status
+ * Authorization: Bearer <team-jwt-token>
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "team": {
+ *       "id": 123,
+ *       "name": "CodeMasters",
+ *       "registeredAt": "2025-01-15T08:00:00.000Z",
+ *       "lastActivity": "2025-01-15T10:30:00.000Z"
+ *     },
+ *     "contest": {
+ *       "id": 456,
+ *       "name": "Spring Programming Contest",
+ *       "status": "running",
+ *       "timeRemaining": 5400000
+ *     },
+ *     "results": {
+ *       "problemsSolved": 3,
+ *       "penaltyTime": 180,
+ *       "rank": 5,
+ *       "totalSubmissions": 12
+ *     }
+ *   }
+ * }
+ */
 router.get('/status', authenticateTeam, async (req, res, next) => {
   try {
     const team = req.team;
@@ -304,6 +506,44 @@ router.get('/status', authenticateTeam, async (req, res, next) => {
   }
 });
 
+/**
+ * @route POST /api/team/logout
+ * @description Logout team and invalidate session
+ * 
+ * Securely logs out the team by invalidating the session token,
+ * marking the team as inactive, and updating the last activity timestamp.
+ * This ensures the JWT token becomes invalid for future requests.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.team - Authenticated team data from middleware
+ * @param {number} req.team.id - Team identifier
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @returns {Object} Response object with logout confirmation
+ * @returns {boolean} returns.success - Logout success status
+ * @returns {string} returns.message - Logout confirmation message
+ * 
+ * @throws {500} Database update errors
+ * 
+ * @requires Team authentication via authenticateTeam middleware
+ * 
+ * Logout Process:
+ * 1. Clears the session token in database
+ * 2. Marks team as inactive
+ * 3. Updates last activity timestamp
+ * 4. Invalidates current JWT token
+ * 
+ * @example
+ * POST /api/team/logout
+ * Authorization: Bearer <team-jwt-token>
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "message": "Logout successful"
+ * }
+ */
 router.post('/logout', authenticateTeam, async (req, res, next) => {
   try {
     await db('teams')
@@ -326,14 +566,84 @@ router.post('/logout', authenticateTeam, async (req, res, next) => {
   }
 });
 
-// =============================================================================
-// TEAM PROBLEM ACCESS ROUTES (Phase 2.2)
-// =============================================================================
 
 /**
+ * @route GET /api/team/contest/problems
+ * @description Get all problems for the team's contest with sample test cases
+ * 
+ * Retrieves all problems available in the team's contest including problem
+ * statements, constraints, sample inputs/outputs, and sample test cases.
+ * Only accessible after contest has started.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.team - Authenticated team data from middleware
+ * @param {number} req.team.id - Team identifier
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @returns {Object} Response object with contest problems
+ * @returns {boolean} returns.success - Operation success status
+ * @returns {Array} returns.data - Array of problem objects
+ * @returns {number} returns.data[].id - Problem identifier
+ * @returns {string} returns.data[].problem_letter - Problem letter (A, B, C, etc.)
+ * @returns {string} returns.data[].title - Problem title
+ * @returns {string} returns.data[].description - Problem description
+ * @returns {string} returns.data[].input_format - Input format specification
+ * @returns {string} returns.data[].output_format - Output format specification
+ * @returns {string} returns.data[].sample_input - Sample input data
+ * @returns {string} returns.data[].sample_output - Sample output data
+ * @returns {string} returns.data[].constraints - Problem constraints
+ * @returns {number} returns.data[].time_limit - Time limit in milliseconds
+ * @returns {number} returns.data[].memory_limit - Memory limit in MB
+ * @returns {string} returns.data[].difficulty - Difficulty level
+ * @returns {Array} returns.data[].sample_test_cases - Sample test cases
+ * @returns {string} returns.data[].sample_test_cases[].input - Test case input
+ * @returns {string} returns.data[].sample_test_cases[].expected_output - Expected output
+ * @returns {string} returns.message - Success message
+ * 
+ * @throws {403} Contest has not started yet
+ * @throws {404} Contest not found
+ * @throws {500} Database query errors
+ * 
+ * @requires Team authentication via authenticateTeam middleware
+ * 
+ * Access Control:
+ * - Only returns public problem information (no hidden test cases)
+ * - Contest must have started for access
+ * - Problems are ordered by problem letter
+ * 
+ * @example
  * GET /api/team/contest/problems
- * Get all problems for the team's contest (read-only)
+ * Authorization: Bearer <team-jwt-token>
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "data": [
+ *     {
+ *       "id": 1,
+ *       "problem_letter": "A",
+ *       "title": "Sum Array",
+ *       "description": "Calculate the sum of array elements",
+ *       "input_format": "First line: n\nSecond line: n integers",
+ *       "output_format": "Single integer: sum",
+ *       "sample_input": "3\n1 2 3",
+ *       "sample_output": "6",
+ *       "time_limit": 5000,
+ *       "memory_limit": 256,
+ *       "difficulty": "Easy",
+ *       "sample_test_cases": [
+ *         {
+ *           "input": "3\n1 2 3",
+ *           "expected_output": "6"
+ *         }
+ *       ]
+ *     }
+ *   ],
+ *   "message": "Contest problems retrieved successfully"
+ * }
  */
+router.get('/contest/problems', authenticateTeam, async (req, res, next) => {
 router.get('/contest/problems', authenticateTeam, async (req, res, next) => {
   try {
     const Problem = require('../controllers/problemController');
@@ -395,9 +705,93 @@ router.get('/contest/problems', authenticateTeam, async (req, res, next) => {
 });
 
 /**
- * GET /api/team/problems/:id
- * Get specific problem details (read-only)
+ * @route GET /api/team/problems/:id
+ * @description Get detailed information for a specific problem
+ * 
+ * Retrieves comprehensive problem details including description, constraints,
+ * sample test cases, and team-specific statistics such as submission attempts
+ * and solve status.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Problem ID to retrieve details for
+ * @param {Object} req.team - Authenticated team data from middleware
+ * @param {number} req.team.id - Team identifier
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * 
+ * @returns {Object} Response object with problem details
+ * @returns {boolean} returns.success - Operation success status
+ * @returns {Object} returns.data - Problem details
+ * @returns {number} returns.data.id - Problem identifier
+ * @returns {string} returns.data.problem_letter - Problem letter (A, B, C, etc.)
+ * @returns {string} returns.data.title - Problem title
+ * @returns {string} returns.data.description - Full problem description
+ * @returns {string} returns.data.input_format - Input format specification
+ * @returns {string} returns.data.output_format - Output format specification
+ * @returns {string} returns.data.sample_input - Sample input data
+ * @returns {string} returns.data.sample_output - Sample expected output
+ * @returns {string} returns.data.constraints - Problem constraints and limits
+ * @returns {number} returns.data.time_limit - Execution time limit (milliseconds)
+ * @returns {number} returns.data.memory_limit - Memory usage limit (MB)
+ * @returns {string} returns.data.difficulty - Problem difficulty level
+ * @returns {Array} returns.data.sample_test_cases - Sample test cases for validation
+ * @returns {string} returns.data.sample_test_cases[].input - Test case input
+ * @returns {string} returns.data.sample_test_cases[].expected_output - Expected output
+ * @returns {Object} returns.data.team_statistics - Team-specific statistics
+ * @returns {number} returns.data.team_statistics.total_attempts - Total submission attempts
+ * @returns {boolean} returns.data.team_statistics.has_solved - Whether team solved problem
+ * @returns {string} [returns.data.team_statistics.latest_status] - Status of latest submission
+ * @returns {string} returns.message - Success message
+ * 
+ * @throws {403} Contest has not started yet
+ * @throws {404} Problem not found or not in team's contest
+ * @throws {500} Database query errors
+ * 
+ * @requires Team authentication via authenticateTeam middleware
+ * 
+ * Access Control:
+ * - Problem must belong to team's contest
+ * - Contest must have started
+ * - Only returns public problem information
+ * - Includes team-specific submission statistics
+ * 
+ * @example
+ * GET /api/team/problems/123
+ * Authorization: Bearer <team-jwt-token>
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "id": 123,
+ *     "problem_letter": "A",
+ *     "title": "Sum Array",
+ *     "description": "Given an array of integers, calculate their sum.",
+ *     "input_format": "First line: n (1 ≤ n ≤ 1000)\nSecond line: n integers",
+ *     "output_format": "Single integer: the sum",
+ *     "sample_input": "3\n1 2 3",
+ *     "sample_output": "6",
+ *     "constraints": "1 ≤ n ≤ 1000, -1000 ≤ ai ≤ 1000",
+ *     "time_limit": 5000,
+ *     "memory_limit": 256,
+ *     "difficulty": "Easy",
+ *     "sample_test_cases": [
+ *       {
+ *         "input": "3\n1 2 3",
+ *         "expected_output": "6"
+ *       }
+ *     ],
+ *     "team_statistics": {
+ *       "total_attempts": 3,
+ *       "has_solved": true,
+ *       "latest_status": "accepted"
+ *     }
+ *   },
+ *   "message": "Problem details retrieved successfully"
+ * }
  */
+router.get('/problems/:id', authenticateTeam, async (req, res, next) => {
 router.get('/problems/:id', authenticateTeam, async (req, res, next) => {
   try {
     const problemId = parseInt(req.params.id);
@@ -476,148 +870,5 @@ router.get('/problems/:id', authenticateTeam, async (req, res, next) => {
   }
 });
 
-// Project submission routes
-router.post('/contests/:contestId/projects', authenticateTeam, upload.single('project_file'), async (req, res, next) => {
-  try {
-    const contestId = parseInt(req.params.contestId);
-    const { project_title, project_description } = req.body;
-    const teamId = req.team.id;
-
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'Project file is required',
-        error: 'FILE_REQUIRED'
-      });
-    }
-
-    if (!project_title) {
-      return res.status(400).json({
-        success: false,
-        message: 'Project title is required',
-        error: 'TITLE_REQUIRED'
-      });
-    }
-
-    // Check if team belongs to this contest
-    const teamContest = await db('team_contests')
-      .where({ team_id: teamId, contest_id: contestId })
-      .first();
-
-    if (!teamContest) {
-      // Clean up uploaded file
-      fs.unlinkSync(req.file.path);
-      return res.status(403).json({
-        success: false,
-        message: 'Team is not registered for this contest',
-        error: 'NOT_REGISTERED'
-      });
-    }
-
-    // Check if contest allows project submissions (not ended)
-    const contest = await db('contests').where('id', contestId).first();
-    const now = new Date();
-    const endTime = new Date(new Date(contest.start_time).getTime() + contest.duration * 60 * 1000);
-
-    if (now > endTime) {
-      fs.unlinkSync(req.file.path);
-      return res.status(400).json({
-        success: false,
-        message: 'Contest has ended. Project submissions are no longer accepted.',
-        error: 'CONTEST_ENDED'
-      });
-    }
-
-    // Check if team already submitted a project for this contest
-    const existingSubmission = await db('project_submissions')
-      .where({ team_id: teamId, contest_id: contestId })
-      .first();
-
-    if (existingSubmission) {
-      // Update existing submission
-      await db('project_submissions')
-        .where({ team_id: teamId, contest_id: contestId })
-        .update({
-          project_title,
-          project_description,
-          original_filename: req.file.originalname,
-          file_path: req.file.path,
-          file_size: req.file.size,
-          mime_type: req.file.mimetype,
-          updated_at: db.fn.now()
-        });
-
-      // Remove old file
-      if (existingSubmission.file_path && fs.existsSync(existingSubmission.file_path)) {
-        fs.unlinkSync(existingSubmission.file_path);
-      }
-    } else {
-      // Create new submission
-      await db('project_submissions').insert({
-        team_id: teamId,
-        contest_id: contestId,
-        project_title,
-        project_description,
-        original_filename: req.file.originalname,
-        file_path: req.file.path,
-        file_size: req.file.size,
-        mime_type: req.file.mimetype
-      });
-    }
-
-    res.json({
-      success: true,
-      message: 'Project submitted successfully',
-      data: {
-        project_title,
-        original_filename: req.file.originalname,
-        file_size: req.file.size
-      }
-    });
-
-  } catch (error) {
-    // Clean up uploaded file on error
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-    next(error);
-  }
-});
-
-router.get('/contests/:contestId/projects/my-submission', authenticateTeam, async (req, res, next) => {
-  try {
-    const contestId = parseInt(req.params.contestId);
-    const teamId = req.team.id;
-
-    const submission = await db('project_submissions')
-      .where({ team_id: teamId, contest_id: contestId })
-      .first();
-
-    if (!submission) {
-      return res.json({
-        success: true,
-        data: null,
-        message: 'No project submission found'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: {
-        id: submission.id,
-        project_title: submission.project_title,
-        project_description: submission.project_description,
-        original_filename: submission.original_filename,
-        file_size: submission.file_size,
-        submitted_at: submission.submitted_at,
-        updated_at: submission.updated_at
-      },
-      message: 'Project submission retrieved successfully'
-    });
-
-  } catch (error) {
-    next(error);
-  }
-});
 
 module.exports = router;

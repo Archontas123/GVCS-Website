@@ -18,14 +18,12 @@ exports.up = function(knex) {
       table.boolean('is_active').defaultTo(false);
       table.boolean('is_registration_open').defaultTo(true);
       table.boolean('is_frozen').defaultTo(false);
-      table.enum('contest_type', ['programming', 'hackathon']).defaultTo('programming');
-      table.enum('scoring_type', ['icpc', 'hackathon']).defaultTo('icpc');
+      table.enum('scoring_type', ['icpc']).defaultTo('icpc');
       table.timestamp('created_at').defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.fn.now());
       
       table.index(['start_time', 'end_time']);
       table.index(['is_active']);
-      table.index(['contest_type']);
     })
     
     // Create problems table
@@ -62,7 +60,7 @@ exports.up = function(knex) {
       table.increments('id').primary();
       table.integer('contest_id').references('id').inTable('contests').onDelete('CASCADE');
       table.string('team_name').notNullable();
-      table.string('university');
+      table.string('school');
       table.string('email').notNullable();
       table.string('password_hash').notNullable();
       table.boolean('is_verified').defaultTo(false);
@@ -75,10 +73,6 @@ exports.up = function(knex) {
       table.string('member2_email');
       table.string('member3_name');
       table.string('member3_email');
-      table.text('project_description');
-      table.string('github_repo');
-      table.string('demo_url');
-      table.json('technologies_used');
       table.timestamp('created_at').defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.fn.now());
       
@@ -179,25 +173,6 @@ exports.up = function(knex) {
       table.index(['verdict']);
     })
     
-    // Create balloons table
-    .createTable('balloons', function(table) {
-      table.increments('id').primary();
-      table.integer('contest_id').references('id').inTable('contests').onDelete('CASCADE');
-      table.integer('team_id').references('id').inTable('teams').onDelete('CASCADE');
-      table.integer('problem_id').references('id').inTable('problems').onDelete('CASCADE');
-      table.integer('submission_id').references('id').inTable('submissions').onDelete('CASCADE');
-      table.boolean('delivered').defaultTo(false);
-      table.timestamp('solved_at').notNullable();
-      table.timestamp('delivered_at');
-      table.string('delivered_by');
-      table.text('notes');
-      table.timestamp('created_at').defaultTo(knex.fn.now());
-      
-      table.unique(['contest_id', 'team_id', 'problem_id']);
-      table.index(['contest_id']);
-      table.index(['delivered']);
-    })
-    
     // Create clarifications table
     .createTable('clarifications', function(table) {
       table.increments('id').primary();
@@ -234,27 +209,6 @@ exports.up = function(knex) {
       table.index(['role']);
     })
     
-    // Create project_submissions table
-    .createTable('project_submissions', function(table) {
-      table.increments('id').primary();
-      table.integer('team_id').references('id').inTable('teams').onDelete('CASCADE');
-      table.integer('contest_id').references('id').inTable('contests').onDelete('CASCADE');
-      table.string('project_name').notNullable();
-      table.text('description').notNullable();
-      table.string('github_url');
-      table.string('demo_url');
-      table.json('technologies');
-      table.text('setup_instructions');
-      table.enum('status', ['draft', 'submitted', 'judged']).defaultTo('draft');
-      table.decimal('final_score', 5, 2).defaultTo(0);
-      table.timestamp('submitted_at').defaultTo(knex.fn.now());
-      table.timestamp('updated_at').defaultTo(knex.fn.now());
-      
-      table.index(['team_id']);
-      table.index(['contest_id']);
-      table.index(['status']);
-    })
-    
     // Create team_problem_code table
     .createTable('team_problem_code', function(table) {
       table.increments('id').primary();
@@ -277,10 +231,8 @@ exports.up = function(knex) {
 exports.down = function(knex) {
   return knex.schema
     .dropTableIfExists('team_problem_code')
-    .dropTableIfExists('project_submissions')
     .dropTableIfExists('admin_users')
     .dropTableIfExists('clarifications')
-    .dropTableIfExists('balloons')
     .dropTableIfExists('partial_scores')
     .dropTableIfExists('submission_test_results')
     .dropTableIfExists('submissions')

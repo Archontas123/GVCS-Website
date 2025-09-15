@@ -32,12 +32,12 @@ class ApiService {
       
       if (!isPublicRoute) {
         if (config.url?.startsWith('/admin/')) {
-          const adminToken = localStorage.getItem('hackathon_admin_token');
+          const adminToken = localStorage.getItem('programming_contest_admin_token');
           if (adminToken) {
             config.headers.Authorization = `Bearer ${adminToken}`;
           }
         } else {
-          const token = localStorage.getItem('hackathon_token');
+          const token = localStorage.getItem('programming_contest_token');
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
           }
@@ -52,10 +52,10 @@ class ApiService {
         if (error.response?.status === 401) {
           // Check if this is an admin route error
           if (error.config?.url?.startsWith('/admin/')) {
-            localStorage.removeItem('hackathon_admin_token');
+            localStorage.removeItem('programming_contest_admin_token');
             window.location.href = '/admin/login';
           } else {
-            localStorage.removeItem('hackathon_token');
+            localStorage.removeItem('programming_contest_token');
             window.location.href = '/';
           }
         }
@@ -471,15 +471,15 @@ class ApiService {
   }
 
   setAuthToken(token: string): void {
-    localStorage.setItem('hackathon_token', token);
+    localStorage.setItem('programming_contest_token', token);
   }
 
   removeAuthToken(): void {
-    localStorage.removeItem('hackathon_token');
+    localStorage.removeItem('programming_contest_token');
   }
 
   getAuthToken(): string | null {
-    return localStorage.getItem('hackathon_token');
+    return localStorage.getItem('programming_contest_token');
   }
 
   isAuthenticated(): boolean {
@@ -487,15 +487,15 @@ class ApiService {
   }
 
   setAdminToken(token: string): void {
-    localStorage.setItem('hackathon_admin_token', token);
+    localStorage.setItem('programming_contest_admin_token', token);
   }
 
   removeAdminToken(): void {
-    localStorage.removeItem('hackathon_admin_token');
+    localStorage.removeItem('programming_contest_admin_token');
   }
 
   getAdminToken(): string | null {
-    return localStorage.getItem('hackathon_admin_token');
+    return localStorage.getItem('programming_contest_admin_token');
   }
 
   isAdminAuthenticated(): boolean {

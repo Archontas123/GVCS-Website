@@ -1,8 +1,3 @@
-/**
- * Problem Controller - Phase 2.2
- * Handles problem creation, management, and CRUD operations
- */
-
 const { db } = require('../utils/db');
 const { 
   ValidationError, 
@@ -15,7 +10,8 @@ const Contest = require('./contestController');
 const partialScoringService = require('../services/partialScoringService');
 
 /**
- * Problem Model Class
+ * Problem Model Class - Handles problem creation, management, and CRUD operations
+ * Provides methods for managing contest problems, test cases, and scoring
  */
 class Problem {
   constructor(data) {
@@ -37,7 +33,20 @@ class Problem {
   }
 
   /**
-   * Validate problem data
+   * Validates problem data with comprehensive validation rules
+   * @param {Object} data - The problem data to validate
+   * @param {string} data.title - Problem title (3-255 chars)
+   * @param {string} data.description - Problem description (required, max 10000 chars)
+   * @param {string} data.input_format - Input format description (min 5 chars, max 2000)
+   * @param {string} data.output_format - Output format description (required, max 2000)
+   * @param {string} [data.constraints] - Problem constraints (max 2000 chars)
+   * @param {string} [data.sample_input] - Sample input (max 5000 chars)
+   * @param {string} [data.sample_output] - Sample output (max 5000 chars)
+   * @param {number} [data.time_limit] - Time limit in ms (100-30000)
+   * @param {number} [data.memory_limit] - Memory limit in MB (16-2048)
+   * @param {string} [data.difficulty] - Difficulty level (easy/medium/hard)
+   * @param {number} [data.max_points] - Maximum points (1-1000)
+   * @throws {ValidationError} When validation fails
    */
   static validateProblemData(data) {
     const errors = [];
@@ -104,7 +113,11 @@ class Problem {
   }
 
   /**
-   * Get next available problem letter for a contest
+   * Gets the next available problem letter (A-Z) for a contest
+   * @param {number} contestId - The contest ID
+   * @returns {Promise<string>} The next available letter
+   * @throws {ValidationError} When maximum problems (26) reached
+   * @throws {DatabaseError} When database operation fails
    */
   static async getNextProblemLetter(contestId) {
     try {
@@ -131,7 +144,12 @@ class Problem {
   }
 
   /**
-   * Check if problem letter is available in contest
+   * Checks if a problem letter is available in a contest
+   * @param {number} contestId - The contest ID
+   * @param {string} letter - The problem letter to check
+   * @param {number} [excludeProblemId] - Problem ID to exclude from check
+   * @returns {Promise<boolean>} True if letter is available
+   * @throws {DatabaseError} When database operation fails
    */
   static async isProblemLetterAvailable(contestId, letter, excludeProblemId = null) {
     try {
@@ -151,29 +169,32 @@ class Problem {
   }
 
   /**
-   * Create a new problem
+   * Creates a new problem with validation and automatic test case creation
+   * @param {Object} problemData - The problem data
+   * @param {number} contestId - The contest ID
+   * @param {number} adminId - The admin ID creating the problem
+   * @returns {Promise<Problem>} The created problem instance
+   * @throws {AuthenticationError} When admin is not authorized
+   * @throws {ValidationError} When problem data is invalid
+   * @throws {ConflictError} When problem letter is already used
+   * @throws {DatabaseError} When database operation fails
    */
   static async create(problemData, contestId, adminId) {
-    // Verify contest exists and admin has access
     const contest = await Contest.findById(contestId);
     if (contest.created_by !== adminId) {
       throw new AuthenticationError('Not authorized to create problems for this contest');
     }
 
-    // Validate problem data
     this.validateProblemData(problemData);
 
-    // Determine problem letter
     let problemLetter;
     if (problemData.problem_letter) {
-      // Manual letter assignment
       problemLetter = problemData.problem_letter.toUpperCase();
       const isAvailable = await this.isProblemLetterAvailable(contestId, problemLetter);
       if (!isAvailable) {
         throw new ConflictError(`Problem letter ${problemLetter} is already used in this contest`);
       }
     } else {
-      // Auto-assign letter
       problemLetter = await this.getNextProblemLetter(contestId);
     }
 
@@ -196,7 +217,6 @@ class Problem {
       
       const problemId = Array.isArray(result) ? result[0].id || result[0] : result.id || result;
 
-      // Create sample test case if sample input/output provided
       if (problemData.sample_input && problemData.sample_output) {
         await db('test_cases').insert({
           problem_id: problemId,
@@ -208,7 +228,6 @@ class Problem {
 
       const createdProblem = await this.findById(problemId);
       
-      // Calculate test case points distribution
       await partialScoringService.calculateProblemPoints(problemId);
       
       return createdProblem;
@@ -283,10 +302,8 @@ class Problem {
       throw new AuthenticationError('Not authorized to update this problem');
     }
 
-    // Check if contest is running and restrict updates
     const contestStatus = Contest.getContestStatus(contest);
     if (contestStatus.status === 'running' || contestStatus.status === 'frozen') {
-      // Only allow certain updates during running contest
       const allowedFields = ['constraints', 'time_limit', 'memory_limit'];
       const attemptedFields = Object.keys(updateData);
       const disallowedFields = attemptedFields.filter(field => !allowedFields.includes(field));
@@ -296,12 +313,10 @@ class Problem {
       }
     }
 
-    // Validate update data
     if (Object.keys(updateData).some(key => ['title', 'description', 'input_format', 'output_format'].includes(key))) {
       this.validateProblemData({ ...problem, ...updateData });
     }
 
-    // Handle problem letter change
     if (updateData.problem_letter) {
       const newLetter = updateData.problem_letter.toUpperCase();
       if (newLetter !== problem.problem_letter) {
@@ -314,7 +329,6 @@ class Problem {
     }
 
     try {
-      // Log the changes for audit purposes
       const winston = require('winston');
       const logger = winston.createLogger({
         level: 'info',
@@ -354,7 +368,6 @@ class Problem {
       throw new AuthenticationError('Not authorized to delete this problem');
     }
 
-    // Check if problem has submissions
     const submissionsCount = await db('submissions')
       .where('problem_id', problemId)
       .count('* as count')
@@ -365,7 +378,6 @@ class Problem {
     }
 
     try {
-      // Delete will cascade to test_cases due to foreign key constraint
       await db('problems').where('id', problemId).del();
       
       return { success: true, message: 'Problem deleted successfully' };
@@ -410,22 +422,18 @@ class Problem {
    */
   static async copyToContest(originalProblemId, targetContestId, adminId) {
     try {
-      // Get original problem
-      const originalProblem = await this.findById(originalProblemId);
+        const originalProblem = await this.findById(originalProblemId);
       
-      // Verify admin owns the original problem's contest
       const originalContest = await Contest.findById(originalProblem.contest_id);
       if (originalContest.created_by !== adminId) {
         throw new AuthenticationError('Not authorized to copy this problem');
       }
 
-      // Verify admin owns the target contest
       const targetContest = await Contest.findById(targetContestId);
       if (targetContest.created_by !== adminId) {
         throw new AuthenticationError('Not authorized to add problems to this contest');
       }
 
-      // Find next available problem letter for target contest
       const existingProblems = await this.findByContestId(targetContestId);
       const usedLetters = existingProblems.map(p => p.problem_letter).sort();
       
@@ -442,7 +450,6 @@ class Problem {
         throw new ValidationError('Contest already has maximum number of problems (26)');
       }
 
-      // Create new problem data
       const newProblemData = {
         title: originalProblem.title,
         description: originalProblem.description,
@@ -457,10 +464,8 @@ class Problem {
         problem_letter: nextLetter
       };
 
-      // Create the copied problem
       const copiedProblem = await this.create(newProblemData, targetContestId, adminId);
 
-      // Copy test cases
       const TestCase = require('./testCaseController');
       const originalTestCases = await TestCase.findByProblemId(originalProblemId);
       

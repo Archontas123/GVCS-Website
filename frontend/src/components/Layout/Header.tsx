@@ -1,8 +1,3 @@
-/**
- * CS Club Hackathon Platform - Header Component
- * Phase 1.4: Responsive header with contest timer and navigation
- */
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NotificationSystem from '../NotificationSystem';
@@ -12,7 +7,7 @@ import '../../styles/theme.css';
 interface HeaderProps {
   teamName?: string;
   contestName?: string;
-  timeRemaining?: number; // seconds
+  timeRemaining?: number; 
   isAuthenticated: boolean;
   onLogout: () => void;
   contestId?: number;
@@ -33,7 +28,6 @@ const Header: React.FC<HeaderProps> = ({
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [displayTime, setDisplayTime] = useState<string>('');
 
-  // Handle responsive behavior
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -42,7 +36,6 @@ const Header: React.FC<HeaderProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Format time remaining
   useEffect(() => {
     if (timeRemaining !== undefined && timeRemaining > 0) {
       const hours = Math.floor(timeRemaining / 3600);
@@ -82,8 +75,8 @@ const Header: React.FC<HeaderProps> = ({
 
   const getTimerClass = (): string => {
     if (!timeRemaining || timeRemaining <= 0) return 'chip chip-error';
-    if (timeRemaining < 1800) return 'chip chip-error'; // < 30 minutes
-    if (timeRemaining < 3600) return 'chip chip-warning'; // < 1 hour
+    if (timeRemaining < 1800) return 'chip chip-error'; 
+    if (timeRemaining < 3600) return 'chip chip-warning'; 
     return 'chip chip-success';
   };
 
@@ -252,7 +245,6 @@ const Header: React.FC<HeaderProps> = ({
     )
   );
 
-  // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
       setShowProfileMenu(false);
@@ -277,7 +269,6 @@ const Header: React.FC<HeaderProps> = ({
       alignItems: 'center',
       fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
     }}>
-      {/* Logo/Brand */}
       <div 
         style={{ 
           cursor: 'pointer',
@@ -302,7 +293,6 @@ const Header: React.FC<HeaderProps> = ({
         )}
       </div>
 
-      {/* Contest Info */}
       {contestName && !isMobile && (
         <div style={{ margin: '0 24px' }}>
           <span style={{ 
@@ -316,10 +306,8 @@ const Header: React.FC<HeaderProps> = ({
         </div>
       )}
 
-      {/* Spacer */}
       <div style={{ flexGrow: 1 }} />
 
-      {/* Contest Timer */}
       {displayTime && (
         <div style={{ margin: '0 16px' }}>
           <span style={{
@@ -342,14 +330,11 @@ const Header: React.FC<HeaderProps> = ({
 
       {isAuthenticated ? (
         <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
-          {/* Desktop Navigation */}
           {!isMobile && <NavigationButtons />}
 
-          {/* Real-time Components */}
           <ConnectionStatus compact />
           <NotificationSystem contestId={contestId} />
 
-          {/* Mobile Menu Button */}
           {isMobile && (
             <button
               onClick={(e) => {
@@ -379,7 +364,6 @@ const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Profile Menu */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -407,12 +391,10 @@ const Header: React.FC<HeaderProps> = ({
             User
           </button>
 
-          {/* Menus */}
           <MobileMenu />
           <ProfileMenu />
         </div>
       ) : (
-        /* Login/Register Buttons for non-authenticated users */
         <div style={{ display: 'flex', gap: '12px' }}>
           <button
             onClick={() => navigate('/login')}

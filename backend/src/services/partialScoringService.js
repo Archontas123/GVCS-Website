@@ -1,14 +1,12 @@
-/**
- * Partial Scoring Service
- * Handles point assignment and partial scoring based on test case completion
- */
-
 const { db } = require('../utils/db');
 
 class PartialScoringService {
   /**
-   * Calculate points for a problem based on test cases
-   * Sample test cases award 0 points, non-sample test cases split the total points equally
+   * Calculate points for a problem based on test cases.
+   * Sample test cases award 0 points, non-sample test cases split the total points equally.
+   * @param {number} problemId - Problem ID to calculate points for
+   * @returns {Promise<Object>} Point calculation results including total points and per-test-case points
+   * @throws {Error} If problem not found or calculation fails
    */
   async calculateProblemPoints(problemId) {
     try {
@@ -42,7 +40,11 @@ class PartialScoringService {
   }
 
   /**
-   * Update test case points based on problem configuration
+   * Update test case points based on problem configuration.
+   * @param {number} problemId - Problem ID to update test cases for
+   * @param {number} pointsPerTestCase - Points to assign per non-sample test case
+   * @returns {Promise<boolean>} True if successful
+   * @throws {Error} If database update fails
    */
   async updateTestCasePoints(problemId, pointsPerTestCase) {
     try {
@@ -66,7 +68,11 @@ class PartialScoringService {
   }
 
   /**
-   * Set custom points for a problem
+   * Set custom points for a problem and recalculate test case points.
+   * @param {number} problemId - Problem ID to update
+   * @param {number} maxPoints - Maximum points for the problem
+   * @returns {Promise<boolean>} True if successful
+   * @throws {Error} If database update fails
    */
   async setProblemPoints(problemId, maxPoints) {
     try {
@@ -85,7 +91,11 @@ class PartialScoringService {
   }
 
   /**
-   * Calculate submission score based on test case results
+   * Calculate submission score based on test case results.
+   * @param {number} submissionId - Submission ID to score
+   * @param {Object[]} testCaseResults - Array of test case results with verdict and metrics
+   * @returns {Promise<Object>} Scoring results including total points and statistics
+   * @throws {Error} If submission not found or scoring fails
    */
   async calculateSubmissionScore(submissionId, testCaseResults) {
     try {
@@ -151,7 +161,10 @@ class PartialScoringService {
   }
 
   /**
-   * Get submission scores with breakdown
+   * Get submission scores with detailed breakdown.
+   * @param {number} submissionId - Submission ID to get scores for
+   * @returns {Promise<Object>} Complete scoring breakdown with partial scores
+   * @throws {Error} If submission not found
    */
   async getSubmissionScore(submissionId) {
     try {
@@ -191,7 +204,10 @@ class PartialScoringService {
   }
 
   /**
-   * Get team scores for a contest with partial scoring
+   * Get team scores for a contest with partial scoring system.
+   * @param {number} contestId - Contest ID to get scores for
+   * @returns {Promise<Object[]>} Array of team scores sorted by total points
+   * @throws {Error} If contest query fails
    */
   async getContestScores(contestId) {
     try {
@@ -275,7 +291,11 @@ class PartialScoringService {
   }
 
   /**
-   * Update all problems in a contest to use equal point distribution
+   * Update all problems in a contest to use equal point distribution.
+   * @param {number} contestId - Contest ID to update
+   * @param {number} totalPointsPerProblem - Points per problem (default: 100)
+   * @returns {Promise<Object>} Update results with problem count and points per problem
+   * @throws {Error} If contest update fails
    */
   async updateContestPointsDistribution(contestId, totalPointsPerProblem = 100) {
     try {
@@ -296,7 +316,10 @@ class PartialScoringService {
   }
 
   /**
-   * Get detailed scoring statistics for a problem
+   * Get detailed scoring statistics for a problem.
+   * @param {number} problemId - Problem ID to get statistics for
+   * @returns {Promise<Object>} Detailed statistics including submission distribution and averages
+   * @throws {Error} If problem not found or query fails
    */
   async getProblemScoringStats(problemId) {
     try {

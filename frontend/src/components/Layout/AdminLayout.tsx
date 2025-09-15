@@ -1,36 +1,19 @@
-/**
- * Admin Layout Component - Phase 2.5 Task 1
- * Enhanced admin dashboard layout with sidebar navigation
- */
-
-import React, { useState } from 'react';
-import {
-  Box,
-  Drawer,
-  AppBar,
-  Toolbar,
-  List,
-  Typography,
-  Divider,
-  IconButton,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Badge,
-  Chip,
-  useTheme,
-  useMediaQuery,
-  Menu,
-  MenuItem,
-  Alert,
-  Avatar,
-  Stack,
-  Paper,
-  alpha,
-} from '@mui/material';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
+import { 
+  MdDashboard, 
+  MdEmojiEvents, 
+  MdHelpOutline, 
+  MdGroup, 
+  MdAssignment, 
+  MdMonitor,
+  MdSettings,
+  MdMenu,
+  MdNotifications,
+  MdLogout,
+  MdArrowBack
+} from 'react-icons/md';
 
 const drawerWidth = 280;
 
@@ -58,14 +41,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
   actions,
   alerts = []
 }) => {
-  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const { admin, logout } = useAdminAuth();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [systemStatus] = useState({
     contests_running: 2,
     pending_submissions: 15,
@@ -73,39 +55,49 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
     system_health: 'healthy' as 'healthy' | 'warning' | 'error'
   });
 
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const navigationItems: NavigationItem[] = [
     {
       label: 'Dashboard',
       path: '/admin/dashboard',
-      icon: '📈',
+      icon: <MdDashboard />,
     },
     {
       label: 'Contests',
       path: '/admin/contests',
-      icon: '🏆',
+      icon: <MdEmojiEvents />,
       badge: systemStatus.contests_running
     },
     {
       label: 'Problems',
       path: '/admin/problems',
-      icon: '❓',
+      icon: <MdHelpOutline />,
     },
     {
       label: 'Teams',
       path: '/admin/teams',
-      icon: '👥',
+      icon: <MdGroup />,
       badge: systemStatus.active_teams
     },
     {
       label: 'Submissions',
       path: '/admin/submissions',
-      icon: '📊',
+      icon: <MdAssignment />,
       badge: systemStatus.pending_submissions
     },
     {
       label: 'System Monitor',
       path: '/admin/monitor',
-      icon: '💻',
+      icon: <MdMonitor />,
     },
   ];
 
@@ -113,32 +105,47 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
     setMobileOpen(!mobileOpen);
   };
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
+  const handleUserMenuToggle = () => {
+    setUserMenuOpen(!userMenuOpen);
   };
 
   const handleLogout = () => {
     logout();
     navigate('/admin/login');
-    handleMenuClose();
+    setUserMenuOpen(false);
   };
 
-  const getSystemStatusColor = () => {
-    switch (systemStatus.system_health) {
-      case 'healthy': return 'success';
-      case 'warning': return 'warning';
-      case 'error': return 'error';
-      default: return 'default';
-    }
-  };
+  const Badge = ({ count, children }: { count: number; children: React.ReactNode }) => (
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      {children}
+      {count > 0 && (
+        <span
+          style={{
+            position: 'absolute',
+            top: '-8px',
+            right: '-8px',
+            backgroundColor: '#f56565',
+            color: 'white',
+            borderRadius: '10px',
+            padding: '2px 6px',
+            fontSize: '0.75rem',
+            minWidth: '16px',
+            height: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: 'bold'
+          }}
+        >
+          {count > 99 ? '99+' : count}
+        </span>
+      )}
+    </div>
+  );
 
   const drawer = (
-    <Box 
-      sx={{ 
+    <div 
+      style={{ 
         height: '100%', 
         display: 'flex', 
         flexDirection: 'column',
@@ -148,379 +155,410 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
       }}
     >
       {/* Sidebar Header */}
-      <Box 
-        sx={{ 
-          p: 2.5, 
+      <div 
+        style={{ 
+          padding: '20px', 
           borderBottom: '1px solid rgba(59, 130, 246, 0.3)',
           background: 'rgba(30, 58, 138, 0.3)'
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: 1.5,
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '12px',
               background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 8px rgba(59, 130, 246, 0.3)'
+              boxShadow: '0 4px 8px rgba(59, 130, 246, 0.3)',
+              fontSize: '18px'
             }}
           >
-            <Typography sx={{ color: 'white', fontSize: 18 }}>⚙</Typography>
-          </Box>
-          <Typography 
-            variant="h6" 
-            sx={{ 
+<MdSettings />
+          </div>
+          <h2 
+            style={{ 
               fontWeight: 600,
               color: '#ffffff',
-              fontSize: '1.1rem'
+              fontSize: '1.1rem',
+              margin: 0
             }}
           >
             Admin Panel
-          </Typography>
-        </Box>
-      </Box>
+          </h2>
+        </div>
+      </div>
 
       {/* Navigation Menu */}
-      <Box sx={{ flex: 1, overflowY: 'auto', py: 2 }}>
-        <List sx={{ px: 2 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 0' }}>
+        <ul style={{ listStyle: 'none', padding: '0 16px', margin: 0 }}>
           {navigationItems.map((item) => {
             const isActive = location.pathname === item.path || 
               (item.path !== '/admin/dashboard' && location.pathname.startsWith(item.path));
             
             return (
-              <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
-                <ListItemButton
-                  selected={isActive}
+              <li key={item.path} style={{ marginBottom: '4px' }}>
+                <button
                   onClick={() => {
                     navigate(item.path);
                     if (isMobile) setMobileOpen(false);
                   }}
-                  sx={{
-                    borderRadius: 1.5,
-                    py: 1.2,
-                    px: 1.5,
-                    minHeight: 48,
+                  style={{
+                    width: '100%',
+                    border: 'none',
+                    borderRadius: '12px',
+                    padding: '12px',
+                    minHeight: '48px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
                     transition: 'all 0.2s ease',
                     backgroundColor: isActive ? 'rgba(59, 130, 246, 0.3)' : 'transparent',
-                    border: isActive ? '1px solid rgba(59, 130, 246, 0.5)' : '1px solid transparent',
-                    '&:hover': {
-                      backgroundColor: isActive ? 'rgba(59, 130, 246, 0.4)' : 'rgba(59, 130, 246, 0.1)',
-                      border: '1px solid rgba(59, 130, 246, 0.3)'
-                    },
+                    color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.9)',
+                    cursor: 'pointer',
+                    fontWeight: isActive ? 600 : 500,
+                    fontSize: '0.9rem'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = isActive ? 'rgba(59, 130, 246, 0.4)' : 'rgba(59, 130, 246, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = isActive ? 'rgba(59, 130, 246, 0.3)' : 'transparent';
                   }}
                 >
-                  <ListItemIcon 
-                    sx={{ 
-                      minWidth: 40,
-                      color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.8)'
-                    }}
-                  >
+                  <div style={{ fontSize: '20px', minWidth: '32px' }}>
                     {item.badge ? (
-                      <Badge 
-                        badgeContent={item.badge} 
-                        sx={{
-                          '& .MuiBadge-badge': {
-                            backgroundColor: '#f56565',
-                            color: 'white',
-                            fontSize: '0.75rem',
-                            minWidth: '16px',
-                            height: '16px'
-                          }
-                        }}
-                        max={99}
-                      >
-                        <Typography sx={{ fontSize: 20 }}>{item.icon}</Typography>
+                      <Badge count={item.badge}>
+                        <span>{item.icon}</span>
                       </Badge>
                     ) : (
-                      <Typography sx={{ fontSize: 20 }}>{item.icon}</Typography>
+                      item.icon
                     )}
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={item.label}
-                    sx={{
-                      '& .MuiListItemText-primary': {
-                        fontWeight: isActive ? 600 : 500,
-                        color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.9)',
-                        fontSize: '0.9rem'
-                      },
-                    }}
-                  />
-                </ListItemButton>
-              </ListItem>
+                  </div>
+                  <span>{item.label}</span>
+                </button>
+              </li>
             );
           })}
-        </List>
-      </Box>
+        </ul>
+      </div>
 
       {/* Bottom Section */}
-      <Box sx={{ p: 2, borderTop: '1px solid rgba(59, 130, 246, 0.3)' }}>
-        <ListItemButton
-          onClick={handleMenuOpen}
-          sx={{
-            borderRadius: 1.5,
-            py: 1,
-            px: 1.5,
-            '&:hover': {
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              border: '1px solid rgba(59, 130, 246, 0.3)'
-            },
+      <div style={{ padding: '16px', borderTop: '1px solid rgba(59, 130, 246, 0.3)' }}>
+        <button
+          onClick={() => navigate('/admin/settings')}
+          style={{
+            width: '100%',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            backgroundColor: 'transparent',
+            color: 'rgba(255, 255, 255, 0.9)',
+            cursor: 'pointer',
+            fontWeight: 500,
+            fontSize: '0.9rem'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
           }}
         >
-          <ListItemIcon sx={{ minWidth: 40, color: 'rgba(255, 255, 255, 0.8)' }}>
-            <Typography sx={{ fontSize: 20 }}>⚙</Typography>
-          </ListItemIcon>
-          <ListItemText 
-            primary="Settings"
-            sx={{
-              '& .MuiListItemText-primary': {
-                fontWeight: 500,
-                color: 'rgba(255, 255, 255, 0.9)',
-                fontSize: '0.9rem'
-              },
-            }}
-          />
-        </ListItemButton>
-      </Box>
-    </Box>
+          <span style={{ fontSize: '20px', minWidth: '32px' }}><MdSettings /></span>
+          <span>Settings</span>
+        </button>
+      </div>
+    </div>
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
       {/* App Bar */}
-      <AppBar
-        position="fixed"
-        elevation={0}
-        sx={{
-          width: { md: `calc(100% - ${drawerWidth}px)` },
-          ml: { md: `${drawerWidth}px` },
-          zIndex: theme.zIndex.drawer + 1,
+      <header
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: isMobile ? 0 : `${drawerWidth}px`,
+          right: 0,
+          height: '64px',
+          zIndex: 1100,
           background: 'linear-gradient(90deg, #1e3a8a 0%, #1e40af 100%)',
-          borderBottom: '1px solid rgba(59, 130, 246, 0.3)'
+          borderBottom: '1px solid rgba(59, 130, 246, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '0 16px',
+          gap: '16px'
         }}
       >
-        <Toolbar sx={{ py: 0.5 }}>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
+        {isMobile && (
+          <button
             onClick={handleDrawerToggle}
-            sx={{ 
-              mr: 2, 
-              display: { md: 'none' },
+            style={{
+              border: 'none',
+              background: 'transparent',
               color: 'rgba(255, 255, 255, 0.9)',
-              '&:hover': {
-                backgroundColor: 'rgba(59, 130, 246, 0.2)'
-              }
+              cursor: 'pointer',
+              fontSize: '20px',
+              padding: '8px'
             }}
           >
-            ☰
-          </IconButton>
-          
-          <Typography 
-            variant="h6" 
-            noWrap 
-            component="div" 
-            sx={{ 
-              flexGrow: 1,
-              fontWeight: 600,
-              color: '#ffffff',
-              fontSize: '1.25rem'
-            }}
-          >
-            {title}
-          </Typography>
+<MdMenu />
+          </button>
+        )}
+        
+        <h1 
+          style={{ 
+            flex: 1,
+            fontWeight: 600,
+            color: '#ffffff',
+            fontSize: '1.25rem',
+            margin: 0
+          }}
+        >
+          {title}
+        </h1>
 
-          {/* System Status Indicator */}
-          <Chip
-            label={`${systemStatus.contests_running} Active`}
-            size="small"
-            sx={{
-              mr: 2,
-              backgroundColor: 'rgba(34, 197, 94, 0.9)',
-              color: 'white',
-              fontWeight: 500,
-              fontSize: '0.75rem'
-            }}
-          />
+        {/* System Status Indicator */}
+        <div
+          style={{
+            backgroundColor: 'rgba(34, 197, 94, 0.9)',
+            color: 'white',
+            padding: '4px 12px',
+            borderRadius: '16px',
+            fontSize: '0.75rem',
+            fontWeight: 500
+          }}
+        >
+          {systemStatus.contests_running} Active
+        </div>
 
-          {/* Notifications */}
-          <IconButton 
-            sx={{ 
-              mr: 1,
+        {/* Notifications */}
+        <button 
+          style={{
+            border: 'none',
+            background: 'transparent',
+            color: 'rgba(255, 255, 255, 0.8)',
+            cursor: 'pointer',
+            padding: '8px'
+          }}
+        >
+          <Badge count={systemStatus.pending_submissions}>
+            <span style={{ fontSize: '20px' }}><MdNotifications /></span>
+          </Badge>
+        </button>
+
+        {/* Actions */}
+        {actions && (
+          <div>{actions}</div>
+        )}
+
+        {/* User Menu */}
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={handleUserMenuToggle}
+            style={{
+              border: 'none',
+              background: 'transparent',
               color: 'rgba(255, 255, 255, 0.8)',
-              '&:hover': {
-                backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                color: '#ffffff'
-              }
+              cursor: 'pointer',
+              padding: '4px'
             }}
           >
-            <Badge 
-              badgeContent={systemStatus.pending_submissions} 
-              sx={{
-                '& .MuiBadge-badge': {
-                  backgroundColor: '#f56565',
-                  color: 'white',
-                  fontSize: '0.75rem'
-                }
-              }}
-              max={99}
-            >
-              <Typography sx={{ fontSize: 20 }}>🔔</Typography>
-            </Badge>
-          </IconButton>
-
-          {/* Actions */}
-          {actions && (
-            <Box sx={{ mr: 1 }}>
-              {actions}
-            </Box>
-          )}
-
-          {/* User Menu */}
-          <IconButton
-            onClick={handleMenuOpen}
-            sx={{ 
-              color: 'rgba(255, 255, 255, 0.8)',
-              '&:hover': {
-                backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                color: '#ffffff'
-              }
-            }}
-          >
-            <Avatar
-              sx={{
-                width: 32,
-                height: 32,
-                fontSize: '0.875rem',
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
                 backgroundColor: '#3b82f6',
                 color: 'white',
-                fontWeight: 600
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 600,
+                fontSize: '0.875rem'
               }}
             >
               {admin?.username?.charAt(0)?.toUpperCase()}
-            </Avatar>
-          </IconButton>
+            </div>
+          </button>
           
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-            PaperProps={{
-              elevation: 3,
-              sx: {
-                mt: 1.5,
-                borderRadius: 2,
-                minWidth: 180,
+          {userMenuOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                marginTop: '8px',
+                minWidth: '180px',
                 backgroundColor: '#1e3a8a',
                 border: '1px solid rgba(59, 130, 246, 0.3)',
-                '& .MuiMenuItem-root': {
-                  py: 1.5,
-                  px: 2,
+                borderRadius: '8px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                zIndex: 1000
+              }}
+            >
+              <button
+                onClick={() => { 
+                  navigate('/admin/settings'); 
+                  setUserMenuOpen(false); 
+                }}
+                style={{
+                  width: '100%',
+                  border: 'none',
+                  padding: '12px 16px',
+                  backgroundColor: 'transparent',
                   color: 'rgba(255, 255, 255, 0.9)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(59, 130, 246, 0.2)'
-                  }
-                }
-              }
-            }}
-          >
-            <MenuItem onClick={() => { navigate('/admin/settings'); handleMenuClose(); }}>
-              <Typography sx={{ mr: 1.5, fontSize: 18 }}>⚙</Typography>
-              <Typography sx={{ fontSize: '0.9rem' }}>Settings</Typography>
-            </MenuItem>
-            <Divider sx={{ borderColor: 'rgba(59, 130, 246, 0.3)' }} />
-            <MenuItem onClick={handleLogout}>
-              <Typography sx={{ mr: 1.5, fontSize: 18 }}>→</Typography>
-              <Typography sx={{ fontSize: '0.9rem' }}>Logout</Typography>
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  fontSize: '0.9rem'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <span style={{ fontSize: '18px' }}><MdSettings /></span>
+                Settings
+              </button>
+              <div style={{ height: '1px', backgroundColor: 'rgba(59, 130, 246, 0.3)', margin: '0 16px' }} />
+              <button
+                onClick={handleLogout}
+                style={{
+                  width: '100%',
+                  border: 'none',
+                  padding: '12px 16px',
+                  backgroundColor: 'transparent',
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  fontSize: '0.9rem'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <span style={{ fontSize: '18px' }}><MdLogout /></span>
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
 
       {/* Sidebar Drawer */}
-      <Box
-        component="nav"
-        sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
-      >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true, // Better mobile performance
-          }}
-          sx={{
-            display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: drawerWidth,
-            },
-          }}
-        >
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
-            <IconButton onClick={handleDrawerToggle}>
-              ←
-            </IconButton>
-          </Box>
-          <Divider />
-          {drawer}
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: drawerWidth,
-            },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
-      </Box>
-
-      {/* Main Content */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          width: { md: `calc(100% - ${drawerWidth}px)` },
-          backgroundColor: '#f8fafc',
-          minHeight: '100vh'
+      <nav
+        style={{
+          width: isMobile ? 0 : `${drawerWidth}px`,
+          flexShrink: 0
         }}
       >
-        <Toolbar /> {/* Spacer for AppBar */}
+        {/* Mobile Overlay */}
+        {isMobile && mobileOpen && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 1200
+            }}
+            onClick={handleDrawerToggle}
+          />
+        )}
         
+        {/* Sidebar */}
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: mobileOpen || !isMobile ? 0 : `-${drawerWidth}px`,
+            width: `${drawerWidth}px`,
+            height: '100vh',
+            zIndex: 1300,
+            transition: 'left 0.3s ease',
+            boxSizing: 'border-box'
+          }}
+        >
+          {isMobile && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px' }}>
+              <button
+                onClick={handleDrawerToggle}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  padding: '8px'
+                }}
+              >
+<MdArrowBack />
+              </button>
+            </div>
+          )}
+          {drawer}
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main
+        style={{
+          flexGrow: 1,
+          backgroundColor: '#f8fafc',
+          minHeight: '100vh',
+          paddingTop: '64px'
+        }}
+      >
         {/* Alerts */}
         {alerts.length > 0 && (
-          <Box sx={{ p: 3, pb: 0 }}>
+          <div style={{ padding: '24px 24px 0' }}>
             {alerts.map((alert, index) => (
-              <Alert 
+              <div 
                 key={index} 
-                severity={alert.type} 
-                sx={{ 
-                  mb: 2,
-                  borderRadius: 1.5
+                style={{
+                  padding: '12px 16px',
+                  marginBottom: '16px',
+                  borderRadius: '12px',
+                  backgroundColor: alert.type === 'error' ? '#fef2f2' : 
+                                  alert.type === 'warning' ? '#fffbeb' : 
+                                  alert.type === 'success' ? '#f0fdf4' : '#f0f9ff',
+                  border: `1px solid ${alert.type === 'error' ? '#fecaca' : 
+                                      alert.type === 'warning' ? '#fed7aa' : 
+                                      alert.type === 'success' ? '#bbf7d0' : '#bae6fd'}`,
+                  color: alert.type === 'error' ? '#991b1b' : 
+                         alert.type === 'warning' ? '#92400e' : 
+                         alert.type === 'success' ? '#166534' : '#1e40af'
                 }}
               >
                 {alert.message}
-              </Alert>
+              </div>
             ))}
-          </Box>
+          </div>
         )}
 
         {/* Page Content */}
-        <Box sx={{ p: 3 }}>
+        <div style={{ padding: '24px' }}>
           {children}
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </main>
+    </div>
   );
 };
 

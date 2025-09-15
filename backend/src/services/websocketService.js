@@ -1,23 +1,31 @@
-/**
- * Real-time Leaderboard WebSocket Service
- * Handles WebSocket connections for hackathon-style real-time leaderboard updates
- */
-
 const socketIo = require('socket.io');
 const jwt = require('jsonwebtoken');
 const { db } = require('../utils/db');
 
+/**
+ * WebSocket service for managing real-time communication in programming contests
+ * Handles team authentication, contest room management, and live updates
+ */
 class WebSocketService {
+  /**
+   * Initialize WebSocket service
+   * Sets up connection tracking, room management, and update queuing
+   */
   constructor() {
     this.io = null;
-    this.connectedClients = new Map(); // Track connected clients
-    this.contestRooms = new Map(); // Track contest room subscriptions
-    this.updateQueue = new Map(); // Queue updates to batch them
+    this.connectedClients = new Map();
+    this.contestRooms = new Map();
+    this.updateQueue = new Map();
     this.updateInterval = null;
   }
 
   /**
-   * Initialize WebSocket server
+   * Initialize WebSocket server with Socket.IO
+   * Sets up CORS, connection handling, and optional update batching
+   * @param {Object} server - HTTP/HTTPS server instance
+   * @param {Object} options - Configuration options
+   * @param {boolean} options.disableUpdateBatcher - Whether to disable update batching
+   * @throws {Error} When server initialization fails
    */
   initialize(server, options = {}) {
     this.io = socketIo(server, {
@@ -33,22 +41,22 @@ class WebSocketService {
 
     this.setupEventHandlers();
     
-    // Allow disabling update batcher in tests
     if (options.disableUpdateBatcher !== true) {
       this.startUpdateBatcher();
     }
     
-    console.log('✅ WebSocket server initialized for hackathon real-time leaderboard');
+    console.log('✅ WebSocket server initialized for programming_contest real-time leaderboard');
   }
 
   /**
-   * Set up Socket.io event handlers
+   * Set up Socket.io event handlers for all connection events
+   * Configures authentication, room management, and disconnection handling
+   * @throws {Error} When event handler setup fails
    */
   setupEventHandlers() {
     this.io.on('connection', (socket) => {
       console.log(`Client connected: ${socket.id}`);
       
-      // Handle team authentication
       socket.on('authenticate_team', async (data) => {
         try {
           await this.authenticateTeam(socket, data);
@@ -58,7 +66,6 @@ class WebSocketService {
         }
       });
 
-      // Handle admin authentication  
       socket.on('authenticate_admin', async (data) => {
         try {
           await this.authenticateAdmin(socket, data);
@@ -68,7 +75,6 @@ class WebSocketService {
         }
       });
 
-      // Handle contest room joining
       socket.on('join_contest', async (data) => {
         try {
           await this.joinContestRoom(socket, data);
@@ -78,7 +84,6 @@ class WebSocketService {
         }
       });
 
-      // Handle leaving contest room
       socket.on('leave_contest', (data) => {
         try {
           this.leaveContestRoom(socket, data);
@@ -87,7 +92,6 @@ class WebSocketService {
         }
       });
 
-      // Handle request for current leaderboard
       socket.on('request_leaderboard', async (data) => {
         try {
           await this.sendCurrentLeaderboard(socket, data);
@@ -97,7 +101,6 @@ class WebSocketService {
         }
       });
 
-      // Handle disconnection
       socket.on('disconnect', () => {
         this.handleDisconnection(socket);
         console.log(`Client disconnected: ${socket.id}`);
@@ -106,7 +109,13 @@ class WebSocketService {
   }
 
   /**
-   * Authenticate team connection
+   * Authenticate team connection using JWT token
+   * Verifies team credentials and stores authentication info
+   * @param {Object} socket - Socket.IO socket instance
+   * @param {Object} data - Authentication data
+   * @param {string} data.token - JWT authentication token
+   * @param {number} data.contestId - Contest ID for authentication
+   * @throws {Error} When token is invalid or team not found
    */
   async authenticateTeam(socket, data) {
     const { token, contestId } = data;
@@ -115,24 +124,18 @@ class WebSocketService {
       throw new Error('Token and contestId required');
     }
 
-    // Import auth utility
     const { verifyToken } = require('../utils/auth');
     
-    // Verify JWT token using the same method as HTTP auth
     const decoded = verifyToken(token);
-    
-    // Check for teamId in token payload (as used by HTTP auth)
     if (!decoded.teamId) {
       throw new Error('Invalid token payload - teamId required');
     }
     
-    // Get team from database
     const team = await db('teams').where('id', decoded.teamId).andWhere('is_active', true).first();
     if (!team) {
       throw new Error('Team not found or inactive');
     }
 
-    // Store authentication info
     socket.teamId = team.id;
     socket.contestId = parseInt(contestId);
     socket.userType = 'team';
@@ -155,7 +158,12 @@ class WebSocketService {
   }
 
   /**
-   * Authenticate admin connection
+   * Authenticate admin connection using JWT token
+   * Verifies admin credentials and stores authentication info
+   * @param {Object} socket - Socket.IO socket instance
+   * @param {Object} data - Authentication data
+   * @param {string} data.token - Admin JWT authentication token
+   * @throws {Error} When token is invalid or admin not found
    */
   async authenticateAdmin(socket, data) {
     const { token } = data;
@@ -164,24 +172,18 @@ class WebSocketService {
       throw new Error('Admin token required');
     }
 
-    // Import auth utility
     const { verifyToken } = require('../utils/auth');
     
-    // Verify admin JWT token using the same method as HTTP auth
     const decoded = verifyToken(token);
-    
-    // Check token type (as expected by admin auth)
     if (decoded.type !== 'admin') {
       throw new Error('Invalid token type - admin token required');
     }
     
-    // Get admin from database
     const admin = await db('admins').where('id', decoded.id).first();
     if (!admin) {
       throw new Error('Admin not found');
     }
 
-    // Store authentication info
     socket.adminId = admin.id;
     socket.userType = 'admin';
     socket.adminUsername = admin.username;
@@ -203,6 +205,11 @@ class WebSocketService {
 
   /**
    * Join contest room for real-time updates
+   * Validates contest registration and adds socket to contest room
+   * @param {Object} socket - Socket.IO socket instance
+   * @param {Object} data - Room joining data
+   * @param {number} data.contestId - Contest ID to join
+   * @throws {Error} When contest not found or team not registered
    */
   async joinContestRoom(socket, data) {
     const { contestId } = data;
@@ -212,13 +219,11 @@ class WebSocketService {
       throw new Error('Valid contest ID required');
     }
 
-    // Verify contest exists
     const contest = await db('contests').where('id', parsedContestId).first();
     if (!contest) {
       throw new Error('Contest not found');
     }
 
-    // For teams, verify they're registered for this contest
     if (socket.userType === 'team') {
       const team = await db('teams').where('id', socket.teamId).first();
       const contestByCode = await db('contests').where('registration_code', team.contest_code).first();
@@ -228,18 +233,15 @@ class WebSocketService {
       }
     }
 
-    // Join contest room
     const roomName = `contest_${parsedContestId}`;
     socket.join(roomName);
     socket.currentContest = parsedContestId;
 
-    // Track room subscription
     if (!this.contestRooms.has(parsedContestId)) {
       this.contestRooms.set(parsedContestId, new Set());
     }
     this.contestRooms.get(parsedContestId).add(socket.id);
 
-    // Update client info
     if (this.connectedClients.has(socket.id)) {
       this.connectedClients.get(socket.id).currentContest = parsedContestId;
     }
@@ -250,23 +252,23 @@ class WebSocketService {
       contestName: contest.contest_name
     });
 
-    // Send current leaderboard immediately
     await this.sendCurrentLeaderboard(socket, { contestId: parsedContestId });
   }
 
   /**
-   * Leave contest room
+   * Leave contest room and clean up subscriptions
+   * Removes socket from contest room and updates tracking
+   * @param {Object} socket - Socket.IO socket instance
+   * @param {Object} data - Room leaving data (optional)
    */
   leaveContestRoom(socket, data) {
     if (socket.currentContest) {
       const roomName = `contest_${socket.currentContest}`;
       socket.leave(roomName);
 
-      // Remove from room tracking
       if (this.contestRooms.has(socket.currentContest)) {
         this.contestRooms.get(socket.currentContest).delete(socket.id);
         
-        // Clean up empty room tracking
         if (this.contestRooms.get(socket.currentContest).size === 0) {
           this.contestRooms.delete(socket.currentContest);
         }
@@ -274,7 +276,6 @@ class WebSocketService {
 
       socket.currentContest = null;
       
-      // Update client info
       if (this.connectedClients.has(socket.id)) {
         delete this.connectedClients.get(socket.id).currentContest;
       }
@@ -284,7 +285,12 @@ class WebSocketService {
   }
 
   /**
-   * Send current leaderboard to a specific socket
+   * Send current leaderboard data to a specific socket
+   * Fetches optimized leaderboard data and emits to socket
+   * @param {Object} socket - Socket.IO socket instance
+   * @param {Object} data - Leaderboard request data
+   * @param {number} data.contestId - Contest ID for leaderboard
+   * @throws {Error} When contest ID is invalid or data fetch fails
    */
   async sendCurrentLeaderboard(socket, data) {
     const { contestId } = data;
@@ -295,7 +301,6 @@ class WebSocketService {
     }
 
     try {
-      // Get optimized leaderboard data
       const leaderboardData = await this.getOptimizedLeaderboardData(parsedContestId);
       
       socket.emit('leaderboard_update', {
@@ -313,46 +318,44 @@ class WebSocketService {
   }
 
   /**
-   * Handle client disconnection
+   * Handle client disconnection cleanup
+   * Removes socket from all rooms and tracking maps
+   * @param {Object} socket - Socket.IO socket instance
    */
   handleDisconnection(socket) {
-    // Remove from contest rooms
     if (socket.currentContest && this.contestRooms.has(socket.currentContest)) {
       this.contestRooms.get(socket.currentContest).delete(socket.id);
       
-      // Clean up empty room tracking
       if (this.contestRooms.get(socket.currentContest).size === 0) {
         this.contestRooms.delete(socket.currentContest);
       }
     }
 
-    // Remove from connected clients
     this.connectedClients.delete(socket.id);
   }
 
   /**
-   * Get optimized leaderboard data structure
+   * Get optimized leaderboard data with contest and team information
+   * Fetches comprehensive leaderboard data including problem status
+   * @param {number} contestId - Contest ID to get leaderboard for
+   * @returns {Promise<Object>} Optimized leaderboard data structure
+   * @throws {Error} When contest not found or data fetch fails
    */
   async getOptimizedLeaderboardData(contestId) {
     try {
-      // Lazy import to avoid circular dependency
       const scoringService = require('./scoringService');
       
-      // Get leaderboard from unified scoring service
       const leaderboard = await scoringService.getLeaderboard(contestId);
       
-      // Get contest info
       const contest = await db('contests')
         .where('id', contestId)
         .first('id', 'contest_name', 'start_time', 'duration', 'freeze_time');
 
-      // Get problems for this contest
       const problems = await db('problems')
         .where('contest_id', contestId)
         .select('id', 'problem_letter', 'title')
         .orderBy('problem_letter');
 
-      // Calculate contest timing
       const now = new Date();
       const startTime = new Date(contest.start_time);
       const endTime = new Date(startTime.getTime() + contest.duration * 60 * 1000);
@@ -363,10 +366,8 @@ class WebSocketService {
       const timeRemaining = contestStatus === 'running' ? 
         Math.max(0, Math.floor((endTime - now) / 1000)) : 0;
 
-      // Get problem solve status for each team (optimized)
       const teamProblemStatus = await this.getTeamProblemStatusMatrix(contestId, problems);
 
-      // Combine leaderboard with problem status
       const enrichedLeaderboard = leaderboard.map(team => ({
         ...team,
         problemStatus: teamProblemStatus.get(team.team_id) || {}
@@ -395,7 +396,12 @@ class WebSocketService {
   }
 
   /**
-   * Get problem solve status matrix for all teams
+   * Get problem solve status matrix for all teams in a contest
+   * Builds comprehensive status matrix showing submission attempts and results
+   * @param {number} contestId - Contest ID to analyze
+   * @param {Array} problems - Array of problem objects
+   * @returns {Promise<Map>} Map of team IDs to problem status objects
+   * @throws {Error} When data fetch fails
    */
   async getTeamProblemStatusMatrix(contestId, problems) {
     const teamProblemStatus = new Map();
@@ -461,7 +467,10 @@ class WebSocketService {
   }
 
   /**
-   * Broadcast leaderboard update to contest room
+   * Broadcast leaderboard update to all clients in contest room
+   * Sends optimized leaderboard data to all connected clients
+   * @param {number} contestId - Contest ID to broadcast update for
+   * @throws {Error} When broadcast fails or data fetch fails
    */
   async broadcastLeaderboardUpdate(contestId) {
     if (!this.io || !this.contestRooms.has(contestId)) {
@@ -485,7 +494,9 @@ class WebSocketService {
   }
 
   /**
-   * Queue leaderboard update (batched processing)
+   * Queue leaderboard update for batched processing
+   * Prevents spam updates by batching requests
+   * @param {number} contestId - Contest ID to queue update for
    */
   queueLeaderboardUpdate(contestId) {
     if (!this.updateQueue.has(contestId)) {
@@ -499,6 +510,7 @@ class WebSocketService {
 
   /**
    * Start the update batcher to prevent spam updates
+   * Processes queued updates every 5 seconds
    */
   startUpdateBatcher() {
     this.updateInterval = setInterval(async () => {
@@ -516,7 +528,8 @@ class WebSocketService {
   }
 
   /**
-   * Stop the update batcher
+   * Stop the update batcher and clear interval
+   * Cleans up the update batching mechanism
    */
   stopUpdateBatcher() {
     if (this.updateInterval) {
@@ -527,7 +540,9 @@ class WebSocketService {
   }
 
   /**
-   * Get connection statistics
+   * Get current connection statistics
+   * Provides overview of connected clients and room occupancy
+   * @returns {Object} Connection statistics including counts and room details
    */
   getConnectionStats() {
     const stats = {
@@ -551,7 +566,8 @@ class WebSocketService {
   }
 
   /**
-   * Shutdown the WebSocket service
+   * Shutdown the WebSocket service gracefully
+   * Stops update batcher and closes Socket.IO server
    */
   shutdown() {
     this.stopUpdateBatcher();
@@ -562,7 +578,14 @@ class WebSocketService {
   }
 
   /**
-   * Broadcast contest freeze update - Phase 3.4
+   * Broadcast contest freeze update to all connected clients
+   * Notifies participants when contest leaderboard is frozen
+   * @param {number} contestId - Contest ID to freeze
+   * @param {Object} contestData - Contest information
+   * @param {string} contestData.contest_name - Name of the contest
+   * @param {string} contestData.frozen_at - Timestamp when frozen
+   * @param {number} contestData.freeze_time - Freeze time in minutes
+   * @throws {Error} When broadcast fails or WebSocket not initialized
    */
   async broadcastFreezeUpdate(contestId, contestData) {
     try {
@@ -589,7 +612,6 @@ class WebSocketService {
 
       this.io.to(roomName).emit('contest_freeze', freezeData);
       
-      // Also broadcast to admin room for monitoring
       this.io.to('admin_room').emit('admin_notification', {
         type: 'contest_frozen',
         contestId: contestId,
@@ -605,7 +627,12 @@ class WebSocketService {
   }
 
   /**
-   * Broadcast contest unfreeze update - Phase 3.4
+   * Broadcast contest unfreeze update to all connected clients
+   * Notifies participants when contest leaderboard is unfrozen
+   * @param {number} contestId - Contest ID to unfreeze
+   * @param {Object} contestData - Contest information
+   * @param {string} contestData.contest_name - Name of the contest
+   * @throws {Error} When broadcast fails or WebSocket not initialized
    */
   async broadcastUnfreezeUpdate(contestId, contestData) {
     try {
@@ -650,7 +677,11 @@ class WebSocketService {
   }
 
   /**
-   * Broadcast freeze time warning - Phase 3.4
+   * Broadcast freeze time warning to contest participants
+   * Warns participants about upcoming leaderboard freeze
+   * @param {number} contestId - Contest ID to warn about
+   * @param {number} minutesUntilFreeze - Minutes until freeze occurs
+   * @throws {Error} When broadcast fails or WebSocket not initialized
    */
   async broadcastFreezeWarning(contestId, minutesUntilFreeze) {
     try {
@@ -685,8 +716,23 @@ class WebSocketService {
   // ===================================================================
 
   /**
-   * Broadcast submission result to team and admins - Phase 4.5
+   * Broadcast submission result to team and admins
+   * Sends complete judging results to relevant parties
    * @param {Object} submissionResult - Complete judging result
+   * @param {number} submissionResult.submissionId - Submission ID
+   * @param {number} submissionResult.teamId - Team ID
+   * @param {number} submissionResult.contestId - Contest ID
+   * @param {number} submissionResult.problemId - Problem ID
+   * @param {string} submissionResult.verdict - Verdict string
+   * @param {number} submissionResult.executionTime - Execution time in ms
+   * @param {number} submissionResult.memoryUsed - Memory used in bytes
+   * @param {number} submissionResult.testCasesRun - Number of test cases run
+   * @param {number} submissionResult.testCasesPassed - Number of test cases passed
+   * @param {number} submissionResult.score - Score achieved
+   * @param {boolean} submissionResult.accepted - Whether submission was accepted
+   * @param {Array} submissionResult.details - Detailed test case results
+   * @param {string} submissionResult.language - Programming language
+   * @throws {Error} When broadcast fails or required data missing
    */
   async broadcastSubmissionResult(submissionResult) {
     try {
@@ -775,8 +821,18 @@ class WebSocketService {
   }
 
   /**
-   * Broadcast verdict update for ongoing judging - Phase 4.5
+   * Broadcast verdict update for ongoing judging
+   * Sends real-time updates during the judging process
    * @param {Object} verdictUpdate - Partial judging status
+   * @param {number} verdictUpdate.submissionId - Submission ID
+   * @param {number} verdictUpdate.teamId - Team ID
+   * @param {number} verdictUpdate.contestId - Contest ID
+   * @param {number} verdictUpdate.problemId - Problem ID
+   * @param {string} verdictUpdate.status - Current status
+   * @param {number} verdictUpdate.currentTestCase - Current test case number
+   * @param {number} verdictUpdate.totalTestCases - Total test cases
+   * @param {string} verdictUpdate.preliminaryVerdict - Preliminary verdict
+   * @throws {Error} When broadcast fails
    */
   async broadcastVerdictUpdate(verdictUpdate) {
     try {
@@ -828,8 +884,16 @@ class WebSocketService {
   }
 
   /**
-   * Broadcast submission status change - Phase 4.5
+   * Broadcast submission status change
+   * Notifies about queue position and processing status
    * @param {Object} statusData - Submission status information
+   * @param {number} statusData.submissionId - Submission ID
+   * @param {number} statusData.teamId - Team ID
+   * @param {number} statusData.contestId - Contest ID
+   * @param {string} statusData.status - Current status
+   * @param {number} statusData.queuePosition - Position in queue
+   * @param {number} statusData.estimatedWaitTime - Estimated wait time in seconds
+   * @throws {Error} When broadcast fails
    */
   async broadcastSubmissionStatus(statusData) {
     try {
@@ -873,9 +937,11 @@ class WebSocketService {
   }
 
   /**
-   * Send verdict directly to a specific team - Phase 4.5
-   * @param {number} teamId - Team ID
+   * Send verdict directly to a specific team
+   * Sends targeted verdict information to team sockets
+   * @param {number} teamId - Team ID to send verdict to
    * @param {Object} verdictData - Verdict information
+   * @throws {Error} When team not found or send fails
    */
   async sendVerdictToTeam(teamId, verdictData) {
     try {
@@ -900,9 +966,16 @@ class WebSocketService {
   }
 
   /**
-   * Broadcast queue position updates - Phase 4.5
+   * Broadcast queue position updates to multiple teams
+   * Updates teams about their position in the judging queue
    * @param {number} contestId - Contest ID
    * @param {Array} queueUpdates - Array of queue position updates
+   * @param {number} queueUpdates[].submissionId - Submission ID
+   * @param {number} queueUpdates[].teamId - Team ID
+   * @param {number} queueUpdates[].position - Queue position
+   * @param {number} queueUpdates[].estimatedWaitTime - Wait time in seconds
+   * @param {number} queueUpdates[].totalInQueue - Total submissions in queue
+   * @throws {Error} When broadcast fails
    */
   async broadcastQueuePositionUpdates(contestId, queueUpdates) {
     try {

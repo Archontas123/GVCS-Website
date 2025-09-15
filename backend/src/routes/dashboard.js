@@ -1,20 +1,36 @@
 /**
- * CS Club Hackathon Platform - Dashboard Routes
- * Real-time dashboard with actual data (no mock data)
+ * Dashboard Routes Module
+ * Provides real-time dashboard endpoints for team contest data including
+ * overview statistics, standings, activity feed, and analytics
+ * @module routes/dashboard
  */
 
 const express = require('express');
 const router = express.Router();
 const { db } = require('../utils/db');
 
-// Simple logger replacement
+/**
+ * Simple logger for debugging and error tracking
+ * @type {Object}
+ */
 const logger = {
   info: console.log,
   error: console.error,
   warn: console.warn
 };
 
-// Middleware to verify team authentication
+/**
+ * Middleware to verify team authentication token
+ * @param {Object} req - Express request object
+ * @param {Object} req.headers - Request headers
+ * @param {string} req.headers.authorization - Bearer token in Authorization header
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {void} Sets req.team object or returns error response
+ * @throws {UnauthorizedError} 401 - No token provided, invalid token, or inactive team
+ * @throws {NotFoundError} 404 - Contest not found
+ * @throws {InternalServerError} 500 - Authentication error
+ */
 const verifyTeamToken = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
@@ -26,7 +42,6 @@ const verifyTeamToken = async (req, res, next) => {
       });
     }
 
-    // Find team by session token
     const team = await db('teams')
       .select('*')
       .where('session_token', token)
@@ -40,7 +55,6 @@ const verifyTeamToken = async (req, res, next) => {
       });
     }
 
-    // Get contest ID from team's contest code
     const contest = await db('contests')
       .select('id')
       .where('registration_code', team.contest_code)
@@ -71,15 +85,48 @@ const verifyTeamToken = async (req, res, next) => {
 };
 
 /**
- * GET /api/dashboard/overview
- * Get team dashboard overview with real data
+ * Get comprehensive team dashboard overview with real-time data
+ * @route GET /api/dashboard/overview
+ * @param {Object} req - Express request object
+ * @param {Object} req.team - Team object from authentication middleware
+ * @param {number} req.team.id - Team ID
+ * @param {number} req.team.contest_id - Contest ID
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with comprehensive dashboard data
+ * @requires verifyTeamToken - Team authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {NotFoundError} 404 - Contest not found
+ * @throws {InternalServerError} 500 - Database or server error
+ * @example
+ * // Response data structure:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "contest": {
+ *       "id": 1,
+ *       "name": "Programming Contest",
+ *       "status": "active",
+ *       "time_remaining": 3600,
+ *       "progress_percentage": 25.5
+ *     },
+ *     "team_stats": {
+ *       "rank": 3,
+ *       "total_submissions": 15,
+ *       "accepted_submissions": 8,
+ *       "problems_solved": 3,
+ *       "accuracy_rate": "53.3"
+ *     },
+ *     "problems": [...],
+ *     "recent_submissions": [...]
+ *   }
+ * }
  */
 router.get('/overview', verifyTeamToken, async (req, res, next) => {
   try {
     const teamId = req.team.id;
     const contestId = req.team.contest_id;
 
-    // Get team's contest information
     const contest = await db('contests')
       .select('*')
       .where('id', contestId)
@@ -92,7 +139,6 @@ router.get('/overview', verifyTeamToken, async (req, res, next) => {
       });
     }
 
-    // Calculate contest status and timing
     const now = new Date();
     const startTime = new Date(contest.start_time);
     const endTime = new Date(startTime.getTime() + contest.duration * 60 * 1000);
@@ -105,9 +151,7 @@ router.get('/overview', verifyTeamToken, async (req, res, next) => {
       contestStatus = 'ended';
     }
 
-    // Get team statistics
     const [teamStats, problemStats, recentSubmissions] = await Promise.all([
-      // Team submission statistics
       db('submissions')
         .select(
           db.raw('COUNT(*) as total_submissions'),
@@ -120,7 +164,6 @@ router.get('/overview', verifyTeamToken, async (req, res, next) => {
         .where('team_id', teamId)
         .first(),
 
-      // Problems solved by team
       db('problems')
         .leftJoin('submissions', function() {
           this.on('problems.id', '=', 'submissions.problem_id')
@@ -140,7 +183,6 @@ router.get('/overview', verifyTeamToken, async (req, res, next) => {
         .groupBy('problems.id', 'problems.problem_letter', 'problems.title', 'problems.difficulty')
         .orderBy('problems.problem_letter'),
 
-      // Recent submissions
       db('submissions')
         .join('problems', 'submissions.problem_id', 'problems.id')
         .select(
@@ -153,7 +195,6 @@ router.get('/overview', verifyTeamToken, async (req, res, next) => {
         .limit(10)
     ]);
 
-    // Calculate team rank (simplified for SQLite)
     const teamRankResults = await db('submissions as s1')
       .join('problems as p', 's1.problem_id', 'p.id')
       .select(
@@ -232,14 +273,37 @@ router.get('/overview', verifyTeamToken, async (req, res, next) => {
 });
 
 /**
- * GET /api/dashboard/standings
- * Get contest standings
+ * Get contest standings/leaderboard
+ * @route GET /api/dashboard/standings
+ * @param {Object} req - Express request object
+ * @param {Object} req.team - Team object from authentication middleware
+ * @param {number} req.team.contest_id - Contest ID
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with ranked standings data
+ * @requires verifyTeamToken - Team authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {InternalServerError} 500 - Database or server error
+ * @example
+ * // Response data structure:
+ * {
+ *   "success": true,
+ *   "data": [
+ *     {
+ *       "rank": 1,
+ *       "team_id": 5,
+ *       "team_name": "CodeMasters",
+ *       "problems_solved": 8,
+ *       "penalty_time": 12,
+ *       "last_submission": "2024-01-15T14:30:00.000Z"
+ *     }
+ *   ]
+ * }
  */
 router.get('/standings', verifyTeamToken, async (req, res, next) => {
   try {
     const contestId = req.team.contest_id;
     
-    // Get all teams with their standings
     const standings = await db('submissions as s')
       .join('teams as t', 's.team_id', 't.id')
       .join('problems as p', 's.problem_id', 'p.id')
@@ -276,8 +340,37 @@ router.get('/standings', verifyTeamToken, async (req, res, next) => {
 });
 
 /**
- * GET /api/dashboard/activity
- * Get recent contest activity
+ * Get recent contest activity feed
+ * @route GET /api/dashboard/activity
+ * @param {Object} req - Express request object
+ * @param {Object} req.team - Team object from authentication middleware
+ * @param {number} req.team.contest_id - Contest ID
+ * @param {Object} req.query - Query parameters
+ * @param {number} [req.query.limit=20] - Maximum number of activity entries to return
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with recent submission activity data
+ * @requires verifyTeamToken - Team authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {InternalServerError} 500 - Database or server error
+ * @example
+ * // Response data structure:
+ * {
+ *   "success": true,
+ *   "data": [
+ *     {
+ *       "id": 123,
+ *       "team_name": "CodeMasters",
+ *       "problem_letter": "A",
+ *       "problem_title": "Simple Addition",
+ *       "language": "python3",
+ *       "verdict": "accepted",
+ *       "submitted_at": "2024-01-15T14:30:00.000Z",
+ *       "execution_time": 0.02,
+ *       "memory_used": 1024
+ *     }
+ *   ]
+ * }
  */
 router.get('/activity', verifyTeamToken, async (req, res, next) => {
   try {
@@ -315,21 +408,55 @@ router.get('/activity', verifyTeamToken, async (req, res, next) => {
 });
 
 /**
- * GET /api/dashboard/analytics
- * Get contest analytics
+ * Get comprehensive contest analytics and statistics
+ * @route GET /api/dashboard/analytics
+ * @param {Object} req - Express request object
+ * @param {Object} req.team - Team object from authentication middleware
+ * @param {number} req.team.contest_id - Contest ID
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} Response with detailed analytics data
+ * @requires verifyTeamToken - Team authentication required
+ * @throws {UnauthorizedError} 401 - Not authenticated
+ * @throws {InternalServerError} 500 - Database or server error
+ * @example
+ * // Response data structure:
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "submission_trends": [
+ *       {"hour": "2024-01-15 14:00:00", "count": 25}
+ *     ],
+ *     "language_statistics": [
+ *       {"language": "python3", "usage_count": 45, "success_rate": "67.5"}
+ *     ],
+ *     "problem_analysis": [
+ *       {
+ *         "letter": "A", 
+ *         "title": "Simple Addition",
+ *         "difficulty": "easy",
+ *         "total_attempts": 120,
+ *         "success_rate": "85.0"
+ *       }
+ *     ],
+ *     "verdict_distribution": {
+ *       "accepted": 180,
+ *       "wrong_answer": 45,
+ *       "time_limit_exceeded": 12
+ *     }
+ *   }
+ * }
  */
 router.get('/analytics', verifyTeamToken, async (req, res, next) => {
   try {
     const contestId = req.team.contest_id;
 
-    // Get submission analytics
     const [
       submissionTrends,
       languageStats,
       problemDifficulty,
       verdictStats
     ] = await Promise.all([
-      // Submissions over time (hourly) - simplified for SQLite
       db('submissions as s')
         .join('problems as p', 's.problem_id', 'p.id')
         .select(
@@ -339,9 +466,8 @@ router.get('/analytics', verifyTeamToken, async (req, res, next) => {
         .where('p.contest_id', contestId)
         .groupBy('hour')
         .orderBy('hour')
-        .limit(24), // Last 24 hours
+        .limit(24),
 
-      // Language usage statistics
       db('submissions as s')
         .join('problems as p', 's.problem_id', 'p.id')
         .select(
@@ -353,7 +479,6 @@ router.get('/analytics', verifyTeamToken, async (req, res, next) => {
         .groupBy('s.language')
         .orderBy('usage_count', 'desc'),
 
-      // Problem difficulty analysis
       db('problems as p')
         .leftJoin('submissions as s', 'p.id', 's.problem_id')
         .select(
@@ -369,7 +494,6 @@ router.get('/analytics', verifyTeamToken, async (req, res, next) => {
         .groupBy('p.id', 'p.problem_letter', 'p.title', 'p.difficulty')
         .orderBy('p.problem_letter'),
 
-      // Overall verdict statistics
       db('submissions as s')
         .join('problems as p', 's.problem_id', 'p.id')
         .select(

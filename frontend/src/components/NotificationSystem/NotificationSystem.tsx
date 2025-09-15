@@ -1,12 +1,8 @@
-/**
- * CS Club Hackathon Platform - Notification System Component
- * Phase 5.5: Real-time contest notifications and alerts
- */
-
 import React, { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useRealTimeData } from '../../hooks/useWebSocket';
 import { SystemNotification } from '../../services/websocket';
+import { MdEmojiEvents } from 'react-icons/md';
 
 interface NotificationSystemProps {
   contestId?: number;
@@ -41,7 +37,6 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Process new notifications
   useEffect(() => {
     notifications.forEach(notification => {
       const existingState = notificationStates.find(state => 
@@ -59,12 +54,10 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
         
         setNotificationStates(prev => [newState, ...prev]);
         
-        // Play sound for important notifications
         if (!soundMuted && (notification.type === 'warning' || notification.type === 'error')) {
           playNotificationSound(notification.type);
         }
         
-        // Auto-hide non-persistent notifications
         if (!newState.isPersistent) {
           setTimeout(() => {
             setNotificationStates(prev => 
@@ -75,7 +68,6 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
               )
             );
             
-            // Remove completely after animation
             setTimeout(() => {
               setNotificationStates(prev => 
                 prev.filter(state => state.id !== newState.id)
@@ -87,40 +79,60 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
     });
   }, [notifications, notificationStates, soundMuted, autoHideDuration]);
 
-  // Update unread count
   useEffect(() => {
     const unread = notificationStates.filter(state => !state.hasBeenSeen).length;
     setUnreadCount(unread);
   }, [notificationStates]);
 
-  // Play notification sound
   const playNotificationSound = (type: string) => {
     try {
-      const audio = new Audio();
-      // Different sounds for different notification types
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      const createTone = (frequency: number, duration: number, volume = 0.3) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
+        gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
+      };
+
       switch (type) {
         case 'error':
-          audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYdBjq...'; // Simplified error sound
+          createTone(200, 0.2);
+          setTimeout(() => createTone(150, 0.2), 100);
           break;
         case 'warning':
-          audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYdBjq...'; // Simplified warning sound
+          createTone(400, 0.15);
+          setTimeout(() => createTone(350, 0.15), 80);
           break;
         case 'success':
-          audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYdBjq...'; // Simplified success sound
+          createTone(523, 0.1); 
+          setTimeout(() => createTone(659, 0.1), 50); 
+          setTimeout(() => createTone(784, 0.1), 100); 
           break;
         default:
-          audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYdBjq...'; // Simplified default sound
+          createTone(800, 0.1);
       }
-      audio.volume = 0.3;
-      audio.play().catch(() => {
-        // Ignore audio play errors (e.g., user hasn't interacted with page yet)
-      });
     } catch (error) {
-      // Ignore audio errors
+      try {
+        const audio = new Audio();
+        audio.src = `data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj`;
+        audio.volume = 0.3;
+        audio.play().catch(() => {
+        });
+      } catch {
+      }
     }
   };
 
-  // Get notification icon
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'success':
@@ -135,7 +147,6 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
     }
   };
 
-  // Get notification severity
   const getNotificationSeverity = (type: string): 'success' | 'warning' | 'error' | 'info' => {
     switch (type) {
       case 'success':
@@ -150,7 +161,6 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
     }
   };
 
-  // Handle notification close
   const handleCloseNotification = (notificationId: string) => {
     setNotificationStates(prev => 
       prev.map(state => 
@@ -167,7 +177,6 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
     }, 300);
   };
 
-  // Mark notification as seen
   const markAsSeen = (notificationId: string) => {
     setNotificationStates(prev => 
       prev.map(state => 
@@ -178,14 +187,12 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
     );
   };
 
-  // Get visible notifications for display
   const visibleNotifications = notificationStates
     .filter(state => state.isVisible)
     .slice(0, maxVisible);
 
-  // Get position styles
   const getPositionStyles = () => {
-    const base = { position: 'fixed', zIndex: 1400 };
+    const base = { position: 'fixed' as const, zIndex: 1400 };
     switch (position) {
       case 'top-right':
         return { ...base, top: 24, right: 24 };
@@ -202,7 +209,6 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
 
   return (
     <div>
-      {/* Notification Bell Icon */}
       <button
         onClick={() => setDrawerOpen(true)}
         style={{
@@ -238,7 +244,6 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
         {unreadCount > 0 ? '🔔' : '🔕'}
       </button>
 
-      {/* Floating Notifications */}
       {!showInDrawer && (
         <div style={getPositionStyles()}>
           <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: '8px' }}>
@@ -310,7 +315,6 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
         </div>
       )}
 
-      {/* Notification Drawer */}
       {drawerOpen && (
         <div style={{
           position: 'fixed',
@@ -505,7 +509,6 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
         </div>
       )}
 
-      {/* Settings Dialog */}
       {settingsOpen && (
         <div style={{
           position: 'fixed',
@@ -569,7 +572,7 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
               </div>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ color: '#3b82f6' }}>🏆</span>
+                <span style={{ color: '#3b82f6', display: 'flex', alignItems: 'center' }}><MdEmojiEvents /></span>
                 <span style={{ fontSize: '14px' }}>Contest achievements and milestones</span>
               </div>
               

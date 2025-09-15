@@ -1,8 +1,3 @@
-/**
- * Test Case Runner Service - Hackathon Scoring
- * Handles hackathon partial scoring with test case execution
- */
-
 const JudgeEngine = require('./judgeEngine');
 const ExecutionMonitor = require('./executionMonitor');
 const { db } = require('../utils/db');
@@ -17,7 +12,7 @@ class TestCaseRunner {
   }
 
   /**
-   * Run all test cases for a problem with hackathon partial scoring
+   * Run all test cases for a problem with partial scoring
    * @param {Object} submission - Submission details
    * @param {Object} problem - Problem configuration
    * @returns {Promise<Object>} Test execution result
@@ -170,7 +165,7 @@ class TestCaseRunner {
         judgeResult.verdict = 'Partial Credit';
       }
 
-      // Calculate hackathon-style partial scoring
+      // Calculate partial scoring
       const gradingResults = judgeResult.testCaseResults
         .filter((tcr, index) => !testCases[index].is_sample); // Exclude sample test cases
         
@@ -184,9 +179,8 @@ class TestCaseRunner {
         
       const problemPoints = problemData?.points_value || 1;
       
-      // Calculate partial points using hackathon scoring
-      const hackathonScoring = require('./hackathonScoring');
-      const pointsEarned = hackathonScoring.calculatePartialPoints(
+      // Calculate partial points using proportional scoring
+      const pointsEarned = this.calculatePartialPoints(
         gradingTestCasesPassed,
         totalGradingTestCases, 
         problemPoints
@@ -597,6 +591,22 @@ class TestCaseRunner {
       console.error('Error updating submission with partial score:', error);
       throw error;
     }
+  }
+
+  /**
+   * Calculate partial points using proportional scoring
+   * @param {number} testCasesPassed - Number of test cases passed
+   * @param {number} totalTestCases - Total number of test cases
+   * @param {number} problemPoints - Maximum points for the problem
+   * @returns {number} Points earned
+   */
+  calculatePartialPoints(testCasesPassed, totalTestCases, problemPoints) {
+    if (totalTestCases === 0) {
+      return 0;
+    }
+    
+    // Proportional scoring: points based on percentage of test cases passed
+    return Math.round((testCasesPassed / totalTestCases) * problemPoints);
   }
 }
 

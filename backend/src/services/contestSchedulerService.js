@@ -1,8 +1,3 @@
-/**
- * CS Club Hackathon Platform - Advanced Contest Scheduler Service
- * Phase 6.3: Multi-contest scheduling and management
- */
-
 const cron = require('node-cron');
 const { db } = require('../utils/db');
 const logger = require('../utils/logger');
@@ -10,7 +5,14 @@ const contestTemplateService = require('./contestTemplateService');
 const websocketService = require('./websocketService');
 const notificationService = require('./notificationService');
 
+/**
+ * Advanced contest scheduling service for multi-contest management
+ * Handles scheduled contests, recurring contests, and contest series
+ */
 class ContestSchedulerService {
+  /**
+   * Initialize contest scheduler with task tracking maps
+   */
   constructor() {
     this.scheduledTasks = new Map();
     this.recurringTasks = new Map();
@@ -20,6 +22,7 @@ class ContestSchedulerService {
 
   /**
    * Initialize scheduler and load existing schedules
+   * @throws {Error} When initialization fails
    */
   async initializeScheduler() {
     try {
@@ -37,7 +40,11 @@ class ContestSchedulerService {
   }
 
   /**
-   * Schedule a single contest
+   * Schedule a single contest for future execution
+   * @param {Object} contestData - Contest configuration data
+   * @param {number} adminId - Admin user ID
+   * @returns {Promise<Object>} Scheduled contest object
+   * @throws {Error} When scheduling fails
    */
   async scheduleContest(contestData, adminId) {
     try {
@@ -81,7 +88,11 @@ class ContestSchedulerService {
   }
 
   /**
-   * Schedule recurring contests
+   * Schedule recurring contests using cron expressions
+   * @param {Object} recurringData - Recurring contest configuration
+   * @param {number} adminId - Admin user ID
+   * @returns {Promise<Object>} Recurring contest object
+   * @throws {Error} When scheduling fails
    */
   async scheduleRecurringContest(recurringData, adminId) {
     try {
@@ -118,7 +129,11 @@ class ContestSchedulerService {
   }
 
   /**
-   * Create contest series (tournaments)
+   * Create contest series (tournaments) with multiple rounds
+   * @param {Object} seriesData - Series configuration data
+   * @param {number} adminId - Admin user ID
+   * @returns {Promise<Object>} Created contest series object
+   * @throws {Error} When creation fails
    */
   async createContestSeries(seriesData, adminId) {
     try {

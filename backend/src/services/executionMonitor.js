@@ -1,15 +1,17 @@
-/**
- * Execution Monitoring and Security Service - Phase 4.2
- * Provides resource monitoring and security enforcement for code execution
- */
-
 const { spawn } = require('child_process');
 const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
 const performanceStatsStorage = require('./performanceStatsStorage');
 
+/**
+ * Execution Monitor Service for resource tracking and security enforcement
+ * Monitors container executions, tracks performance metrics, and enforces security policies
+ */
 class ExecutionMonitor {
+  /**
+   * Initialize execution monitor with performance tracking and security configuration
+   */
   constructor() {
     this.activeExecutions = new Map();
     this.performanceStats = {

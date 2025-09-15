@@ -1,18 +1,22 @@
-/**
- * Submission Controller - Updated for Hackathon Scoring
- * Handles code submissions and integrates with unified scoring system
- */
-
 const { db } = require('../utils/db');
 const scoringService = require('../services/scoringService');
 
+/**
+ * Submission Controller - Handles code submissions and scoring integration
+ * Manages submission creation, status updates, and statistics
+ */
 class SubmissionController {
   /**
-   * Create a new submission and update scores
+   * Creates a new submission and queues it for judging
+   * @param {number} teamId - The team ID submitting code
+   * @param {number} problemId - The problem ID being submitted to
+   * @param {string} language - The programming language used
+   * @param {string} code - The source code submitted
+   * @returns {Promise<Object>} The created submission object
+   * @throws {Error} When submission creation fails
    */
   async createSubmission(teamId, problemId, language, code) {
     try {
-      // Insert submission with pending status
       const [submission] = await db('submissions')
         .insert({
           team_id: teamId,
@@ -33,11 +37,17 @@ class SubmissionController {
   }
 
   /**
-   * Update submission status after judging and update hackathon scores
+   * Updates submission status after judging and triggers score recalculation
+   * @param {number} submissionId - The submission ID to update
+   * @param {string} status - The judging status (accepted, wrong_answer, etc.)
+   * @param {number} [executionTime] - Time taken to execute in milliseconds
+   * @param {number} [memoryUsed] - Memory used in MB
+   * @param {Date} [judgedAt] - Timestamp when judging completed
+   * @returns {Promise<Object>} The updated submission object
+   * @throws {Error} When update fails or submission not found
    */
   async updateSubmissionResult(submissionId, status, executionTime = null, memoryUsed = null, judgedAt = null) {
     try {
-      // Update submission in database
       const [updatedSubmission] = await db('submissions')
         .where('id', submissionId)
         .update({
@@ -54,7 +64,6 @@ class SubmissionController {
 
       console.log(`Updated submission ${submissionId} with status: ${status}`);
 
-      // Update scores using unified scoring service
       if (status !== 'compilation_error') {
         await scoringService.updateTeamScoreOnSubmission(
           updatedSubmission.team_id, 
@@ -73,7 +82,12 @@ class SubmissionController {
   }
 
   /**
-   * Get submissions for a team in a contest
+   * Gets all submissions for a team in a specific contest
+   * @param {number} teamId - The team ID
+   * @param {number} contestId - The contest ID
+   * @param {number} [limit=50] - Maximum number of submissions to return
+   * @returns {Promise<Object[]>} Array of submission objects with problem info
+   * @throws {Error} When database query fails
    */
   async getTeamSubmissions(teamId, contestId, limit = 50) {
     try {
@@ -103,7 +117,11 @@ class SubmissionController {
   }
 
   /**
-   * Get submissions for a specific problem
+   * Gets all submissions for a specific problem
+   * @param {number} problemId - The problem ID
+   * @param {number} [limit=100] - Maximum number of submissions to return
+   * @returns {Promise<Object[]>} Array of submission objects with team info
+   * @throws {Error} When database query fails
    */
   async getProblemSubmissions(problemId, limit = 100) {
     try {
@@ -131,7 +149,10 @@ class SubmissionController {
   }
 
   /**
-   * Get submission statistics for a contest
+   * Gets comprehensive submission statistics for a contest
+   * @param {number} contestId - The contest ID
+   * @returns {Promise<Object>} Object containing statistics and recent submissions
+   * @throws {Error} When database query fails
    */
   async getContestSubmissionStats(contestId) {
     try {
@@ -169,13 +190,11 @@ class SubmissionController {
           'p.problem_letter'
         );
 
-      // Format status statistics
       const statusCounts = {};
       stats.forEach(stat => {
         statusCounts[stat.status] = parseInt(stat.count);
       });
 
-      // Format language statistics
       const languageCounts = {};
       languageStats.forEach(stat => {
         languageCounts[stat.language] = parseInt(stat.count);
@@ -194,7 +213,11 @@ class SubmissionController {
   }
 
   /**
-   * Get team's submission history for a specific problem
+   * Gets a team's complete submission history for a specific problem
+   * @param {number} teamId - The team ID
+   * @param {number} problemId - The problem ID
+   * @returns {Promise<Object>} Object containing submissions and solve statistics
+   * @throws {Error} When database query fails
    */
   async getTeamProblemSubmissions(teamId, problemId) {
     try {
@@ -212,7 +235,6 @@ class SubmissionController {
           'judged_at'
         );
 
-      // Calculate attempts and solve status
       const acceptedSubmissions = submissions.filter(s => s.status === 'accepted');
       const wrongAttempts = submissions.filter(s => 
         s.status !== 'accepted' && 
@@ -234,7 +256,9 @@ class SubmissionController {
   }
 
   /**
-   * Get pending submissions count
+   * Gets the count of submissions currently pending judgment
+   * @returns {Promise<number>} The number of pending submissions
+   * @throws {Error} When database query fails
    */
   async getPendingSubmissionsCount() {
     try {
@@ -250,11 +274,14 @@ class SubmissionController {
   }
 
   /**
-   * Check if team can submit to problem (contest rules)
+   * Checks if a team is allowed to submit to a problem based on contest rules
+   * @param {number} teamId - The team ID
+   * @param {number} problemId - The problem ID
+   * @returns {Promise<Object>} Object with canSubmit boolean and reason if not
+   * @throws {Error} When database query fails
    */
   async canTeamSubmit(teamId, problemId) {
     try {
-      // Get contest info
       const contest = await db('problems as p')
         .join('contests as c', 'c.id', 'p.contest_id')
         .where('p.id', problemId)
@@ -273,20 +300,17 @@ class SubmissionController {
         return { canSubmit: false, reason: 'Contest is not active' };
       }
 
-      // Check if contest has started
       const now = new Date();
       const startTime = new Date(contest.start_time);
       if (now < startTime) {
         return { canSubmit: false, reason: 'Contest has not started yet' };
       }
 
-      // Check if contest has ended
       const endTime = new Date(startTime.getTime() + contest.duration * 60 * 1000);
       if (now > endTime) {
         return { canSubmit: false, reason: 'Contest has ended' };
       }
 
-      // Check if team is registered for this contest
       const teamInContest = await db('teams as t')
         .join('contests as c', 'c.registration_code', 't.contest_code')
         .where('t.id', teamId)

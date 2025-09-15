@@ -12,6 +12,7 @@ import Breadcrumb from '../../../components/common/Breadcrumb';
 import DateTimePicker from '../../../components/common/DateTimePicker';
 import AddProblemModal from '../../../components/Admin/AddProblemModal';
 import { getContestUrl } from '../../../utils/contestUtils';
+import { MdEdit } from 'react-icons/md';
 
 interface Contest {
   id: number;
@@ -867,7 +868,7 @@ const ContestDetailPage: React.FC = () => {
               
               {problems.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '48px' }}>
-                  <div style={{ fontSize: '64px', color: '#6b7280', marginBottom: '16px' }}>📝</div>
+                  <div style={{ fontSize: '64px', color: '#6b7280', marginBottom: '16px', display: 'flex', justifyContent: 'center' }}><MdEdit /></div>
                   <h4 style={{ color: '#6b7280', marginBottom: '8px', fontSize: '1.25rem', margin: '0 0 8px 0', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
                     No problems added yet
                   </h4>

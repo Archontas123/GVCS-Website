@@ -23,7 +23,7 @@ export const useAdminAuth = (): AdminAuthState => {
   useEffect(() => {
     const checkAdminAuth = async () => {
       try {
-        const token = localStorage.getItem('hackathon_admin_token');
+        const token = localStorage.getItem('programming_contest_admin_token');
         if (token) {
           apiService.setAdminToken(token);
           const response = await apiService.getAdminProfile();
@@ -52,11 +52,11 @@ export const useAdminAuth = (): AdminAuthState => {
         console.error('Admin auth check failed:', error);
         // Only clear token if it's a 401 (unauthorized) error
         if (error.response?.status === 401) {
-          localStorage.removeItem('hackathon_admin_token');
+          localStorage.removeItem('programming_contest_admin_token');
           apiService.removeAdminToken();
         } else {
           // For other errors (network, 500, etc), assume token is still valid
-          const token = localStorage.getItem('hackathon_admin_token');
+          const token = localStorage.getItem('programming_contest_admin_token');
           if (token) {
             const basicAdminData: AdminUser = {
               id: 0,
@@ -82,14 +82,14 @@ export const useAdminAuth = (): AdminAuthState => {
       if (response.success && response.data) {
         const { admin: adminData, token } = response.data;
         
-        localStorage.setItem('hackathon_admin_token', token);
+        localStorage.setItem('programming_contest_admin_token', token);
         apiService.setAdminToken(token);
         setAdmin(adminData);
       } else {
         throw new Error(response.message || 'Login failed');
       }
     } catch (error: any) {
-      localStorage.removeItem('hackathon_admin_token');
+      localStorage.removeItem('programming_contest_admin_token');
       apiService.removeAdminToken();
       setAdmin(null);
       throw error;
@@ -97,7 +97,7 @@ export const useAdminAuth = (): AdminAuthState => {
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('hackathon_admin_token');
+    localStorage.removeItem('programming_contest_admin_token');
     apiService.removeAdminToken();
     setAdmin(null);
   }, []);

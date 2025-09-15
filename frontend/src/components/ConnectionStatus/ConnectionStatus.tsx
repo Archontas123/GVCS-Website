@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useWebSocket } from '../../hooks/useWebSocket';
+import { MdCheck, MdClose, MdSync, MdError, MdRefresh, MdExpandMore, MdExpandLess, MdQuestionMark, MdInfo } from 'react-icons/md';
 
 interface ConnectionStatusProps {
   compact?: boolean;
@@ -18,7 +19,6 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   showDetails = false,
   onReconnect,
 }) => {
-  const theme = useTheme();
   const { connectionStatus, connectionHealth, connect, disconnect } = useWebSocket();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -28,43 +28,43 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
     switch (connectionStatus) {
       case 'connected':
         return {
-          icon: '✓',
-          color: theme.palette.success.main,
+          icon: <MdCheck />,
+          color: '#22c55e',
           text: 'Connected',
           description: 'Real-time updates active',
         };
       case 'connecting':
         return {
-          icon: '~',
-          color: theme.palette.info.main,
+          icon: <MdSync />,
+          color: '#3b82f6',
           text: 'Connecting',
           description: 'Establishing connection...',
         };
       case 'reconnecting':
         return {
-          icon: '↻',
-          color: theme.palette.warning.main,
+          icon: <MdSync />,
+          color: '#f59e0b',
           text: 'Reconnecting',
           description: `Attempt ${connectionHealth.reconnectAttempts}`,
         };
       case 'disconnected':
         return {
-          icon: '×',
-          color: theme.palette.grey[500],
+          icon: <MdClose />,
+          color: '#6b7280',
           text: 'Disconnected',
           description: 'No real-time updates',
         };
       case 'error':
         return {
-          icon: '!',
-          color: theme.palette.error.main,
+          icon: <MdError />,
+          color: '#ef4444',
           text: 'Connection Error',
           description: 'Failed to connect',
         };
       default:
         return {
-          icon: '?',
-          color: theme.palette.grey[500],
+          icon: <MdQuestionMark />,
+          color: '#6b7280',
           text: 'Unknown',
           description: 'Unknown status',
         };
@@ -87,251 +87,249 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   // Compact display
   if (compact) {
     return (
-      <Tooltip title={`${statusInfo.text} - ${statusInfo.description}`}>
-        <Chip
-          icon={statusInfo.icon}
-          label={statusInfo.text}
-          size="small"
-          sx={{
-            color: 'white',
-            bgcolor: statusInfo.color,
-            '& .MuiChip-icon': { color: 'white' },
-          }}
+      <div title={`${statusInfo.text} - ${statusInfo.description}`}>
+        <div
+          className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-white text-sm cursor-pointer"
+          style={{ backgroundColor: statusInfo.color }}
           onClick={() => setDetailsOpen(true)}
-        />
-      </Tooltip>
+        >
+          <span className="text-base">{statusInfo.icon}</span>
+          <span>{statusInfo.text}</span>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       {/* Status Display */}
-      <Paper
-        variant="outlined"
-        sx={{
-          p: 2,
-          border: `2px solid ${statusInfo.color}`,
-          borderRadius: 2,
-        }}
+      <div
+        className="p-4 border-2 rounded-lg"
+        style={{ borderColor: statusInfo.color }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography sx={{ color: statusInfo.color, fontSize: 20 }}>
+        <div className="flex items-center gap-4">
+          <div className="text-xl" style={{ color: statusInfo.color }}>
             {statusInfo.icon}
-          </Typography>
+          </div>
           
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+          <div className="flex-1">
+            <div className="font-semibold text-sm">
               {statusInfo.text}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
+            </div>
+            <div className="text-xs text-gray-500">
               {statusInfo.description}
-            </Typography>
-          </Box>
+            </div>
+          </div>
 
           {/* Action Buttons */}
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <div className="flex gap-2">
             {(connectionStatus === 'disconnected' || connectionStatus === 'error') && (
-              <Tooltip title="Reconnect">
-                <IconButton size="small" onClick={handleReconnect} color="primary">
-                  ↻
-                </IconButton>
-              </Tooltip>
+              <button
+                title="Reconnect"
+                className="p-1 rounded hover:bg-gray-100 text-blue-600"
+                onClick={handleReconnect}
+              >
+                <MdRefresh className="w-5 h-5" />
+              </button>
             )}
             
             {showDetails && (
-              <Tooltip title="Connection Details">
-                <IconButton size="small" onClick={() => setExpanded(!expanded)}>
-                  {expanded ? '↑' : '↓'}
-                </IconButton>
-              </Tooltip>
+              <button
+                title="Connection Details"
+                className="p-1 rounded hover:bg-gray-100"
+                onClick={() => setExpanded(!expanded)}
+              >
+                {expanded ? <MdExpandLess className="w-5 h-5" /> : <MdExpandMore className="w-5 h-5" />}
+              </button>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* Connection Progress for connecting/reconnecting states */}
         {(connectionStatus === 'connecting' || connectionStatus === 'reconnecting') && (
-          <Box sx={{ mt: 1 }}>
-            <LinearProgress color="primary" />
-          </Box>
+          <div className="mt-2">
+            <div className="w-full bg-gray-200 rounded-full h-1">
+              <div className="bg-blue-600 h-1 rounded-full animate-pulse" style={{ width: '100%' }}></div>
+            </div>
+          </div>
         )}
 
         {/* Expanded Details */}
-        {showDetails && (
-          <Collapse in={expanded}>
-            <Box sx={{ mt: 2, pt: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
-              <Grid container spacing={2}>
-                <Grid size={6}>
-                  <Typography variant="caption" color="text.secondary">
-                    Status
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {connectionHealth.status}
-                  </Typography>
-                </Grid>
-                
-                <Grid size={6}>
-                  <Typography variant="caption" color="text.secondary">
-                    Authenticated
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {connectionHealth.isAuthenticated ? 'Yes' : 'No'}
-                  </Typography>
-                </Grid>
-                
-                <Grid size={6}>
-                  <Typography variant="caption" color="text.secondary">
-                    Reconnect Attempts
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {connectionHealth.reconnectAttempts}
-                  </Typography>
-                </Grid>
-                
-                <Grid size={6}>
-                  <Typography variant="caption" color="text.secondary">
-                    Queued Events
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {connectionHealth.queuedEvents}
-                  </Typography>
-                </Grid>
-                
-                {lastPingTime && (
-                  <Grid size={12}>
-                    <Typography variant="caption" color="text.secondary">
-                      Last Ping
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {formatDistanceToNow(lastPingTime)} ago
-                    </Typography>
-                  </Grid>
-                )}
-              </Grid>
-            </Box>
-          </Collapse>
+        {showDetails && expanded && (
+          <div className="mt-4 pt-4 border-t border-gray-300">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-xs text-gray-500">
+                  Status
+                </div>
+                <div className="text-sm font-medium">
+                  {connectionHealth.status}
+                </div>
+              </div>
+              
+              <div>
+                <div className="text-xs text-gray-500">
+                  Authenticated
+                </div>
+                <div className="text-sm font-medium">
+                  {connectionHealth.isAuthenticated ? 'Yes' : 'No'}
+                </div>
+              </div>
+              
+              <div>
+                <div className="text-xs text-gray-500">
+                  Reconnect Attempts
+                </div>
+                <div className="text-sm font-medium">
+                  {connectionHealth.reconnectAttempts}
+                </div>
+              </div>
+              
+              <div>
+                <div className="text-xs text-gray-500">
+                  Queued Events
+                </div>
+                <div className="text-sm font-medium">
+                  {connectionHealth.queuedEvents}
+                </div>
+              </div>
+              
+              {lastPingTime && (
+                <div className="col-span-2">
+                  <div className="text-xs text-gray-500">
+                    Last Ping
+                  </div>
+                  <div className="text-sm font-medium">
+                    {formatDistanceToNow(lastPingTime)} ago
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         )}
-      </Paper>
+      </div>
 
       {/* Alerts for various states */}
       {connectionStatus === 'error' && (
-        <Alert 
-          severity="error" 
-          sx={{ mt: 2 }}
-          action={
-            <Button color="inherit" size="small" onClick={handleReconnect}>
-              Retry
-            </Button>
-          }
-        >
-          Connection failed. Real-time updates are disabled.
-        </Alert>
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MdError className="text-red-600" />
+            <span className="text-red-800 text-sm">Connection failed. Real-time updates are disabled.</span>
+          </div>
+          <button
+            className="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+            onClick={handleReconnect}
+          >
+            Retry
+          </button>
+        </div>
       )}
 
       {connectionStatus === 'disconnected' && (
-        <Alert 
-          severity="warning" 
-          sx={{ mt: 2 }}
-          action={
-            <Button color="inherit" size="small" onClick={handleReconnect}>
-              Connect
-            </Button>
-          }
-        >
-          Not connected. Click to enable real-time updates.
-        </Alert>
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MdClose className="text-yellow-600" />
+            <span className="text-yellow-800 text-sm">Not connected. Click to enable real-time updates.</span>
+          </div>
+          <button
+            className="px-3 py-1 text-xs bg-yellow-600 text-white rounded hover:bg-yellow-700"
+            onClick={handleReconnect}
+          >
+            Connect
+          </button>
+        </div>
       )}
 
       {connectionHealth.queuedEvents > 0 && (
-        <Alert severity="info" sx={{ mt: 2 }}>
-          {connectionHealth.queuedEvents} events queued for when connection is restored.
-        </Alert>
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+          <MdInfo className="text-blue-600" />
+          <span className="text-blue-800 text-sm">
+            {connectionHealth.queuedEvents} events queued for when connection is restored.
+          </span>
+        </div>
       )}
 
       {/* Detailed Connection Dialog */}
-      <Dialog open={detailsOpen} onClose={() => setDetailsOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography sx={{ color: statusInfo.color, fontSize: 20 }}>
-            {statusInfo.icon}
-          </Typography>
-          Connection Status
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={3}>
-            <Grid size={12}>
-              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
-                <Typography variant="h6" gutterBottom>
-                  Current Status
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                  <Typography sx={{ color: statusInfo.color, fontSize: 20 }}>
+      {detailsOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-md w-full m-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b flex items-center gap-2">
+              <div className="text-xl" style={{ color: statusInfo.color }}>
+                {statusInfo.icon}
+              </div>
+              <h2 className="text-lg font-semibold">Connection Status</h2>
+              <button
+                className="ml-auto p-1 hover:bg-gray-100 rounded"
+                onClick={() => setDetailsOpen(false)}
+              >
+                <MdClose />
+              </button>
+            </div>
+            
+            <div className="p-4 space-y-6">
+              <div className="p-4 bg-gray-50 border rounded-lg">
+                <h3 className="text-base font-semibold mb-4">Current Status</h3>
+                <div className="flex items-center gap-4">
+                  <div className="text-xl" style={{ color: statusInfo.color }}>
                     {statusInfo.icon}
-                  </Typography>
-                  <Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                  </div>
+                  <div>
+                    <div className="font-semibold">
                       {statusInfo.text}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    </div>
+                    <div className="text-sm text-gray-600">
                       {statusInfo.description}
-                    </Typography>
-                  </Box>
-                </Box>
-              </Paper>
-            </Grid>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-            <Grid size={6}>
-              <Typography variant="subtitle2" gutterBottom>
-                Authentication
-              </Typography>
-              <Typography variant="body1">
-                {connectionHealth.isAuthenticated ? '✅ Authenticated' : '❌ Not Authenticated'}
-              </Typography>
-            </Grid>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Authentication</h4>
+                  <div className="flex items-center gap-1">
+                    {connectionHealth.isAuthenticated ? (
+                      <><MdCheck className="text-green-600" /> <span>Authenticated</span></>
+                    ) : (
+                      <><MdClose className="text-red-600" /> <span>Not Authenticated</span></>
+                    )}
+                  </div>
+                </div>
 
-            <Grid size={6}>
-              <Typography variant="subtitle2" gutterBottom>
-                Reconnection Attempts
-              </Typography>
-              <Typography variant="body1">
-                {connectionHealth.reconnectAttempts} / 5
-              </Typography>
-            </Grid>
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Reconnection Attempts</h4>
+                  <div>{connectionHealth.reconnectAttempts} / 5</div>
+                </div>
 
-            <Grid size={6}>
-              <Typography variant="subtitle2" gutterBottom>
-                Queued Events
-              </Typography>
-              <Typography variant="body1">
-                {connectionHealth.queuedEvents} pending
-              </Typography>
-            </Grid>
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Queued Events</h4>
+                  <div>{connectionHealth.queuedEvents} pending</div>
+                </div>
 
-            <Grid size={6}>
-              <Typography variant="subtitle2" gutterBottom>
-                Connection Health
-              </Typography>
-              <Typography variant="body1">
-                {lastPingTime ? 
-                  `Last ping: ${formatDistanceToNow(lastPingTime)} ago` :
-                  'No ping data'
-                }
-              </Typography>
-            </Grid>
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Connection Health</h4>
+                  <div>
+                    {lastPingTime ? 
+                      `Last ping: ${formatDistanceToNow(lastPingTime)} ago` :
+                      'No ping data'
+                    }
+                  </div>
+                </div>
+              </div>
 
-            {(connectionStatus === 'disconnected' || connectionStatus === 'error') && (
-              <Grid size={12}>
-                <Button
-                  variant="contained"
+              {(connectionStatus === 'disconnected' || connectionStatus === 'error') && (
+                <button
+                  className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
                   onClick={handleReconnect}
-                  fullWidth
                 >
-                  ↻ Reconnect Now
-                </Button>
-              </Grid>
-            )}
-          </Grid>
-        </DialogContent>
-      </Dialog>
-    </Box>
+                  <MdRefresh /> Reconnect Now
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

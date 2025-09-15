@@ -1,15 +1,14 @@
-/**
- * Notification Service - Phase 2.1
- * Handles WebSocket notifications for contest events
- */
-
 class NotificationService {
+  /**
+   * Initialize notification service with empty WebSocket reference
+   */
   constructor() {
     this.io = null;
   }
 
   /**
-   * Initialize with Socket.IO instance
+   * Initialize with Socket.IO instance for WebSocket communication
+   * @param {Object} io - Socket.IO server instance
    */
   initialize(io) {
     this.io = io;
@@ -17,6 +16,9 @@ class NotificationService {
 
   /**
    * Notify all teams in a contest about contest status change
+   * @param {number} contestId - Contest ID
+   * @param {string} eventType - Type of event
+   * @param {Object} data - Event data to broadcast
    */
   notifyContestUpdate(contestId, eventType, data) {
     if (!this.io) {

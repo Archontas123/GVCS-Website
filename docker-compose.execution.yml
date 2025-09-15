@@ -9,12 +9,12 @@ services:
     build:
       context: .
       dockerfile: ./docker/Dockerfile
-    image: hackathon-judge:latest
+    image: programming_contest-judge:latest
     command: echo "Judge container image built successfully"
     
   # Test service for validating the execution environment
   judge-test:
-    image: hackathon-judge:latest
+    image: programming_contest-judge:latest
     depends_on:
       - judge-builder
     volumes:

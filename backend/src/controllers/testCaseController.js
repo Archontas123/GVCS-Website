@@ -1,8 +1,3 @@
-/**
- * Test Case Controller - Phase 2.2
- * Handles test case creation, management, and CRUD operations
- */
-
 const { db } = require('../utils/db');
 const { 
   ValidationError, 
@@ -15,7 +10,8 @@ const Problem = require('./problemController');
 const Contest = require('./contestController');
 
 /**
- * TestCase Model Class
+ * TestCase Model Class - Handles test case creation, management, and CRUD operations
+ * Provides methods for managing problem test cases with validation and bulk operations
  */
 class TestCase {
   constructor(data) {
@@ -28,7 +24,12 @@ class TestCase {
   }
 
   /**
-   * Validate test case data
+   * Validates test case data with comprehensive validation rules
+   * @param {Object} data - The test case data to validate
+   * @param {string} data.input - Test case input (required, can be empty string, max 10000 chars)
+   * @param {string} data.expected_output - Expected output (required, can be empty string, max 10000 chars)
+   * @param {boolean} [data.is_sample] - Whether this is a sample test case
+   * @throws {ValidationError} When validation fails
    */
   static validateTestCaseData(data) {
     const errors = [];
@@ -63,7 +64,13 @@ class TestCase {
   }
 
   /**
-   * Check if admin can manage test cases for this problem
+   * Checks if an admin has permission to manage test cases for a problem
+   * @param {number} problemId - The problem ID
+   * @param {number} adminId - The admin ID
+   * @returns {Promise<Object>} Object containing problem and contest data
+   * @throws {AuthenticationError} When admin is not authorized
+   * @throws {NotFoundError} When problem or contest not found
+   * @throws {DatabaseError} When database operation fails
    */
   static async checkAdminAccess(problemId, adminId) {
     try {
@@ -84,16 +91,20 @@ class TestCase {
   }
 
   /**
-   * Create a new test case
+   * Creates a new test case with validation and contest state checks
+   * @param {Object} testCaseData - The test case data
+   * @param {number} problemId - The problem ID
+   * @param {number} adminId - The admin ID creating the test case
+   * @returns {Promise<TestCase>} The created test case instance
+   * @throws {AuthenticationError} When admin is not authorized
+   * @throws {ValidationError} When test case data is invalid or contest is running
+   * @throws {DatabaseError} When database operation fails
    */
   static async create(testCaseData, problemId, adminId) {
-    // Verify admin has access to this problem
     const { contest } = await this.checkAdminAccess(problemId, adminId);
 
-    // Validate test case data
     this.validateTestCaseData(testCaseData);
 
-    // Check if contest is running and prevent changes to test cases
     const contestStatus = Contest.getContestStatus(contest);
     if (contestStatus.status === 'running' || contestStatus.status === 'frozen') {
       throw new ValidationError('Cannot add test cases while contest is running');
@@ -114,7 +125,11 @@ class TestCase {
   }
 
   /**
-   * Find test case by ID
+   * Finds a test case by its ID
+   * @param {number} testCaseId - The test case ID
+   * @returns {Promise<TestCase>} The test case instance
+   * @throws {NotFoundError} When test case is not found
+   * @throws {DatabaseError} When database operation fails
    */
   static async findById(testCaseId) {
     try {
@@ -161,19 +176,16 @@ class TestCase {
     const testCase = await this.findById(testCaseId);
     const { contest } = await this.checkAdminAccess(testCase.problem_id, adminId);
 
-    // Check if contest is running and prevent changes to test cases
     const contestStatus = Contest.getContestStatus(contest);
     if (contestStatus.status === 'running' || contestStatus.status === 'frozen') {
       throw new ValidationError('Cannot modify test cases while contest is running');
     }
 
-    // Validate update data
     if (Object.keys(updateData).length > 0) {
       this.validateTestCaseData({ ...testCase, ...updateData });
     }
 
     try {
-      // Log the changes for audit purposes
       const winston = require('winston');
       const logger = winston.createLogger({
         level: 'info',
@@ -209,7 +221,6 @@ class TestCase {
     const testCase = await this.findById(testCaseId);
     const { contest } = await this.checkAdminAccess(testCase.problem_id, adminId);
 
-    // Check if contest is running and prevent changes to test cases
     const contestStatus = Contest.getContestStatus(contest);
     if (contestStatus.status === 'running' || contestStatus.status === 'frozen') {
       throw new ValidationError('Cannot delete test cases while contest is running');
@@ -228,10 +239,8 @@ class TestCase {
    * Bulk create test cases from CSV-like data
    */
   static async createBulk(testCasesData, problemId, adminId) {
-    // Verify admin has access to this problem
     const { contest } = await this.checkAdminAccess(problemId, adminId);
 
-    // Check if contest is running and prevent changes to test cases
     const contestStatus = Contest.getContestStatus(contest);
     if (contestStatus.status === 'running' || contestStatus.status === 'frozen') {
       throw new ValidationError('Cannot add test cases while contest is running');
@@ -241,7 +250,6 @@ class TestCase {
       throw new ValidationError('Test cases data must be a non-empty array');
     }
 
-    // Validate all test cases before creating any
     testCasesData.forEach((testCaseData, index) => {
       try {
         this.validateTestCaseData(testCaseData);
@@ -260,7 +268,6 @@ class TestCase {
 
       const insertedResults = await db('test_cases').insert(testCasesToInsert).returning('id');
 
-      // Fetch all created test cases
       const createdTestCases = await Promise.all(
         insertedResults.map(result => this.findById(result.id))
       );
@@ -283,14 +290,12 @@ class TestCase {
       const lines = csvContent.trim().split('\n');
       const testCases = [];
 
-      // Skip header if present
-      const startIndex = lines[0].toLowerCase().includes('input') ? 1 : 0;
+        const startIndex = lines[0].toLowerCase().includes('input') ? 1 : 0;
 
       for (let i = startIndex; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
 
-        // Simple CSV parsing (handles basic cases)
         const parts = line.split(',').map(part => part.trim().replace(/^"|"$/g, ''));
         
         if (parts.length < 2) {
@@ -338,7 +343,6 @@ class TestCase {
   static validateTestCaseFormat(input, expectedOutput, problemConstraints) {
     const warnings = [];
     
-    // Check for trailing whitespace
     if (input.endsWith(' ') || input.endsWith('\t')) {
       warnings.push('Input has trailing whitespace');
     }
@@ -346,7 +350,6 @@ class TestCase {
       warnings.push('Expected output has trailing whitespace');
     }
 
-    // Check for inconsistent line endings
     if (input.includes('\r\n') && input.includes('\n')) {
       warnings.push('Input has mixed line endings');
     }
@@ -354,7 +357,6 @@ class TestCase {
       warnings.push('Expected output has mixed line endings');
     }
 
-    // Check for empty input/output when it might not be expected
     if (input.trim() === '' && expectedOutput.trim() !== '') {
       warnings.push('Empty input but non-empty output - verify this is correct');
     }

@@ -1,17 +1,21 @@
-/**
- * LeetCode-style Code Template Service
- * Generates complete executable code from user's function implementation
- */
-
 const { db } = require('../utils/db');
 
+/**
+ * Service for generating executable code from user function implementations
+ * Provides code template management for programming contest problems
+ */
 class CodeTemplateService {
+  /**
+   * Initialize the code template service
+   */
+  constructor() {}
   
   /**
    * Get the function signature that users see for a problem
    * @param {number} problemId - Problem ID
    * @param {string} language - Programming language (cpp, java, python)
    * @returns {Promise<string>} Function signature template
+   * @throws {Error} When problem is not found or database error occurs
    */
   async getFunctionSignature(problemId, language) {
     try {
@@ -30,30 +34,29 @@ class CodeTemplateService {
       
       return signature;
     } catch (error) {
-      console.error('Error getting function signature:', error);
       return this.getDefaultSignature(language);
     }
   }
 
   /**
    * Get default function signatures for each language
+   * @param {string} language - Programming language (cpp, java, python)
+   * @returns {string} Default function signature template for the specified language
+   * @private
    */
   getDefaultSignature(language) {
     const defaults = {
       cpp: `int solution(vector<int>& nums) {
-    // Your solution here
     return 0;
 }`,
       java: `public int solution(int[] nums) {
-    // Your solution here
     return 0;
 }`,
       python: `def solution(nums):
-    # Your solution here
     return 0`
     };
     
-    return defaults[language] || '// Default solution';
+    return defaults[language] || 'Default solution';
   }
 
   /**
@@ -62,6 +65,7 @@ class CodeTemplateService {
    * @param {string} language - Programming language
    * @param {string} userCode - User's function implementation
    * @returns {Promise<string>} Complete executable code
+   * @throws {Error} When problem is not found or code generation fails
    */
   async generateExecutableCode(problemId, language, userCode) {
     try {
@@ -78,20 +82,24 @@ class CodeTemplateService {
         wrapper = this.getDefaultWrapper(language);
       }
       
-      // Inject user code into wrapper
       const completeCode = wrapper.replace('{USER_FUNCTION}', userCode);
       
-      // Add input/output parsing based on problem format
       return this.addInputOutputParsing(completeCode, language, problem);
       
     } catch (error) {
-      console.error('Error generating executable code:', error);
       throw error;
     }
   }
 
   /**
    * Add JSON input/output parsing to the wrapper code
+   * @param {string} code - The wrapper code to modify
+   * @param {string} language - Programming language (cpp, java, python)
+   * @param {Object} problem - Problem data containing input/output format
+   * @param {string} problem.input_format - Expected input format
+   * @param {string} problem.output_format - Expected output format
+   * @returns {string} Modified code with input/output parsing added
+   * @private
    */
   addInputOutputParsing(code, language, problem) {
     const inputFormat = problem.input_format || '{}';
@@ -111,19 +119,21 @@ class CodeTemplateService {
 
   /**
    * Add C++ JSON parsing (simplified - would need JSON library in production)
+   * @param {string} code - The C++ wrapper code to modify
+   * @param {string} inputFormat - Expected input format
+   * @param {string} outputFormat - Expected output format
+   * @returns {string} Modified C++ code with JSON parsing added
+   * @private
    */
   addCppParsing(code, inputFormat, outputFormat) {
     const parsingCode = `
-    // Parse input from stdin
     string line;
     getline(cin, line);
     
-    // Simple parsing for demo - would use JSON library in production
     istringstream iss(line);
     vector<int> nums;
     int target = 0;
     
-    // Call user solution
     int result = solution(nums, target);
     cout << result << endl;
 `;
@@ -134,20 +144,22 @@ class CodeTemplateService {
 
   /**
    * Add Java JSON parsing using Gson
+   * @param {string} code - The Java wrapper code to modify
+   * @param {string} inputFormat - Expected input format
+   * @param {string} outputFormat - Expected output format
+   * @returns {string} Modified Java code with JSON parsing added
+   * @private
    */
   addJavaParsing(code, inputFormat, outputFormat) {
     const parsingCode = `
         String input = br.readLine();
         Gson gson = new Gson();
         
-        // Parse JSON input
         Map<String, Object> data = gson.fromJson(input, Map.class);
         
-        // Extract parameters and call user solution
         Solution sol = new Solution();
         Object result = sol.solution(data);
         
-        // Output result as JSON
         System.out.println(gson.toJson(result));
 `;
     
@@ -156,16 +168,19 @@ class CodeTemplateService {
   }
 
   /**
-   * Add Python JSON parsing 
+   * Add Python JSON parsing
+   * @param {string} code - The Python wrapper code to modify
+   * @param {string} inputFormat - Expected input format
+   * @param {string} outputFormat - Expected output format
+   * @returns {string} Modified Python code with JSON parsing added
+   * @private
    */
   addPythonParsing(code, inputFormat, outputFormat) {
     const parsingCode = `
     input_data = json.loads(input())
     
-    # Extract parameters and call user solution
     result = solution(input_data)
     
-    # Output result as JSON
     print(json.dumps(result))
 `;
     
@@ -174,7 +189,10 @@ class CodeTemplateService {
   }
 
   /**
-   * Get default I/O wrappers
+   * Get default I/O wrappers for each programming language
+   * @param {string} language - Programming language (cpp, java, python)
+   * @returns {string} Default I/O wrapper template for the specified language
+   * @private
    */
   getDefaultWrapper(language) {
     const wrappers = {
@@ -228,7 +246,6 @@ if __name__ == "__main__":
    */
   async getUserImplementation(teamId, problemId, language) {
     try {
-      // Check if user has saved work
       const savedCode = await db('team_problem_code')
         .where({
           team_id: teamId,
@@ -241,7 +258,6 @@ if __name__ == "__main__":
         return savedCode.code;
       }
       
-      // Return default implementation
       const problem = await db('problems')
         .where('id', problemId)
         .first(`default_solution_${language}`);
@@ -249,7 +265,6 @@ if __name__ == "__main__":
       return problem?.[`default_solution_${language}`] || `// Your solution here\nreturn 0;`;
       
     } catch (error) {
-      console.error('Error getting user implementation:', error);
       return `// Your solution here\nreturn 0;`;
     }
   }
@@ -260,6 +275,8 @@ if __name__ == "__main__":
    * @param {number} problemId - Problem ID
    * @param {string} language - Programming language
    * @param {string} code - User's function implementation
+   * @returns {Promise<void>}
+   * @throws {Error} When database operation fails
    */
   async saveUserImplementation(teamId, problemId, language, code) {
     try {
@@ -276,10 +293,7 @@ if __name__ == "__main__":
           code: code,
           saved_at: new Date()
         });
-        
-      console.log(`Saved code for team ${teamId}, problem ${problemId}, language ${language}`);
     } catch (error) {
-      console.error('Error saving user implementation:', error);
       throw error;
     }
   }

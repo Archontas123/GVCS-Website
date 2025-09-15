@@ -1,32 +1,4 @@
-/**
- * CS Club Hackathon Platform - Real-time Leaderboard Component
- * Phase 5.5: Live leaderboard with automatic updates and ranking animations
- */
-
 import React, { useEffect, useState, useMemo } from 'react';
-import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Typography,
-  Chip,
-  Avatar,
-  Tooltip,
-  IconButton,
-  Alert,
-  Badge,
-  useTheme,
-  Fade,
-  Slide,
-  LinearProgress,
-  Card,
-  CardContent,
-} from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
 import { useRealTimeData } from '../../hooks/useWebSocket';
 import { useAuth } from '../../hooks/useAuth';
@@ -63,7 +35,6 @@ const RealTimeLeaderboard: React.FC<RealTimeLeaderboardProps> = ({
   maxTeams,
   hideWhenFrozen = false,
 }) => {
-  const theme = useTheme();
   const { team } = useAuth();
   const { 
     leaderboard, 
@@ -129,38 +100,32 @@ const RealTimeLeaderboard: React.FC<RealTimeLeaderboardProps> = ({
     return rankingChanges.find(change => change.teamId === teamId) || null;
   };
 
-  // Get problem status icon and color
+  // Get problem status info
   const getProblemStatusInfo = (problem: ProblemStatus) => {
     if (problem.solved) {
       return {
-        icon: '✓',
-        color: theme.palette.success.main,
-        text: problem.totalPoints ? `${problem.pointsEarned || problem.totalPoints}` : `✓`,
+        text: problem.totalPoints ? `${problem.pointsEarned || problem.totalPoints}` : 'SOLVED',
+        className: 'status-solved',
         tooltip: `Fully solved: ${problem.pointsEarned || problem.totalPoints}/${problem.totalPoints || 1} points`,
       };
     } else if (problem.partialCredit && (problem.pointsEarned || 0) > 0) {
-      // Partial credit - show points earned
       const percentage = problem.totalTestCases ? 
         Math.round(((problem.testCasesPassed || 0) / problem.totalTestCases) * 100) : 0;
       return {
-        icon: '✓',
-        opacity: 0.7,
-        color: theme.palette.warning.main,
         text: `${problem.pointsEarned || 0}/${problem.totalPoints || 1}`,
+        className: 'status-partial',
         tooltip: `Partial credit: ${problem.testCasesPassed || 0}/${problem.totalTestCases || 0} test cases (${percentage}%)`,
       };
     } else if (problem.attempts > 0) {
       return {
-        icon: '×',
-        color: theme.palette.error.main,
         text: `0/${problem.totalPoints || 1}`,
+        className: 'status-failed',
         tooltip: `${problem.attempts} failed attempts - 0 points earned`,
       };
     } else {
       return {
-        icon: '—',
-        color: theme.palette.grey[400],
         text: '—',
+        className: 'status-unattempted',
         tooltip: 'Not attempted',
       };
     }
@@ -186,285 +151,219 @@ const RealTimeLeaderboard: React.FC<RealTimeLeaderboardProps> = ({
   // Don't show if frozen and hideWhenFrozen is true
   if (hideWhenFrozen && leaderboard?.isFrozen) {
     return (
-      <Alert severity="info" icon={'🕰'}>
+      <div className="alert alert-info">
         Leaderboard is frozen. Rankings will be revealed after the contest ends.
-      </Alert>
+      </div>
     );
   }
 
   if (!leaderboard) {
     return (
-      <Card>
-        <CardContent>
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            {isConnected ? (
-              <>
-                <LinearProgress sx={{ mb: 2 }} />
-                <Typography variant="body1" color="text.secondary">
-                  Loading leaderboard...
-                </Typography>
-              </>
-            ) : (
-              <>
-                <Typography variant="body1" color="text.secondary" gutterBottom>
-                  Leaderboard not available
-                </Typography>
-                <ConnectionStatus compact />
-              </>
-            )}
-          </Box>
-        </CardContent>
-      </Card>
+      <div className="leaderboard-loading">
+        <div className="loading-content">
+          {isConnected ? (
+            <>
+              <div className="loading-bar"></div>
+              <p>Loading leaderboard...</p>
+            </>
+          ) : (
+            <>
+              <p>Leaderboard not available</p>
+              <ConnectionStatus compact />
+            </>
+          )}
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div className="leaderboard-container">
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography variant="h5" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography>🏆</Typography>
+      <div className="leaderboard-header">
+        <div className="header-left">
+          <h2 className="leaderboard-title">
             Live Leaderboard
             {leaderboard.isFrozen && (
-              <Chip 
-                label="FROZEN" 
-                size="small" 
-                color="warning" 
-startIcon="🕰"
-              />
+              <span className="frozen-badge">FROZEN</span>
             )}
-          </Typography>
+          </h2>
           
-          {isRefreshing && <LinearProgress sx={{ width: 50 }} />}
-        </Box>
+          {isRefreshing && <div className="refresh-indicator"></div>}
+        </div>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <div className="header-right">
           {showLastUpdate && lastLeaderboardUpdate && (
-            <Typography variant="caption" color="text.secondary">
+            <span className="last-update">
               Updated {formatDistanceToNow(lastLeaderboardUpdate)} ago
-            </Typography>
+            </span>
           )}
           
           <ConnectionStatus compact />
           
-          <Tooltip title={showRankingChanges ? "Hide ranking changes" : "Show ranking changes"}>
-            <IconButton 
-              size="small" 
-              onClick={() => setShowRankingChanges(!showRankingChanges)}
-            >
-              {showRankingChanges ? '🙈' : '👁'}
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
+          <button 
+            className="toggle-changes-btn"
+            onClick={() => setShowRankingChanges(!showRankingChanges)}
+            title={showRankingChanges ? "Hide ranking changes" : "Show ranking changes"}
+          >
+            {showRankingChanges ? 'Hide Changes' : 'Show Changes'}
+          </button>
+        </div>
+      </div>
 
       {/* Ranking Changes Alert */}
       {showRankingChanges && rankingChanges.length > 0 && (
-        <Fade in>
-          <Alert 
-            severity="info" 
-            sx={{ mb: 2 }}
-icon="📈"
-            onClose={() => setRankingChanges([])}
-          >
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              Recent Ranking Changes:
-            </Typography>
-            {rankingChanges.slice(0, 3).map((change, index) => {
-              const team = leaderboard.teams.find(t => t.teamId === change.teamId);
-              if (!team) return null;
-              
-              return (
-                <Typography key={index} variant="caption" display="block">
-                  {team.teamName}: #{change.oldRank} → #{change.newRank}
+        <div className="ranking-changes-alert">
+          <div className="alert-header">
+            <strong>Recent Ranking Changes:</strong>
+            <button 
+              className="close-btn"
+              onClick={() => setRankingChanges([])}
+            >
+              ×
+            </button>
+          </div>
+          {rankingChanges.slice(0, 3).map((change, index) => {
+            const team = leaderboard.teams.find(t => t.teamId === change.teamId);
+            if (!team) return null;
+            
+            return (
+              <div key={index} className="ranking-change">
+                {team.teamName}: #{change.oldRank} → #{change.newRank}
+                <span className={change.newRank < change.oldRank ? 'rank-up' : 'rank-down'}>
                   {change.newRank < change.oldRank ? ' ↗' : ' ↘'}
-                </Typography>
-              );
-            })}
-          </Alert>
-        </Fade>
+                </span>
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {/* Leaderboard Table */}
-      <TableContainer component={Paper} elevation={2}>
-        <Table size={compact ? "small" : "medium"}>
-          <TableHead>
-            <TableRow sx={{ bgcolor: 'primary.main' }}>
-              <TableCell sx={{ color: 'white', fontWeight: 600 }}>Rank</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600 }}>Team</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600 }} align="center">Solved</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 600 }} align="center">Points</TableCell>
+      <div className="leaderboard-table-container">
+        <table className={`leaderboard-table ${compact ? 'compact' : ''}`}>
+          <thead>
+            <tr className="table-header">
+              <th>Rank</th>
+              <th>Team</th>
+              <th className="text-center">Solved</th>
+              <th className="text-center">Points</th>
               
               {showProblemMatrix && problemLetters.map(letter => (
-                <TableCell 
-                  key={letter} 
-                  sx={{ color: 'white', fontWeight: 600 }} 
-                  align="center"
-                  width="50px"
-                >
+                <th key={letter} className="text-center problem-header">
                   {letter}
-                </TableCell>
+                </th>
               ))}
-            </TableRow>
-          </TableHead>
+            </tr>
+          </thead>
           
-          <TableBody>
+          <tbody>
             {displayTeams.map((teamData, index) => {
               const rankChange = getTeamRankingChange(teamData.teamId);
               const isCurrentTeam = showTeamHighlight && team?.teamName === teamData.teamName;
               
               return (
-                <Slide 
-                  key={teamData.teamId} 
-                  direction="right" 
-                  in 
-                  timeout={300 + index * 50}
+                <tr
+                  key={teamData.teamId}
+                  className={`team-row ${isCurrentTeam ? 'current-team' : ''}`}
                 >
-                  <TableRow
-                    hover
-                    sx={{
-                      bgcolor: isCurrentTeam ? 'primary.light' + '20' : 'transparent',
-                      border: isCurrentTeam ? `2px solid ${theme.palette.primary.main}` : 'none',
-                      '&:hover': {
-                        bgcolor: isCurrentTeam ? 'primary.light' + '30' : 'action.hover',
-                      },
-                    }}
-                  >
-                    {/* Rank */}
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 600, minWidth: 30 }}>
-                          {teamData.rank}
-                        </Typography>
-                        
-                        {rankChange && (
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography sx={{ color: rankChange.newRank < rankChange.oldRank ? 'success.main' : 'error.main' }}>
-                              {rankChange.newRank < rankChange.oldRank ? '↗' : '↘'}
-                            </Typography>
-                          </Box>
-                        )}
-                        
-                        {teamData.rank <= 3 && (
-                          <Typography
-                            sx={{ 
-                              color: teamData.rank === 1 ? '#FFD700' : 
-                                     teamData.rank === 2 ? '#C0C0C0' : '#CD7F32',
-                              fontSize: 18 
-                            }}
-                          >
-                            🏆
-                          </Typography>
-                        )}
-                      </Box>
-                    </TableCell>
-
-                    {/* Team Name */}
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Avatar 
-                          sx={{ 
-                            width: 32, 
-                            height: 32, 
-                            bgcolor: isCurrentTeam ? 'primary.main' : 'grey.400',
-                            fontSize: '0.8rem',
-                          }}
-                        >
-                          {teamData.teamName.charAt(0).toUpperCase()}
-                        </Avatar>
-                        <Box>
-                          <Typography 
-                            variant="body1" 
-                            sx={{ 
-                              fontWeight: isCurrentTeam ? 600 : 400,
-                              color: isCurrentTeam ? 'primary.main' : 'text.primary',
-                            }}
-                          >
-                            {teamData.teamName}
-                          </Typography>
-                          {teamData.lastSubmissionTime && (
-                            <Typography variant="caption" color="text.secondary">
-                              Last: {formatDistanceToNow(new Date(teamData.lastSubmissionTime))} ago
-                            </Typography>
-                          )}
-                        </Box>
-                      </Box>
-                    </TableCell>
-
-                    {/* Problems Solved */}
-                    <TableCell align="center">
-                      <Typography variant="h6" sx={{ fontWeight: 600, color: 'success.main' }}>
-                        {teamData.problemsSolved}
-                      </Typography>
-                    </TableCell>
-
-                    {/* Total Points */}
-                    <TableCell align="center">
-                      <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                        {formatPoints(teamData.totalPoints || 0)}
-                      </Typography>
-                    </TableCell>
-
-                    {/* Problem Status Matrix */}
-                    {showProblemMatrix && problemLetters.map(letter => {
-                      const problem = teamData.problems.find(p => p.problemLetter === letter);
-                      if (!problem) {
-                        return (
-                          <TableCell key={letter} align="center">
-                            <Typography sx={{ color: 'grey.400' }}>—</Typography>
-                          </TableCell>
-                        );
-                      }
-
-                      const statusInfo = getProblemStatusInfo(problem);
+                  {/* Rank */}
+                  <td className="rank-cell">
+                    <div className="rank-container">
+                      <span className="rank-number">{teamData.rank}</span>
                       
+                      {rankChange && (
+                        <span className={`rank-change ${rankChange.newRank < rankChange.oldRank ? 'rank-up' : 'rank-down'}`}>
+                          {rankChange.newRank < rankChange.oldRank ? '↗' : '↘'}
+                        </span>
+                      )}
+                      
+                      {teamData.rank <= 3 && (
+                        <span className={`trophy rank-${teamData.rank}`}>
+                          TROPHY
+                        </span>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* Team Name */}
+                  <td className="team-cell">
+                    <div className="team-info">
+                      <div className={`team-avatar ${isCurrentTeam ? 'current' : ''}`}>
+                        {teamData.teamName.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="team-details">
+                        <div className={`team-name ${isCurrentTeam ? 'current' : ''}`}>
+                          {teamData.teamName}
+                        </div>
+                        {teamData.lastSubmissionTime && (
+                          <div className="last-submission">
+                            Last: {formatDistanceToNow(new Date(teamData.lastSubmissionTime))} ago
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Problems Solved */}
+                  <td className="text-center solved-cell">
+                    <span className="problems-solved">
+                      {teamData.problemsSolved}
+                    </span>
+                  </td>
+
+                  {/* Total Points */}
+                  <td className="text-center points-cell">
+                    <span className="total-points">
+                      {formatPoints(teamData.totalPoints || 0)}
+                    </span>
+                  </td>
+
+                  {/* Problem Status Matrix */}
+                  {showProblemMatrix && problemLetters.map(letter => {
+                    const problem = teamData.problems.find(p => p.problemLetter === letter);
+                    if (!problem) {
                       return (
-                        <TableCell key={letter} align="center">
-                          <Tooltip title={statusInfo.tooltip}>
-                            <Box sx={{ position: 'relative' }}>
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  color: statusInfo.color,
-                                  fontWeight: 600,
-                                  fontSize: '0.75rem',
-                                }}
-                              >
-                                {statusInfo.text}
-                              </Typography>
-                              {problem.firstToSolve && (
-                                <Badge
-                                  badgeContent="1st"
-                                  sx={{
-                                    position: 'absolute',
-                                    top: -8,
-                                    right: -8,
-                                  }}
-                                />
-                              )}
-                            </Box>
-                          </Tooltip>
-                        </TableCell>
+                        <td key={letter} className="text-center problem-cell">
+                          <span className="status-unattempted">—</span>
+                        </td>
                       );
-                    })}
-                  </TableRow>
-                </Slide>
+                    }
+
+                    const statusInfo = getProblemStatusInfo(problem);
+                    
+                    return (
+                      <td key={letter} className="text-center problem-cell">
+                        <div 
+                          className="problem-status-container"
+                          title={statusInfo.tooltip}
+                        >
+                          <span className={`problem-status ${statusInfo.className}`}>
+                            {statusInfo.text}
+                          </span>
+                          {problem.firstToSolve && (
+                            <span className="first-solve-badge">1st</span>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
               );
             })}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </tbody>
+        </table>
+      </div>
 
       {/* Footer */}
       {maxTeams && leaderboard.teams.length > maxTeams && (
-        <Box sx={{ textAlign: 'center', mt: 2 }}>
-          <Typography variant="caption" color="text.secondary">
+        <div className="leaderboard-footer">
+          <span className="teams-count">
             Showing top {maxTeams} of {leaderboard.teams.length} teams
-          </Typography>
-        </Box>
+          </span>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

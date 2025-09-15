@@ -1,8 +1,3 @@
-/**
- * DateTimePicker Component - Phase 3
- * Simple date and time picker for contest scheduling
- */
-
 import React from 'react';
 
 interface DateTimePickerProps {

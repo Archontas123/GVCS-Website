@@ -1,44 +1,17 @@
-/**
- * Team Registration Monitor - Phase 2.5 Task 3
- * Real-time team registration monitoring and management
- */
-
 import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  Button,
-  Chip,
-  IconButton,
-  Tooltip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Avatar,
-  Badge,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Alert,
-  LinearProgress,
-  Tabs,
-  Tab,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  ListItemSecondaryAction,
-} from '@mui/material';
+import { 
+  MdPeople, 
+  MdEvent, 
+  MdSchedule,
+  MdRefresh,
+  MdMoreVert,
+  MdDelete,
+  MdEdit,
+  MdCheck,
+  MdClose,
+  MdInfo,
+  MdWarning
+} from 'react-icons/md';
 
 interface TeamRegistration {
   id: number;
@@ -81,16 +54,14 @@ const TeamRegistrationMonitor: React.FC = () => {
   }>({ open: false, action: null });
   const [lastUpdate, setLastUpdate] = useState(new Date());
 
-  // Mock data - in real app, this would come from WebSocket or polling API
   useEffect(() => {
     fetchRegistrations();
-    const interval = setInterval(fetchRegistrations, 5000); // Update every 5 seconds
+    const interval = setInterval(fetchRegistrations, 5000); 
     return () => clearInterval(interval);
   }, []);
 
   const fetchRegistrations = async () => {
     try {
-      // Fetch team registrations and stats in parallel
       const [registrationsResponse, statsResponse] = await Promise.all([
         fetch('/api/admin/teams/registrations?limit=100', {
           headers: {
@@ -167,7 +138,6 @@ const TeamRegistrationMonitor: React.FC = () => {
           });
           break;
         case 'reset':
-          // This would reset the team's session - we'll implement if needed
           console.log('Reset session for team:', selectedTeam.team_name);
           break;
         default:
@@ -175,7 +145,6 @@ const TeamRegistrationMonitor: React.FC = () => {
       }
 
       if (response && response.ok) {
-        // Refresh the registrations list to get updated data
         await fetchRegistrations();
       } else if (response) {
         const error = await response.json();
@@ -201,11 +170,11 @@ const TeamRegistrationMonitor: React.FC = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'active': return '✓';
-      case 'pending': return '🕰';
-      case 'rejected': return '×';
-      case 'inactive': return '🚫';
-      default: return '?';
+      case 'active': return <MdCheck />;
+      case 'pending': return <MdSchedule />;
+      case 'rejected': return <MdClose />;
+      case 'inactive': return <MdClose />;
+      default: return <MdInfo />;
     }
   };
 
@@ -222,7 +191,7 @@ const TeamRegistrationMonitor: React.FC = () => {
 
   const filteredRegistrations = registrations.filter(reg => {
     switch (selectedTab) {
-      case 0: return true; // All
+      case 0: return true; 
       case 1: return reg.status === 'pending';
       case 2: return reg.status === 'active';
       case 3: return reg.status === 'rejected' || reg.status === 'inactive';
@@ -231,282 +200,870 @@ const TeamRegistrationMonitor: React.FC = () => {
   });
 
   return (
-    <Box>
-      {/* Header with Stats */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600 }}>
+    <div style={{
+      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+      maxWidth: '1400px',
+      margin: '0 auto',
+      padding: '24px'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '32px'
+      }}>
+        <h1 style={{
+          fontSize: '1.75rem',
+          fontWeight: 700,
+          color: '#1d4ed8',
+          margin: 0,
+          letterSpacing: '-0.02em'
+        }}>
           Team Registration Monitor
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography variant="body2" color="text.secondary">
+        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{
+            fontSize: '0.875rem',
+            color: '#6b7280'
+          }}>
             Last updated: {lastUpdate.toLocaleTimeString()}
-          </Typography>
-          <Tooltip title="Refresh">
-            <IconButton size="small" onClick={fetchRegistrations}>
-              ↻
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
+          </span>
+          <button
+            onClick={fetchRegistrations}
+            title="Refresh"
+            style={{
+              padding: '8px',
+              border: '2px solid #e2e8f0',
+              backgroundColor: '#ffffff',
+              color: '#475569',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 500,
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#cbd5e0';
+              e.currentTarget.style.backgroundColor = '#f8fafc';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#e2e8f0';
+              e.currentTarget.style.backgroundColor = '#ffffff';
+            }}
+          >
+            <MdRefresh style={{ fontSize: '16px' }} />
+          </button>
+        </div>
+      </div>
 
-      {/* Stats Cards */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2, mb: 3 }}>
-        <Card>
-          <CardContent sx={{ textAlign: 'center', py: 2 }}>
-            <Badge badgeContent={stats.recent_activity} color="error">
-              <Typography variant="h4" sx={{ color: 'primary.main', mb: 1 }}>👥</Typography>
-            </Badge>
-            <Typography variant="h5" sx={{ fontWeight: 600 }}>
-              {stats.total_registrations}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Total Registrations
-            </Typography>
-          </CardContent>
-        </Card>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '16px',
+        marginBottom: '32px'
+      }}>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          padding: '24px',
+          textAlign: 'center',
+          boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)',
+          position: 'relative'
+        }}>
+          <div style={{
+            fontSize: '48px',
+            color: '#1d4ed8',
+            marginBottom: '12px',
+            display: 'flex',
+            justifyContent: 'center',
+            position: 'relative'
+          }}>
+            <MdPeople />
+            {stats.recent_activity > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '-8px',
+                right: '-8px',
+                backgroundColor: '#ef4444',
+                color: 'white',
+                borderRadius: '12px',
+                padding: '4px 8px',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                minWidth: '20px',
+                height: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {stats.recent_activity > 99 ? '99+' : stats.recent_activity}
+              </span>
+            )}
+          </div>
+          <div style={{
+            fontSize: '2rem',
+            fontWeight: 600,
+            color: '#1f2937',
+            marginBottom: '8px'
+          }}>
+            {stats.total_registrations}
+          </div>
+          <div style={{
+            fontSize: '0.875rem',
+            color: '#6b7280'
+          }}>
+            Total Registrations
+          </div>
+        </div>
 
-        <Card>
-          <CardContent sx={{ textAlign: 'center', py: 2 }}>
-            <Typography variant="h4" sx={{ color: 'warning.main', mb: 1 }}>!</Typography>
-            <Typography variant="h5" sx={{ fontWeight: 600 }}>
-              {stats.pending_approvals}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Pending Approvals
-            </Typography>
-          </CardContent>
-        </Card>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          padding: '24px',
+          textAlign: 'center',
+          boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)'
+        }}>
+          <div style={{
+            fontSize: '48px',
+            color: '#f59e0b',
+            marginBottom: '12px',
+            display: 'flex',
+            justifyContent: 'center'
+          }}>
+            <MdWarning />
+          </div>
+          <div style={{
+            fontSize: '2rem',
+            fontWeight: 600,
+            color: '#1f2937',
+            marginBottom: '8px'
+          }}>
+            {stats.pending_approvals}
+          </div>
+          <div style={{
+            fontSize: '0.875rem',
+            color: '#6b7280'
+          }}>
+            Pending Approvals
+          </div>
+        </div>
 
-        <Card>
-          <CardContent sx={{ textAlign: 'center', py: 2 }}>
-            <Typography variant="h4" sx={{ color: 'success.main', mb: 1 }}>✓</Typography>
-            <Typography variant="h5" sx={{ fontWeight: 600 }}>
-              {stats.active_teams}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Active Teams
-            </Typography>
-          </CardContent>
-        </Card>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          padding: '24px',
+          textAlign: 'center',
+          boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)'
+        }}>
+          <div style={{
+            fontSize: '48px',
+            color: '#22c55e',
+            marginBottom: '12px',
+            display: 'flex',
+            justifyContent: 'center'
+          }}>
+            <MdCheck />
+          </div>
+          <div style={{
+            fontSize: '2rem',
+            fontWeight: 600,
+            color: '#1f2937',
+            marginBottom: '8px'
+          }}>
+            {stats.active_teams}
+          </div>
+          <div style={{
+            fontSize: '0.875rem',
+            color: '#6b7280'
+          }}>
+            Active Teams
+          </div>
+        </div>
 
-        <Card>
-          <CardContent sx={{ textAlign: 'center', py: 2 }}>
-            <Typography variant="h4" sx={{ color: 'info.main', mb: 1 }}>+</Typography>
-            <Typography variant="h5" sx={{ fontWeight: 600 }}>
-              {stats.registrations_today}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Today's Registrations
-            </Typography>
-          </CardContent>
-        </Card>
-      </Box>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          padding: '24px',
+          textAlign: 'center',
+          boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)'
+        }}>
+          <div style={{
+            fontSize: '48px',
+            color: '#0891b2',
+            marginBottom: '12px',
+            display: 'flex',
+            justifyContent: 'center'
+          }}>
+            <MdEvent />
+          </div>
+          <div style={{
+            fontSize: '2rem',
+            fontWeight: 600,
+            color: '#1f2937',
+            marginBottom: '8px'
+          }}>
+            {stats.registrations_today}
+          </div>
+          <div style={{
+            fontSize: '0.875rem',
+            color: '#6b7280'
+          }}>
+            Today's Registrations
+          </div>
+        </div>
+      </div>
 
-      {/* Tabs and Table */}
-      <Card>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={selectedTab} onChange={(_, newValue) => setSelectedTab(newValue)}>
-            <Tab label={`All (${registrations.length})`} />
-            <Tab 
-              label={
-                <Badge badgeContent={registrations.filter(r => r.status === 'pending').length} color="error">
-                  Pending
-                </Badge>
-              }
-            />
-            <Tab label={`Active (${registrations.filter(r => r.status === 'active').length})`} />
-            <Tab label={`Rejected (${registrations.filter(r => r.status === 'rejected').length})`} />
-          </Tabs>
-        </Box>
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)'
+      }}>
+        <div style={{
+          borderBottom: '1px solid #e5e7eb',
+          padding: '0 24px'
+        }}>
+          <div style={{
+            display: 'flex',
+            borderBottom: '1px solid #e5e7eb'
+          }}>
+            {[
+              { label: `All (${registrations.length})`, index: 0 },
+              { label: 'Pending', index: 1, badge: registrations.filter(r => r.status === 'pending').length },
+              { label: `Active (${registrations.filter(r => r.status === 'active').length})`, index: 2 },
+              { label: `Rejected (${registrations.filter(r => r.status === 'rejected').length})`, index: 3 }
+            ].map(tab => (
+              <button
+                key={tab.index}
+                onClick={() => setSelectedTab(tab.index)}
+                style={{
+                  padding: '16px 24px',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  color: selectedTab === tab.index ? '#1d4ed8' : '#6b7280',
+                  cursor: 'pointer',
+                  fontWeight: selectedTab === tab.index ? 600 : 500,
+                  fontSize: '0.95rem',
+                  borderBottom: `3px solid ${selectedTab === tab.index ? '#1d4ed8' : 'transparent'}`,
+                  transition: 'all 0.2s ease',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                  position: 'relative'
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedTab !== tab.index) {
+                    e.currentTarget.style.color = '#4b5563';
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedTab !== tab.index) {
+                    e.currentTarget.style.color = '#6b7280';
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }
+                }}
+              >
+                {tab.label}
+                {tab.badge && tab.badge > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '8px',
+                    right: '8px',
+                    backgroundColor: '#ef4444',
+                    color: 'white',
+                    borderRadius: '10px',
+                    padding: '2px 6px',
+                    fontSize: '0.75rem',
+                    minWidth: '16px',
+                    height: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 'bold'
+                  }}>
+                    {tab.badge > 99 ? '99+' : tab.badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
 
-        <CardContent sx={{ p: 0 }}>
+        <div style={{ padding: 0 }}>
           {loading ? (
-            <LinearProgress />
+            <div style={{
+              width: '100%',
+              height: '4px',
+              backgroundColor: '#f3f4f6',
+              borderRadius: '2px',
+              overflow: 'hidden',
+              margin: '20px 0'
+            }}>
+              <div style={{
+                width: '100%',
+                height: '100%',
+                background: 'linear-gradient(90deg, #e5e7eb 25%, transparent 25%, transparent 50%, #e5e7eb 50%, #e5e7eb 75%, transparent 75%, transparent)',
+                backgroundSize: '40px 100%',
+                animation: 'loading 1s linear infinite'
+              }} />
+            </div>
           ) : (
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Team</TableCell>
-                    <TableCell>Contest</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Registered</TableCell>
-                    <TableCell>Last Activity</TableCell>
-                    <TableCell>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredRegistrations.map((registration) => (
-                    <TableRow key={registration.id}>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Avatar sx={{ width: 32, height: 32, mr: 2 }}>
-                            {registration.team_name.charAt(0)}
-                          </Avatar>
-                          <Box>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                              {registration.team_name}
-                            </Typography>
-                            {registration.validation_errors && (
-                              <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                                <Typography sx={{ fontSize: 14, color: 'error.main', mr: 0.5 }}>!</Typography>
-                                <Typography variant="caption" color="error">
-                                  {registration.validation_errors[0]}
-                                </Typography>
-                              </Box>
-                            )}
-                          </Box>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {registration.contest_name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {registration.contest_code}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={registration.status}
-                          color={getStatusColor(registration.status) as any}
-                          size="small"
-                          icon={getStatusIcon(registration.status)}
-                          sx={{ textTransform: 'capitalize' }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {formatTimeAgo(registration.registered_at)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" color="text.secondary">
-                          {formatTimeAgo(registration.last_activity)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <IconButton 
-                          size="small"
-                          onClick={(e) => handleMenuOpen(e, registration)}
-                        >
-                          ⋮
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <table style={{
+              width: '100%',
+              borderCollapse: 'collapse'
+            }}>
+              <thead style={{
+                backgroundColor: '#f8fafc',
+                borderBottom: '2px solid #e5e7eb'
+              }}>
+                <tr>
+                  <th style={{
+                    padding: '16px 24px',
+                    textAlign: 'left',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    color: '#374151'
+                  }}>Team</th>
+                  <th style={{
+                    padding: '16px 24px',
+                    textAlign: 'left',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    color: '#374151'
+                  }}>Contest</th>
+                  <th style={{
+                    padding: '16px 24px',
+                    textAlign: 'left',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    color: '#374151'
+                  }}>Status</th>
+                  <th style={{
+                    padding: '16px 24px',
+                    textAlign: 'left',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    color: '#374151'
+                  }}>Registered</th>
+                  <th style={{
+                    padding: '16px 24px',
+                    textAlign: 'left',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    color: '#374151'
+                  }}>Last Activity</th>
+                  <th style={{
+                    padding: '16px 24px',
+                    textAlign: 'left',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    color: '#374151'
+                  }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRegistrations.map((registration) => (
+                  <tr key={registration.id} style={{
+                    borderBottom: '1px solid #f3f4f6',
+                    transition: 'background-color 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}>
+                    <td style={{ padding: '16px 24px', fontSize: '0.875rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '50%',
+                          backgroundColor: '#3b82f6',
+                          color: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 600,
+                          fontSize: '0.875rem',
+                          marginRight: '16px'
+                        }}>
+                          {registration.team_name.charAt(0)}
+                        </div>
+                        <div>
+                          <div style={{
+                            fontWeight: 600,
+                            fontSize: '0.875rem',
+                            color: '#1f2937'
+                          }}>
+                            {registration.team_name}
+                          </div>
+                          {registration.validation_errors && (
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              marginTop: '4px',
+                              color: '#ef4444',
+                              fontSize: '0.75rem'
+                            }}>
+                              <MdWarning style={{ fontSize: '14px', marginRight: '4px' }} />
+                              {registration.validation_errors[0]}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '16px 24px', fontSize: '0.875rem' }}>
+                      <div>
+                        <div style={{ fontWeight: 500, color: '#1f2937' }}>
+                          {registration.contest_name}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '2px' }}>
+                          {registration.contest_code}
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '16px 24px', fontSize: '0.875rem' }}>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        textTransform: 'capitalize',
+                        backgroundColor: getStatusColor(registration.status) === 'success' ? '#dcfce7' :
+                                        getStatusColor(registration.status) === 'warning' ? '#fef3c7' :
+                                        getStatusColor(registration.status) === 'error' ? '#fecaca' : '#f3f4f6',
+                        color: getStatusColor(registration.status) === 'success' ? '#166534' :
+                               getStatusColor(registration.status) === 'warning' ? '#92400e' :
+                               getStatusColor(registration.status) === 'error' ? '#dc2626' : '#374151'
+                      }}>
+                        <span style={{ fontSize: '14px' }}>{getStatusIcon(registration.status)}</span>
+                        {registration.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: '16px 24px', fontSize: '0.875rem', color: '#1f2937' }}>
+                      {formatTimeAgo(registration.registered_at)}
+                    </td>
+                    <td style={{ padding: '16px 24px', fontSize: '0.875rem', color: '#6b7280' }}>
+                      {formatTimeAgo(registration.last_activity)}
+                    </td>
+                    <td style={{ padding: '16px 24px' }}>
+                      <button
+                        onClick={(e) => handleMenuOpen(e, registration)}
+                        style={{
+                          padding: '8px',
+                          border: 'none',
+                          backgroundColor: 'transparent',
+                          color: '#6b7280',
+                          cursor: 'pointer',
+                          borderRadius: '4px',
+                          fontSize: '16px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f3f4f6';
+                          e.currentTarget.style.color = '#1f2937';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.color = '#6b7280';
+                        }}
+                      >
+                        <MdMoreVert />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
-        </CardContent>
-      </Card>
+        </div>
+        
+        <style>
+          {`
+            @keyframes loading {
+              0% { background-position: 0% 0%; }
+              100% { background-position: 40px 0%; }
+            }
+          `}
+        </style>
+      </div>
 
-      {/* Actions Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-      >
-        {selectedTeam?.status === 'pending' && [
-          <MenuItem key="approve" onClick={() => handleAction('approve')}>
-            <Typography sx={{ mr: 1, color: 'success.main' }}>✓</Typography>
-            Approve Team
-          </MenuItem>,
-          <MenuItem key="reject" onClick={() => handleAction('reject')}>
-            <Typography sx={{ mr: 1, color: 'error.main' }}>×</Typography>
-            Reject Team
-          </MenuItem>
-        ]}
-        <MenuItem onClick={() => handleAction('view')}>
-          <Typography sx={{ mr: 1 }}>👁</Typography>
-          View Details
-        </MenuItem>
-        <MenuItem onClick={() => handleAction('reset')}>
-          <Typography sx={{ mr: 1 }}>↻</Typography>
-          Reset Session
-        </MenuItem>
-      </Menu>
-
-      {/* Action Dialog */}
-      <Dialog 
-        open={actionDialog.open} 
-        onClose={() => setActionDialog({ open: false, action: null })}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          {actionDialog.action === 'approve' && 'Approve Team Registration'}
-          {actionDialog.action === 'reject' && 'Reject Team Registration'}
-          {actionDialog.action === 'reset' && 'Reset Team Session'}
-          {actionDialog.action === 'view' && 'Team Details'}
-        </DialogTitle>
-        <DialogContent>
-          {selectedTeam && (
-            <Box>
-              <Typography variant="body1" gutterBottom>
-                <strong>Team:</strong> {selectedTeam.team_name}
-              </Typography>
-              <Typography variant="body1" gutterBottom>
-                <strong>Contest:</strong> {selectedTeam.contest_name} ({selectedTeam.contest_code})
-              </Typography>
-              <Typography variant="body1" gutterBottom>
-                <strong>Registered:</strong> {new Date(selectedTeam.registered_at).toLocaleString()}
-              </Typography>
-              {selectedTeam.ip_address && (
-                <Typography variant="body1" gutterBottom>
-                  <strong>IP Address:</strong> {selectedTeam.ip_address}
-                </Typography>
-              )}
-              {selectedTeam.validation_errors && selectedTeam.validation_errors.length > 0 && (
-                <Alert severity="warning" sx={{ mt: 2 }}>
-                  <strong>Validation Issues:</strong>
-                  <ul>
-                    {selectedTeam.validation_errors.map((error, index) => (
-                      <li key={index}>{error}</li>
-                    ))}
-                  </ul>
-                </Alert>
-              )}
-              
-              {actionDialog.action === 'approve' && (
-                <Alert severity="success" sx={{ mt: 2 }}>
-                  This team will be approved and can participate in the contest.
-                </Alert>
-              )}
-              {actionDialog.action === 'reject' && (
-                <Alert severity="error" sx={{ mt: 2 }}>
-                  This team will be rejected and cannot participate.
-                </Alert>
-              )}
-              {actionDialog.action === 'reset' && (
-                <Alert severity="info" sx={{ mt: 2 }}>
-                  This will invalidate the team's current session and require them to login again.
-                </Alert>
-              )}
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setActionDialog({ open: false, action: null })}>
-            Cancel
-          </Button>
-          {actionDialog.action !== 'view' && (
-            <Button 
-              onClick={executeAction}
-              variant="contained"
-              color={actionDialog.action === 'reject' ? 'error' : 'primary'}
+      {Boolean(anchorEl) && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 1000
+          }}
+          onClick={handleMenuClose}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: (anchorEl as HTMLElement).getBoundingClientRect().bottom + window.scrollY,
+              left: (anchorEl as HTMLElement).getBoundingClientRect().left + window.scrollX,
+              backgroundColor: '#ffffff',
+              borderRadius: '8px',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+              border: '1px solid #e5e7eb',
+              minWidth: '160px',
+              padding: '8px 0',
+              zIndex: 1001
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {selectedTeam?.status === 'pending' && [
+              <button
+                key="approve"
+                onClick={() => handleAction('approve')}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <MdCheck style={{ color: '#22c55e' }} />
+                Approve Team
+              </button>,
+              <button
+                key="reject"
+                onClick={() => handleAction('reject')}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <MdClose style={{ color: '#ef4444' }} />
+                Reject Team
+              </button>
+            ]}
+            <button
+              onClick={() => handleAction('view')}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: 'none',
+                backgroundColor: 'transparent',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f3f4f6';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
             >
-              {actionDialog.action === 'approve' && 'Approve'}
-              {actionDialog.action === 'reject' && 'Reject'}
-              {actionDialog.action === 'reset' && 'Reset Session'}
-            </Button>
-          )}
-        </DialogActions>
-      </Dialog>
-    </Box>
+              <MdInfo style={{ color: '#6b7280' }} />
+              View Details
+            </button>
+            <button
+              onClick={() => handleAction('reset')}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: 'none',
+                backgroundColor: 'transparent',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f3f4f6';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              <MdRefresh style={{ color: '#6b7280' }} />
+              Reset Session
+            </button>
+          </div>
+        </div>
+      )}
+
+      {actionDialog.open && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1200
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          }}>
+            <div style={{
+              padding: '24px 32px 16px',
+              borderBottom: '1px solid #e5e7eb'
+            }}>
+              <h2 style={{
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                color: '#1f2937',
+                margin: 0,
+                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+              }}>
+                {actionDialog.action === 'approve' && 'Approve Team Registration'}
+                {actionDialog.action === 'reject' && 'Reject Team Registration'}
+                {actionDialog.action === 'reset' && 'Reset Team Session'}
+                {actionDialog.action === 'view' && 'Team Details'}
+              </h2>
+            </div>
+            <div style={{
+              padding: '24px 32px'
+            }}>
+              {selectedTeam && (
+                <div>
+                  <div style={{
+                    fontSize: '0.95rem',
+                    color: '#374151',
+                    marginBottom: '12px',
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                  }}>
+                    <strong>Team:</strong> {selectedTeam.team_name}
+                  </div>
+                  <div style={{
+                    fontSize: '0.95rem',
+                    color: '#374151',
+                    marginBottom: '12px',
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                  }}>
+                    <strong>Contest:</strong> {selectedTeam.contest_name} ({selectedTeam.contest_code})
+                  </div>
+                  <div style={{
+                    fontSize: '0.95rem',
+                    color: '#374151',
+                    marginBottom: '12px',
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                  }}>
+                    <strong>Registered:</strong> {new Date(selectedTeam.registered_at).toLocaleString()}
+                  </div>
+                  {selectedTeam.ip_address && (
+                    <div style={{
+                      fontSize: '0.95rem',
+                      color: '#374151',
+                      marginBottom: '12px',
+                      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                    }}>
+                      <strong>IP Address:</strong> {selectedTeam.ip_address}
+                    </div>
+                  )}
+                  
+                  {selectedTeam.validation_errors && selectedTeam.validation_errors.length > 0 && (
+                    <div style={{
+                      backgroundColor: '#fef3c7',
+                      color: '#92400e',
+                      border: '1px solid #fcd34d',
+                      padding: '16px 20px',
+                      borderRadius: '12px',
+                      marginTop: '16px',
+                      fontSize: '0.875rem',
+                      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                    }}>
+                      <div style={{ fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <MdWarning style={{ fontSize: '18px' }} />
+                        Validation Issues:
+                      </div>
+                      <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                        {selectedTeam.validation_errors.map((error, index) => (
+                          <li key={index}>{error}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {actionDialog.action === 'approve' && (
+                    <div style={{
+                      backgroundColor: '#dcfce7',
+                      color: '#166534',
+                      border: '1px solid #bbf7d0',
+                      padding: '16px 20px',
+                      borderRadius: '12px',
+                      marginTop: '16px',
+                      fontSize: '0.875rem',
+                      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <MdCheck style={{ fontSize: '18px' }} />
+                      This team will be approved and can participate in the contest.
+                    </div>
+                  )}
+                  {actionDialog.action === 'reject' && (
+                    <div style={{
+                      backgroundColor: '#fef2f2',
+                      color: '#dc2626',
+                      border: '1px solid #fecaca',
+                      padding: '16px 20px',
+                      borderRadius: '12px',
+                      marginTop: '16px',
+                      fontSize: '0.875rem',
+                      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <MdClose style={{ fontSize: '18px' }} />
+                      This team will be rejected and cannot participate.
+                    </div>
+                  )}
+                  {actionDialog.action === 'reset' && (
+                    <div style={{
+                      backgroundColor: '#dbeafe',
+                      color: '#1d4ed8',
+                      border: '1px solid #93c5fd',
+                      padding: '16px 20px',
+                      borderRadius: '12px',
+                      marginTop: '16px',
+                      fontSize: '0.875rem',
+                      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <MdInfo style={{ fontSize: '18px' }} />
+                      This will invalidate the team's current session and require them to login again.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div style={{
+              padding: '16px 32px 24px',
+              borderTop: '1px solid #e5e7eb',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '12px'
+            }}>
+              <button
+                onClick={() => setActionDialog({ open: false, action: null })}
+                style={{
+                  padding: '10px 20px',
+                  border: '2px solid #e2e8f0',
+                  backgroundColor: '#ffffff',
+                  color: '#475569',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                  transition: 'all 0.2s ease',
+                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#cbd5e0';
+                  e.currentTarget.style.backgroundColor = '#f8fafc';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#e2e8f0';
+                  e.currentTarget.style.backgroundColor = '#ffffff';
+                }}
+              >
+                Cancel
+              </button>
+              {actionDialog.action !== 'view' && (
+                <button
+                  onClick={executeAction}
+                  style={{
+                    padding: '10px 20px',
+                    border: `2px solid ${actionDialog.action === 'reject' ? '#dc2626' : '#1d4ed8'}`,
+                    background: actionDialog.action === 'reject' 
+                      ? 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)'
+                      : 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+                    color: '#ffffff',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.95rem',
+                    transition: 'all 0.2s ease',
+                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                    boxShadow: actionDialog.action === 'reject'
+                      ? '0 8px 25px rgba(220, 38, 38, 0.25), 0 4px 12px rgba(239, 68, 68, 0.15)'
+                      : '0 8px 25px rgba(29, 78, 216, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15)'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (actionDialog.action === 'reject') {
+                      e.currentTarget.style.background = 'linear-gradient(135deg, #b91c1c 0%, #dc2626 100%)';
+                    } else {
+                      e.currentTarget.style.background = 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%)';
+                    }
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (actionDialog.action === 'reject') {
+                      e.currentTarget.style.background = 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)';
+                    } else {
+                      e.currentTarget.style.background = 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)';
+                    }
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  {actionDialog.action === 'approve' && 'Approve'}
+                  {actionDialog.action === 'reject' && 'Reject'}
+                  {actionDialog.action === 'reset' && 'Reset Session'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

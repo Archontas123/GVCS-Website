@@ -1,6 +1,30 @@
+/**
+ * @fileoverview Team authentication middleware for the programming contest platform.
+ * Provides authentication and authorization for team-based API endpoints.
+ */
+
 const { verifyToken } = require('../utils/auth');
 const { db } = require('../utils/db');
 
+/**
+ * Middleware to authenticate team requests using JWT tokens.
+ * Validates Bearer tokens, verifies team existence and active status,
+ * updates team activity timestamp, and attaches team data to request.
+ * 
+ * @async
+ * @function authenticateTeam
+ * @param {Object} req - Express request object
+ * @param {Object} req.headers - Request headers
+ * @param {string} req.headers.authorization - Authorization header with Bearer token
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @throws {AuthenticationError} When no token provided, invalid token, or team not found
+ * @example
+ * // Usage in route
+ * router.get('/protected', authenticateTeam, (req, res) => {
+ *   console.log(req.team.name); // Team name from authenticated token
+ * });
+ */
 const authenticateTeam = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -11,7 +35,7 @@ const authenticateTeam = async (req, res, next) => {
       return next(error);
     }
     
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    const token = authHeader.substring(7);
     
     const decoded = verifyToken(token);
     
@@ -58,6 +82,27 @@ const authenticateTeam = async (req, res, next) => {
   }
 };
 
+/**
+ * Optional authentication middleware that attempts to authenticate teams
+ * but continues processing even if authentication fails or no token is provided.
+ * Useful for endpoints that can work with or without authentication.
+ * 
+ * @async
+ * @function optionalAuth
+ * @param {Object} req - Express request object
+ * @param {Object} req.headers - Request headers
+ * @param {string} [req.headers.authorization] - Optional authorization header with Bearer token
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @description If authentication succeeds, req.team will be populated with team data.
+ *              If authentication fails or no token provided, req.team remains undefined.
+ * @example
+ * // Usage for public endpoint with optional team context
+ * router.get('/leaderboard', optionalAuth, (req, res) => {
+ *   const isAuthenticated = !!req.team;
+ *   // Show different data based on authentication status
+ * });
+ */
 const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -92,6 +137,13 @@ const optionalAuth = async (req, res, next) => {
   }
 };
 
+/**
+ * @module auth
+ * @description Exported team authentication middleware functions.
+ * @exports {Object} middleware - Collection of team authentication middleware
+ * @exports {Function} middleware.authenticateTeam - Strict team authentication middleware
+ * @exports {Function} middleware.optionalAuth - Optional team authentication middleware
+ */
 module.exports = {
   authenticateTeam,
   optionalAuth

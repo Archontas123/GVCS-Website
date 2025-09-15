@@ -1,8 +1,3 @@
-/**
- * CS Club Hackathon Platform - Session Security Testing Service
- * Phase 6.4: Authentication and session management security testing
- */
-
 const { db } = require('../utils/db');
 const logger = require('../utils/logger');
 const crypto = require('crypto');

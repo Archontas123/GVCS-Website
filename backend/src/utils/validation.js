@@ -2,7 +2,9 @@ const Joi = require('joi');
 const { ValidationError } = require('./errors');
 
 /**
- * Joi Schemas for Request Validation
+ * Joi schema for team registration validation.
+ * @constant {Object} teamRegistrationSchema
+ * @description Validates team registration data including team name, contest code, password, school name, and member names
  */
 const teamRegistrationSchema = Joi.object({
   teamName: Joi.string()
@@ -75,6 +77,11 @@ const teamRegistrationSchema = Joi.object({
     })
 });
 
+/**
+ * Joi schema for team login validation.
+ * @constant {Object} teamLoginSchema
+ * @description Validates team login credentials including team name and password
+ */
 const teamLoginSchema = Joi.object({
   teamName: Joi.string()
     .trim()
@@ -98,6 +105,11 @@ const teamLoginSchema = Joi.object({
     })
 });
 
+/**
+ * Joi schema for code submission validation.
+ * @constant {Object} codeSubmissionSchema
+ * @description Validates code submission data including problem ID, language, and source code
+ */
 const codeSubmissionSchema = Joi.object({
   problem_id: Joi.number()
     .integer()
@@ -120,7 +132,7 @@ const codeSubmissionSchema = Joi.object({
   code: Joi.string()
     .trim()
     .min(1)
-    .max(1024 * 1024) // 1MB limit
+    .max(1024 * 1024) 
     .required()
     .messages({
       'string.empty': 'Code cannot be empty',
@@ -130,7 +142,11 @@ const codeSubmissionSchema = Joi.object({
 });
 
 /**
- * Joi validation middleware factory
+ * Creates an Express middleware function for request validation using Joi schemas.
+ * @param {Object} schema - The Joi schema to validate against
+ * @returns {Function} Express middleware function
+ * @example
+ * app.post('/register', validate(teamRegistrationSchema), registerHandler);
  */
 const validate = (schema) => {
   return (req, res, next) => {
@@ -150,14 +166,12 @@ const validate = (schema) => {
 };
 
 /**
- * Additional Validation Utilities
- */
-
-/**
- * Validate and sanitize team name
- * @param {string} teamName - Team name to validate
- * @returns {string} Sanitized team name
- * @throws {ValidationError} If validation fails
+ * Validates and sanitizes a team name.
+ * @param {string} teamName - The team name to validate
+ * @returns {string} The trimmed and validated team name
+ * @throws {ValidationError} When team name is invalid
+ * @example
+ * const validName = validateTeamName('  Team Alpha  ');
  */
 function validateTeamName(teamName) {
   if (!teamName || typeof teamName !== 'string') {
@@ -181,10 +195,12 @@ function validateTeamName(teamName) {
 }
 
 /**
- * Validate contest code format
- * @param {string} contestCode - Contest code to validate
- * @returns {string} Normalized contest code
- * @throws {ValidationError} If validation fails
+ * Validates and normalizes a contest code.
+ * @param {string} contestCode - The contest code to validate
+ * @returns {string} The normalized contest code in uppercase
+ * @throws {ValidationError} When contest code is invalid
+ * @example
+ * const validCode = validateContestCode('abc123xy');
  */
 function validateContestCode(contestCode) {
   if (!contestCode || typeof contestCode !== 'string') {
@@ -204,10 +220,12 @@ function validateContestCode(contestCode) {
 }
 
 /**
- * Validate programming language
- * @param {string} language - Programming language to validate
- * @returns {string} Normalized language
- * @throws {ValidationError} If validation fails
+ * Validates a programming language selection.
+ * @param {string} language - The programming language to validate
+ * @returns {string} The normalized language in lowercase
+ * @throws {ValidationError} When language is not supported
+ * @example
+ * const validLang = validateLanguage('Python');
  */
 function validateLanguage(language) {
   const supportedLanguages = ['cpp', 'java', 'python', 'c'];
@@ -225,10 +243,12 @@ function validateLanguage(language) {
 }
 
 /**
- * Validate source code
- * @param {string} code - Source code to validate
- * @returns {string} Trimmed source code
- * @throws {ValidationError} If validation fails
+ * Validates source code content and size.
+ * @param {string} code - The source code to validate
+ * @returns {string} The trimmed source code
+ * @throws {ValidationError} When source code is invalid or too large
+ * @example
+ * const validCode = validateSourceCode('console.log("Hello World");');
  */
 function validateSourceCode(code) {
   if (!code || typeof code !== 'string') {
@@ -240,8 +260,7 @@ function validateSourceCode(code) {
     throw new ValidationError('Source code cannot be empty');
   }
   
-  // Check file size limit (1MB)
-  const maxSize = 1024 * 1024; // 1MB in bytes
+  const maxSize = 1024 * 1024; 
   if (Buffer.byteLength(trimmed, 'utf8') > maxSize) {
     throw new ValidationError('Source code exceeds maximum size limit (1MB)');
   }
@@ -250,10 +269,12 @@ function validateSourceCode(code) {
 }
 
 /**
- * Validate problem ID
- * @param {string|number} problemId - Problem ID to validate
- * @returns {number} Validated problem ID
- * @throws {ValidationError} If validation fails
+ * Validates a problem ID.
+ * @param {string|number} problemId - The problem ID to validate
+ * @returns {number} The validated problem ID as a positive integer
+ * @throws {ValidationError} When problem ID is invalid
+ * @example
+ * const validId = validateProblemId('123');
  */
 function validateProblemId(problemId) {
   if (!problemId) {
@@ -269,9 +290,11 @@ function validateProblemId(problemId) {
 }
 
 /**
- * Sanitize string input to prevent XSS
- * @param {string} input - Input string to sanitize
- * @returns {string} Sanitized string
+ * Sanitizes a string by removing potentially dangerous characters.
+ * @param {string} input - The string to sanitize
+ * @returns {string} The sanitized string
+ * @example
+ * const clean = sanitizeString('<script>alert("xss")</script>');
  */
 function sanitizeString(input) {
   if (!input || typeof input !== 'string') {
@@ -280,17 +303,19 @@ function sanitizeString(input) {
   
   return input
     .trim()
-    .replace(/[<>]/g, '') // Remove potential HTML tags
-    .replace(/javascript:/gi, '') // Remove javascript: protocol
-    .replace(/on\w+=/gi, ''); // Remove event handlers
+    .replace(/[<>]/g, '') 
+    .replace(/javascript:/gi, '') 
+    .replace(/on\w+=/gi, ''); 
 }
 
 /**
- * Validate pagination parameters
- * @param {string|number} page - Page number
- * @param {string|number} limit - Items per page
- * @returns {Object} Validated pagination object
- * @throws {ValidationError} If validation fails
+ * Validates and normalizes pagination parameters.
+ * @param {string|number} [page=1] - The page number
+ * @param {string|number} [limit=10] - The items per page limit
+ * @returns {Object} Object with validated page, limit, and calculated offset
+ * @throws {ValidationError} When pagination parameters are invalid
+ * @example
+ * const { page, limit, offset } = validatePagination('2', '20');
  */
 function validatePagination(page = 1, limit = 10) {
   const pageNum = parseInt(page, 10) || 1;
@@ -312,13 +337,11 @@ function validatePagination(page = 1, limit = 10) {
 }
 
 module.exports = {
-  // Joi Schemas
   teamRegistrationSchema,
   teamLoginSchema,
   codeSubmissionSchema,
   validate,
   
-  // Validation Functions
   validateTeamName,
   validateContestCode,
   validateLanguage,

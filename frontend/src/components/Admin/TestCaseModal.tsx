@@ -1,8 +1,3 @@
-/**
- * Test Case Modal Component
- * Matches the design from screenshot 4 - Add Test Case dialog
- */
-
 import React, { useState } from 'react';
 
 interface TestCase {
@@ -36,7 +31,6 @@ const TestCaseModal: React.FC<TestCaseModalProps> = ({
 
   const isEditing = !!testCase?.id;
 
-  // Reset form data when modal opens with different test case
   React.useEffect(() => {
     setFormData({
       id: testCase?.id,
@@ -57,14 +51,12 @@ const TestCaseModal: React.FC<TestCaseModalProps> = ({
     try {
       setSaving(true);
 
-      // Prepare test case data for API (only send fields supported by backend)
       const testCaseData = {
         input: formData.input,
         expected_output: formData.output,
         is_sample: formData.sample,
       };
 
-      // Make API call to create or update test case
       const url = isEditing 
         ? `/api/admin/testcases/${testCase.id}` 
         : `/api/admin/problems/${problemId}/testcases`;
@@ -85,7 +77,6 @@ const TestCaseModal: React.FC<TestCaseModalProps> = ({
       const result = await response.json();
       
       if (result.success) {
-        // Transform API response back to frontend format
         const savedTestCase: TestCase = {
           id: result.data.id,
           sample: result.data.is_sample || false,
@@ -135,7 +126,6 @@ const TestCaseModal: React.FC<TestCaseModalProps> = ({
         boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04)',
         overflow: 'auto'
       }}>
-        {/* Header */}
         <div style={{ padding: '48px 40px 0 40px' }}>
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
@@ -175,9 +165,7 @@ const TestCaseModal: React.FC<TestCaseModalProps> = ({
           </div>
         </div>
 
-        {/* Content */}
         <div style={{ padding: '0 40px' }}>
-          {/* Sample Checkbox */}
           <div style={{ marginBottom: '24px' }}>
             <label style={{ display: 'flex', alignItems: 'flex-start', cursor: 'pointer' }}>
               <input
@@ -209,7 +197,6 @@ const TestCaseModal: React.FC<TestCaseModalProps> = ({
             </div>
           </div>
 
-          {/* Input Section */}
           <div style={{ marginBottom: '24px' }}>
             <label style={{ 
               display: 'block',
@@ -253,7 +240,6 @@ const TestCaseModal: React.FC<TestCaseModalProps> = ({
             />
           </div>
 
-          {/* Output Section */}
           <div style={{ marginBottom: '32px' }}>
             <label style={{ 
               display: 'block',
@@ -298,7 +284,6 @@ const TestCaseModal: React.FC<TestCaseModalProps> = ({
           </div>
         </div>
 
-        {/* Footer */}
         <div style={{ padding: '0 40px 48px 40px' }}>
           <button
             type="button"
