@@ -10,8 +10,9 @@ WORKDIR /app
 COPY frontend/package*.json ./
 
 # Install dependencies with forced override resolution
-RUN npm install --legacy-peer-deps && \
-    npm install --save-dev schema-utils@^4.0.0 --legacy-peer-deps && \
+# Delete package-lock to ensure fresh resolution with overrides
+RUN rm -f package-lock.json && \
+    npm install --legacy-peer-deps && \
     npm cache clean --force
 
 # Copy source code
