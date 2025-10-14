@@ -9,18 +9,18 @@ WORKDIR /app
 # Copy package files
 COPY frontend/package*.json ./
 
-# Install dependencies and patch schema-utils issue
+# Copy patch script
+COPY patch-fork-ts-checker.js ./
+
+# Install dependencies
 RUN rm -f package-lock.json && \
     npm install --legacy-peer-deps && \
-    find node_modules -name "schema-utils" -type d -path "*/fork-ts-checker-webpack-plugin/node_modules/schema-utils" -exec rm -rf {} + 2>/dev/null || true && \
-    cd node_modules/fork-ts-checker-webpack-plugin && \
-    mkdir -p node_modules && \
-    cd node_modules && \
-    npm install schema-utils@4.0.0 --no-save --legacy-peer-deps && \
-    cd /app && \
     npm cache clean --force
 
-# Copy source code
+# Apply patch to fix schema-utils compatibility issue
+RUN node patch-fork-ts-checker.js
+
+# Copy source code (excluding patch script)
 COPY frontend/ ./
 
 # Set build-time environment variables
