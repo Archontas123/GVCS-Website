@@ -10,7 +10,8 @@
       "Bash(if [ ! -f \".github/workflows/ci.yml\" ])",
       "Bash(then echo \"File does not exist\")",
       "Bash(fi)",
-      "Bash(openssl rand:*)"
+      "Bash(openssl rand:*)",
+      "Bash(npm ls:*)"
     ],
     "deny": [],
     "ask": [],
