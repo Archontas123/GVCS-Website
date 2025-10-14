@@ -1,82 +1,107 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../styles/theme.css';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
 
-
   return (
-    <div style={{ 
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
-      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-      padding: '32px 16px',
-    }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ marginBottom: '48px', textAlign: 'center' }}>
-          <h1 
-            style={{ 
-              fontWeight: 700, 
-              fontSize: '3rem',
-              color: '#1d4ed8',
-              letterSpacing: '-0.02em',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              marginBottom: '16px',
-            }}
-          >
+    <>
+      <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+      <style>
+        {`
+          @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+          }
+          @keyframes walk {
+            0% { transform: translateX(0); }
+            48% { transform: translateX(10px); }
+            50% { transform: translateX(10px) scaleX(-1); }
+            98% { transform: translateX(0) scaleX(-1); }
+            100% { transform: translateX(0) scaleX(1); }
+          }
+        `}
+      </style>
+      <div
+        style={{
+          fontFamily: "'Press Start 2P', cursive",
+          backgroundColor: '#CECDE2',
+          backgroundImage: `
+            linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px)
+          `,
+          backgroundSize: '30px 30px',
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        {/* Main Content */}
+        <div style={{
+          position: 'relative',
+          zIndex: 10,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+        }}>
+          <h1 style={{
+            fontSize: 'clamp(2rem, 6vw, 4rem)',
+            fontWeight: 'bold',
+            color: 'white',
+            marginBottom: '64px',
+            letterSpacing: '0.05em',
+            textShadow: '4px 4px 0px #212529',
+          }}>
             Hack The Valley
           </h1>
-          
-          
-          <div 
+
+          <button
+            onClick={() => navigate('/join-contest')}
             style={{
-              width: '120px',
-              height: '4px',
-              background: 'linear-gradient(90deg, #1d4ed8 0%, #2563eb 100%)',
-              margin: '0 auto 32px',
+              position: 'relative',
+              border: '4px solid #212529',
+              backgroundColor: '#2D58A6',
+              color: 'white',
+              transition: 'all 0.15s ease-in-out',
+              boxShadow: '6px 6px 0px #212529',
+              textShadow: '2px 2px 0px #212529',
+              fontSize: 'clamp(1rem, 3vw, 1.5rem)',
+              padding: 'clamp(18px, 4vw, 24px) clamp(36px, 8vw, 48px)',
               borderRadius: '4px',
-              boxShadow: '0 2px 8px rgba(29, 78, 216, 0.3)',
+              cursor: 'pointer',
+              fontFamily: "'Press Start 2P', cursive",
             }}
-          ></div>
-
-
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '48px' }}>
-            <button
-              onClick={() => navigate('/join-contest')}
-              style={{
-                background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '20px 48px',
-                fontSize: '1.2rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                boxShadow: '0 8px 25px rgba(29, 78, 216, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 12px 35px rgba(29, 78, 216, 0.35), 0 8px 20px rgba(37, 99, 235, 0.25)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 8px 25px rgba(29, 78, 216, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15)';
-              }}
-            >
-              Join Contest
-            </button>
-          </div>
-
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translate(2px, 2px)';
+              e.currentTarget.style.boxShadow = '4px 4px 0px #212529';
+              e.currentTarget.style.backgroundColor = '#3B6BBD';
+              e.currentTarget.style.filter = 'brightness(1.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translate(0, 0)';
+              e.currentTarget.style.boxShadow = '6px 6px 0px #212529';
+              e.currentTarget.style.backgroundColor = '#2D58A6';
+              e.currentTarget.style.filter = 'brightness(1)';
+            }}
+            onMouseDown={(e) => {
+              e.currentTarget.style.transform = 'translate(6px, 6px)';
+              e.currentTarget.style.boxShadow = '0px 0px 0px #212529';
+            }}
+            onMouseUp={(e) => {
+              e.currentTarget.style.transform = 'translate(2px, 2px)';
+              e.currentTarget.style.boxShadow = '4px 4px 0px #212529';
+            }}
+          >
+            Join Contest
+          </button>
         </div>
-
-
       </div>
-    </div>
+    </>
   );
 };
 

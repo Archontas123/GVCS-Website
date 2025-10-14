@@ -16,9 +16,10 @@ import {
 interface Contest {
   id: number;
   contest_name: string;
-  status: 'not_started' | 'running' | 'frozen' | 'ended';
-  start_time: string;
-  duration: number;
+  status: 'pending_manual' | 'not_started' | 'running' | 'frozen' | 'ended';
+  start_time?: string | null;
+  duration?: number | null;
+  manual_control?: boolean;
   time_remaining_seconds: number;
   progress_percentage: number;
   teams_count: number;
@@ -78,7 +79,7 @@ const ContestControlPanel: React.FC = () => {
     try {
       const response = await fetch('/api/admin/contests', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('programming_contest_admin_token')}`,
           'Content-Type': 'application/json'
         }
       });
@@ -90,7 +91,7 @@ const ContestControlPanel: React.FC = () => {
             try {
               const progressResponse = await fetch(`/api/admin/contests/${contest.id}/progress`, {
                 headers: {
-                  'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+                  'Authorization': `Bearer ${localStorage.getItem('programming_contest_admin_token')}`,
                   'Content-Type': 'application/json'
                 }
               });
@@ -102,8 +103,9 @@ const ContestControlPanel: React.FC = () => {
                 id: contest.id,
                 contest_name: contest.contest_name,
                 status: progress?.status || 'not_started',
-                start_time: contest.start_time,
-                duration: contest.duration,
+                start_time: contest.start_time || null,
+                duration: contest.duration ?? null,
+                manual_control: progress?.manual_control ?? contest.manual_control ?? true,
                 time_remaining_seconds: progress?.time_remaining_seconds || 0,
                 progress_percentage: progress?.progress_percentage || 0,
                 teams_count: contest.teams_count || 0,
@@ -115,8 +117,9 @@ const ContestControlPanel: React.FC = () => {
                 id: contest.id,
                 contest_name: contest.contest_name,
                 status: 'not_started' as const,
-                start_time: contest.start_time,
-                duration: contest.duration,
+                start_time: contest.start_time || null,
+                duration: contest.duration ?? null,
+                manual_control: contest.manual_control ?? true,
                 time_remaining_seconds: 0,
                 progress_percentage: 0,
                 teams_count: 0,
@@ -146,7 +149,7 @@ const ContestControlPanel: React.FC = () => {
     try {
       const response = await fetch('/api/admin/system/status', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('programming_contest_admin_token')}`,
           'Content-Type': 'application/json'
         }
       });
@@ -218,7 +221,7 @@ const ContestControlPanel: React.FC = () => {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('programming_contest_admin_token')}`,
           'Content-Type': 'application/json'
         }
       });
@@ -440,7 +443,7 @@ const ContestControlPanel: React.FC = () => {
                                 }}
                               >
                                 <MdPlayArrow style={{ fontSize: '16px' }} />
-                                Start
+                                Force Start
                               </button>
                             )}
                             
@@ -930,16 +933,23 @@ const ContestControlPanel: React.FC = () => {
           {selectedContest && controlDialog.action && (
             <div>
               <div style={{
-                backgroundColor: controlDialog.action === 'emergency_stop' ? '#fef2f2' : '#fffbeb',
-                color: controlDialog.action === 'emergency_stop' ? '#dc2626' : '#92400e',
-                border: `1px solid ${controlDialog.action === 'emergency_stop' ? '#fecaca' : '#fed7aa'}`,
+                backgroundColor: controlDialog.action === 'emergency_stop' ? '#fef2f2' :
+                               controlDialog.action === 'start' ? '#dcfce7' : '#fffbeb',
+                color: controlDialog.action === 'emergency_stop' ? '#dc2626' :
+                       controlDialog.action === 'start' ? '#166534' : '#92400e',
+                border: `1px solid ${controlDialog.action === 'emergency_stop' ? '#fecaca' :
+                                     controlDialog.action === 'start' ? '#bbf7d0' : '#fed7aa'}`,
                 padding: '16px 20px',
                 borderRadius: '12px',
                 marginBottom: '20px',
                 fontSize: '0.95rem',
                 fontWeight: 500
               }}>
-                {controlDialog.action === 'start' && 'This will start the contest and allow team submissions.'}
+              {controlDialog.action === 'start' && (
+                selectedContest.duration
+                  ? 'This will force the contest to start immediately (ignoring the scheduled start time) and allow team submissions. The contest will run for the configured duration from now.'
+                  : 'This will force the contest to start immediately under manual timing control. Remember to end the contest manually when finished.'
+              )}
                 {controlDialog.action === 'freeze' && 'This will freeze the leaderboard. Teams can still submit but rankings will be hidden.'}
                 {controlDialog.action === 'end' && 'This will end the contest immediately and stop accepting submissions.'}
                 {controlDialog.action === 'emergency_stop' && 'This will immediately stop the contest and all related processes. Use only in emergencies.'}
@@ -974,9 +984,25 @@ const ContestControlPanel: React.FC = () => {
                 <div style={{
                   fontSize: '0.875rem',
                   color: '#6b7280',
-                  marginTop: '16px'
+                  marginTop: '16px',
+                  backgroundColor: '#f9fafb',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb'
                 }}>
-                  Make sure all problems and test cases are properly configured before starting.
+                  <strong>Before starting:</strong>
+                  <ul style={{ margin: '8px 0 0 20px', paddingLeft: 0 }}>
+                    <li>Ensure all problems have test cases configured</li>
+                    <li>
+                      The contest will start NOW
+                      {selectedContest.duration
+                        ? ` and run for approximately ${selectedContest.duration} minutes`
+                        : ' with manual timing control'}
+                    </li>
+                    {selectedContest.start_time && (
+                      <li>Original schedule: {new Date(selectedContest.start_time).toLocaleString()}</li>
+                    )}
+                  </ul>
                 </div>
               )}
             </div>
@@ -1051,7 +1077,9 @@ const ContestControlPanel: React.FC = () => {
                   }
                 }}
               >
-                {loading ? 'Processing...' : `Confirm ${controlDialog.action?.replace('_', ' ')}`}
+                {loading ? 'Processing...' :
+                  controlDialog.action === 'start' ? 'Confirm Force Start' :
+                  `Confirm ${controlDialog.action?.replace('_', ' ')}`}
               </button>
             </div>
           </div>

@@ -54,7 +54,7 @@ jest.mock('../services/dockerExecutor', () => {
     };
 });
 
-const app = require('../server');
+const { app } = require('../server');
 
 describe('Phase 1.3: Execution API Endpoints', () => {
     describe('GET /api/execute/status', () => {
@@ -129,7 +129,7 @@ describe('Phase 1.3: Execution API Endpoints', () => {
 
             expect(response.body.success).toBe(true);
             expect(response.body.data.language).toBe('python');
-            expect(response.body.data.template).toContain('# Your code here');
+            expect(response.body.data.template).toContain('# Read input');
         });
 
         test('should reject invalid language', async () => {
@@ -236,7 +236,7 @@ describe('Phase 1.3: Execution API Endpoints', () => {
             expect(response.body.data).toHaveProperty('executionTime');
             expect(response.body.data).toHaveProperty('memoryUsed');
             expect(response.body.data).toHaveProperty('output');
-            expect(response.body.data.verdict).toBe('AC');
+            expect(response.body.data.verdict).toBe('Accepted');
         });
 
         test('should accept valid C++ execution request', async () => {
@@ -259,7 +259,7 @@ int main() {
                 .expect(200);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.data.verdict).toBe('AC');
+            expect(response.body.data.verdict).toBe('Accepted');
         });
 
         test('should accept valid Java execution request', async () => {
@@ -280,7 +280,7 @@ int main() {
                 .expect(200);
 
             expect(response.body.success).toBe(true);
-            expect(response.body.data.verdict).toBe('AC');
+            expect(response.body.data.verdict).toBe('Accepted');
         });
 
         test('should use default values for optional parameters', async () => {

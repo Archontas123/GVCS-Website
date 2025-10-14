@@ -13,6 +13,11 @@ import {
   MdWarning
 } from 'react-icons/md';
 
+interface TeamMember {
+  firstName: string;
+  lastName: string;
+}
+
 interface TeamRegistration {
   id: number;
   team_name: string;
@@ -25,6 +30,8 @@ interface TeamRegistration {
   session_token?: string;
   ip_address?: string;
   validation_errors?: string[];
+  members?: TeamMember[];
+  members_count?: number;
 }
 
 interface RegistrationStats {
@@ -65,13 +72,13 @@ const TeamRegistrationMonitor: React.FC = () => {
       const [registrationsResponse, statsResponse] = await Promise.all([
         fetch('/api/admin/teams/registrations?limit=100', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+            'Authorization': `Bearer ${localStorage.getItem('programming_contest_admin_token')}`,
             'Content-Type': 'application/json'
           }
         }),
         fetch('/api/admin/teams/stats', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+            'Authorization': `Bearer ${localStorage.getItem('programming_contest_admin_token')}`,
             'Content-Type': 'application/json'
           }
         })
@@ -119,7 +126,7 @@ const TeamRegistrationMonitor: React.FC = () => {
     try {
       let response;
       const authHeaders = {
-        'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+        'Authorization': `Bearer ${localStorage.getItem('programming_contest_admin_token')}`,
         'Content-Type': 'application/json'
       };
 
@@ -894,6 +901,27 @@ const TeamRegistrationMonitor: React.FC = () => {
                   }}>
                     <strong>Registered:</strong> {new Date(selectedTeam.registered_at).toLocaleString()}
                   </div>
+                  {selectedTeam.members && selectedTeam.members.length > 0 && (
+                    <div style={{
+                      fontSize: '0.95rem',
+                      color: '#374151',
+                      marginBottom: '12px',
+                      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                    }}>
+                      <strong>Members:</strong>
+                      <ul style={{
+                        marginTop: '8px',
+                        marginBottom: '0',
+                        paddingLeft: '20px'
+                      }}>
+                        {selectedTeam.members.map((member, index) => (
+                          <li key={index}>
+                            {member.firstName} {member.lastName}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   {selectedTeam.ip_address && (
                     <div style={{
                       fontSize: '0.95rem',

@@ -13,9 +13,10 @@ interface Contest {
   id: number;
   contest_name: string;
   description: string;
-  start_time: string;
-  duration: number;
-  status: 'not_started' | 'running' | 'frozen' | 'ended';
+  start_time?: string | null;
+  duration?: number | null;
+  manual_control?: boolean;
+  status: 'pending_manual' | 'not_started' | 'running' | 'frozen' | 'ended';
   is_active: boolean;
   registration_code: string;
   problems_count?: number;
@@ -83,6 +84,7 @@ const ContestsPage: React.FC = () => {
 
   const getContestStatusText = (status: string) => {
     switch (status) {
+      case 'pending_manual': return 'Awaiting Start';
       case 'not_started': return 'Not Started';
       case 'running': return 'Running';
       case 'frozen': return 'Frozen';
@@ -142,6 +144,18 @@ const ContestsPage: React.FC = () => {
   };
 
   const canStartContest = (contest: Contest) => {
+    if (contest.status === 'running' || contest.status === 'frozen' || contest.status === 'ended') {
+      return false;
+    }
+
+    if (contest.manual_control) {
+      return contest.status === 'pending_manual' || contest.status === 'not_started';
+    }
+
+    if (!contest.start_time) {
+      return false;
+    }
+
     return contest.status === 'not_started' && new Date(contest.start_time) <= new Date();
   };
 
@@ -295,7 +309,7 @@ const ContestsPage: React.FC = () => {
                       </p>
                       
                       <p className="text-secondary" style={{ margin: 0, fontSize: '0.875rem' }}>
-                        <strong>Start:</strong> {new Date(contest.start_time).toLocaleString()}
+                        <strong>Start:</strong> {contest.start_time ? new Date(contest.start_time).toLocaleString() : 'Manual start'}
                       </p>
                       
                       <div className="flex justify-between mt-3">

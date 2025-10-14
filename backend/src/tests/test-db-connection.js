@@ -1,5 +1,5 @@
 const { Pool } = require('pg');
-require('dotenv').config();
+require('../config/env');
 
 async function testDatabaseConnection() {
     console.log('🔗 Testing database connection...');

@@ -57,8 +57,11 @@ export const useWebSocket = (): UseWebSocketReturn => {
   }, []);
 
   useEffect(() => {
-    if (team && team.sessionToken && connectionStatus === 'disconnected') {
-      webSocketService.connect(team.sessionToken);
+    if (team && team.sessionToken) {
+      if (connectionStatus === 'disconnected') {
+        console.log('🔌 WebSocket auto-connecting with team token...');
+        webSocketService.connect(team.sessionToken);
+      }
     }
   }, [team, connectionStatus]);
 

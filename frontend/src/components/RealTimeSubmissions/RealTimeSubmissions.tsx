@@ -4,6 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useRealTimeData } from '../../hooks/useWebSocket';
 import { SubmissionStatusUpdate } from '../../services/websocket';
 import { useAuth } from '../../hooks/useAuth';
+import SubmissionDetailModal from './SubmissionDetailModal';
 import '../../styles/theme.css';
 
 interface RealTimeSubmissionsProps {
@@ -391,7 +392,8 @@ const RealTimeSubmissions: React.FC<RealTimeSubmissionsProps> = ({
                 return (
                   <tr 
                     key={submission.submissionId}
-                    style={{ backgroundColor: verdictInfo.bgColor }}
+                    style={{ backgroundColor: verdictInfo.bgColor, cursor: 'pointer' }}
+                    onClick={() => setSelectedSubmission(submission)}
                   >
                       <td>
                         <div className="text-muted" style={{ fontSize: '13px' }}>
@@ -479,7 +481,10 @@ const RealTimeSubmissions: React.FC<RealTimeSubmissionsProps> = ({
                         <button
                           className="btn btn-text"
                           style={{ padding: '4px 8px', fontSize: '12px' }}
-                          onClick={() => setSelectedSubmission(submission)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedSubmission(submission);
+                          }}
                           title="View Details"
                         >
                           View
@@ -493,108 +498,10 @@ const RealTimeSubmissions: React.FC<RealTimeSubmissionsProps> = ({
         </table>
       </div>
 
-      {selectedSubmission && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px',
-          }}
-          onClick={() => setSelectedSubmission(null)}
-        >
-          <div className="card" style={{ maxWidth: '600px', width: '100%' }} onClick={(e) => e.stopPropagation()}>
-            <div className="card-header flex justify-between align-center">
-              <h4>Submission Details</h4>
-              <button 
-                className="btn btn-text"
-                onClick={() => setSelectedSubmission(null)}
-              >
-                Close
-              </button>
-            </div>
-            <div className="card-content">
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '16px',
-                marginBottom: '24px',
-              }}>
-                <div>
-                  <div className="text-muted" style={{ fontSize: '12px', marginBottom: '4px' }}>Submission ID</div>
-                  <div style={{ fontWeight: '600' }}>#{selectedSubmission.submissionId}</div>
-                </div>
-                
-                <div>
-                  <div className="text-muted" style={{ fontSize: '12px', marginBottom: '4px' }}>Problem</div>
-                  <div style={{ fontWeight: '600' }}>
-                    {selectedSubmission.problemLetter || `Problem ${selectedSubmission.problemId}`}
-                  </div>
-                </div>
-                
-                <div>
-                  <div className="text-muted" style={{ fontSize: '12px', marginBottom: '4px' }}>Language</div>
-                  <div style={{ fontWeight: '600' }}>
-                    {getLanguageInfo(selectedSubmission.language).name}
-                  </div>
-                </div>
-                
-                <div>
-                  <div className="text-muted" style={{ fontSize: '12px', marginBottom: '4px' }}>Status</div>
-                  <div style={{ fontWeight: '600' }}>
-                    {getVerdictInfo(selectedSubmission).text}
-                  </div>
-                </div>
-                
-                {selectedSubmission.executionTime && (
-                  <div>
-                    <div className="text-muted" style={{ fontSize: '12px', marginBottom: '4px' }}>Execution Time</div>
-                    <div style={{ fontWeight: '600', fontFamily: 'monospace' }}>
-                      {selectedSubmission.executionTime}ms
-                    </div>
-                  </div>
-                )}
-                
-                {selectedSubmission.memoryUsed && (
-                  <div>
-                    <div className="text-muted" style={{ fontSize: '12px', marginBottom: '4px' }}>Memory Used</div>
-                    <div style={{ fontWeight: '600', fontFamily: 'monospace' }}>
-                      {Math.round(selectedSubmission.memoryUsed / 1024)}KB
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {selectedSubmission.submissionTime && (
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <div className="text-muted" style={{ fontSize: '12px', marginBottom: '4px' }}>Submitted</div>
-                  <div style={{ fontWeight: '600' }}>
-                    {formatDistanceToNow(new Date(selectedSubmission.submissionTime))} ago
-                    <div className="text-muted" style={{ fontSize: '12px', fontWeight: 'normal', marginTop: '4px' }}>
-                      {new Date(selectedSubmission.submissionTime).toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="card-actions flex justify-end">
-              <button 
-                className="btn btn-primary"
-                onClick={() => setSelectedSubmission(null)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <SubmissionDetailModal
+        submission={selectedSubmission}
+        onClose={() => setSelectedSubmission(null)}
+      />
 
       <div className="text-center mt-3">
         <div className="text-muted" style={{ fontSize: '12px' }}>

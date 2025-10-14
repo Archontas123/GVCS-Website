@@ -427,19 +427,41 @@ class JudgeQueueService {
       }
 
       console.log(`Worker ${workerId} processing submission ${submissionData.submissionId}`);
-      
+
       // Use existing execution services
       const JudgeEngine = require('./judgeEngine');
       const judge = new JudgeEngine();
-      
+
+      // Get test cases for the problem
+      const testCases = await db('test_cases')
+        .where('problem_id', submissionData.problemId)
+        .orderBy('id')
+        .select(
+          'input_parameters',
+          'expected_return',
+          'test_case_name',
+          'explanation',
+          'is_sample',
+          'is_hidden'
+        );
+
+      // Prepare submission object
+      const submission = {
+        submissionId: submissionData.submissionId,
+        teamId: submissionData.teamId,
+        problemId: submissionData.problemId,
+        contestId: submissionData.contestId,
+        language: submissionData.language,
+        code: submissionData.code
+      };
+
+      const problem = {
+        timeLimit: submissionData.timeLimit,
+        memoryLimit: submissionData.memoryLimit
+      };
+
       // Process submission through judge engine
-      const result = await judge.judgeSubmission(
-        submissionData.submissionId,
-        submissionData.teamId,
-        submissionData.problemId,
-        submissionData.language,
-        submissionData.code
-      );
+      const result = await judge.judgeSubmission(submission, testCases, problem);
 
       const processingTime = Date.now() - startTime;
       console.log(`Worker ${workerId} completed submission ${submissionData.submissionId} in ${processingTime}ms`);

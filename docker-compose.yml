@@ -6,9 +6,9 @@ services:
     container_name: programming_contest_postgres
     restart: always
     environment:
-      POSTGRES_DB: programming_contest_db
-      POSTGRES_USER: programming_contest_user
-      POSTGRES_PASSWORD: programming_contest_password
+      POSTGRES_DB: hackathon_db
+      POSTGRES_USER: hackathon_user
+      POSTGRES_PASSWORD: hackathon_password
       POSTGRES_HOST_AUTH_METHOD: md5
     ports:
       - "5432:5432"
@@ -16,7 +16,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U programming_contest_user -d programming_contest_db"]
+      test: ["CMD-SHELL", "pg_isready -U hackathon_user -d hackathon_db"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -47,9 +47,9 @@ services:
       - NODE_ENV=development
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_NAME=programming_contest_db
-      - DB_USER=programming_contest_user
-      - DB_PASSWORD=programming_contest_password
+      - DB_NAME=hackathon_db
+      - DB_USER=hackathon_user
+      - DB_PASSWORD=hackathon_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - JWT_SECRET=your_jwt_secret_change_in_production

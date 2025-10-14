@@ -6,20 +6,22 @@ interface Contest {
   id: number;
   name: string;
   description: string;
-  status: 'upcoming' | 'active' | 'frozen' | 'ended';
-  start_time: string;
-  duration_minutes: number;
+  status: 'pending_manual' | 'upcoming' | 'active' | 'frozen' | 'ended';
+  start_time: string | null;
+  duration_minutes: number | null;
+  freeze_time_minutes?: number | null;
+  manual_control?: boolean;
   time_remaining: number;
   progress_percentage: number;
 }
 
 interface TeamStats {
   rank: number;
-  total_submissions: number;
-  accepted_submissions: number;
-  problems_solved: number;
-  total_problems: number;
-  accuracy_rate: string;
+  totalSubmissions: number;
+  acceptedSubmissions: number;
+  problemsSolved: number;
+  totalProblems: number;
+  accuracyRate: string;
 }
 
 interface Problem {
@@ -27,38 +29,38 @@ interface Problem {
   letter: string;
   title: string;
   difficulty: 'easy' | 'medium' | 'hard';
-  is_solved: boolean;
-  attempt_count: number;
-  first_submission?: string;
-  solved_at?: string;
+  isSolved: boolean;
+  attemptCount: number;
+  firstSubmission?: string;
+  solvedAt?: string;
 }
 
 interface Submission {
   id: number;
-  problem_letter: string;
-  problem_title: string;
+  problemLetter: string;
+  problemTitle: string;
   language: string;
   verdict: string;
-  submitted_at: string;
-  execution_time?: number;
-  memory_used?: number;
+  submittedAt: string;
+  executionTime?: number;
+  memoryUsed?: number;
 }
 
 interface DashboardData {
   contest: Contest;
-  team_stats: TeamStats;
-  verdict_distribution: Record<string, number>;
+  teamStats: TeamStats;
+  verdictDistribution: Record<string, number>;
   problems: Problem[];
-  recent_submissions: Submission[];
+  recentSubmissions: Submission[];
 }
 
 interface StandingsEntry {
   rank: number;
-  team_id: number;
-  team_name: string;
-  problems_solved: number;
-  total_points: number;
-  last_submission?: string;
+  teamId: number;
+  teamName: string;
+  problemsSolved: number;
+  penaltyTime: number;
+  lastSubmission?: string;
 }
 
 const processSimpleMarkdown = (text: string): string => {
@@ -69,31 +71,39 @@ const processSimpleMarkdown = (text: string): string => {
     .replace(/\n/g, '<br>');
 };
 
+const contestStatusMeta: Record<Contest['status'], { label: string; bg: string; color: string }> = {
+  pending_manual: { label: 'Awaiting Start', bg: '#e0e7ff', color: '#3730a3' },
+  upcoming: { label: 'Scheduled', bg: '#dbeafe', color: '#1d4ed8' },
+  active: { label: 'In Progress', bg: '#dcfce7', color: '#166534' },
+  frozen: { label: 'Frozen', bg: '#fef3c7', color: '#a16207' },
+  ended: { label: 'Completed', bg: '#f3f4f6', color: '#6b7280' },
+};
+
+const shouldShowTimer = (contest: Contest): boolean => {
+  if (contest.status !== 'active') {
+    return false;
+  }
+
+  if (contest.manual_control && (contest.duration_minutes === null || contest.duration_minutes <= 0)) {
+    return false;
+  }
+
+  return contest.time_remaining > 0;
+};
+
 const DashboardPage: React.FC = () => {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [standings, setStandings] = useState<StandingsEntry[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'problems' | 'standings' | 'activity' | 'projects'>('overview');
-  
-  const [projectSubmission, setProjectSubmission] = useState<any>(null);
-  const [projectFile, setProjectFile] = useState<File | null>(null);
-  const [projectTitle, setProjectTitle] = useState('');
-  const [projectDescription, setProjectDescription] = useState('');
-  const [submittingProject, setSubmittingProject] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'problems' | 'standings' | 'activity'>('overview');
 
   useEffect(() => {
     fetchDashboardData();
     const interval = setInterval(fetchDashboardData, 30000); // Update every 30 seconds
     return () => clearInterval(interval);
   }, []);
-
-  useEffect(() => {
-    if (activeTab === 'projects' && dashboardData?.contest?.id && !projectSubmission) {
-      fetchProjectSubmission();
-    }
-  }, [activeTab, dashboardData?.contest?.id]);
 
   const fetchDashboardData = async () => {
     try {
@@ -112,81 +122,6 @@ const DashboardPage: React.FC = () => {
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Failed to load dashboard');
       setLoading(false);
-    }
-  };
-
-  const fetchProjectSubmission = async () => {
-    try {
-      if (dashboardData?.contest?.id) {
-        const response = await apiService.getTeamProjectSubmission(dashboardData.contest.id);
-        if (response.success && response.data) {
-          setProjectSubmission(response.data);
-          setProjectTitle(response.data.project_title || '');
-          setProjectDescription(response.data.project_description || '');
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch project submission:', err);
-    }
-  };
-
-  const handleProjectSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!projectFile && !projectSubmission) {
-      setError('Please select a project file to upload');
-      return;
-    }
-    
-    if (!projectTitle) {
-      setError('Please enter a project title');
-      return;
-    }
-
-    setSubmittingProject(true);
-    setError(null);
-
-    try {
-      const formData = new FormData();
-      
-      if (projectFile) {
-        formData.append('project_file', projectFile);
-      }
-      formData.append('project_title', projectTitle);
-      formData.append('project_description', projectDescription);
-
-      const result = await apiService.submitProject(dashboardData!.contest.id, formData);
-
-      if (result.success) {
-        await fetchProjectSubmission(); 
-        if (projectFile) {
-          setProjectFile(null);
-          const fileInput = document.getElementById('project-file-input') as HTMLInputElement;
-          if (fileInput) fileInput.value = '';
-        }
-      } else {
-        setError(result.message || 'Failed to submit project');
-      }
-    } catch (err) {
-      setError('Failed to submit project. Please try again.');
-    } finally {
-      setSubmittingProject(false);
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.type !== 'application/zip' && file.type !== 'application/x-zip-compressed') {
-        setError('Please select a ZIP file');
-        return;
-      }
-      if (file.size > 100 * 1024 * 1024) { 
-        setError('File size must be less than 100MB');
-        return;
-      }
-      setProjectFile(file);
-      setError(null);
     }
   };
 
@@ -254,6 +189,13 @@ const DashboardPage: React.FC = () => {
     );
   }
 
+  const contest = dashboardData.contest;
+  const statusMeta = contestStatusMeta[contest.status] ?? contestStatusMeta.upcoming;
+  const showTimer = shouldShowTimer(contest);
+  const isManual = contest.manual_control ?? true;
+  const showManualPendingMessage = isManual && contest.status === 'pending_manual';
+  const showManualActiveMessage = isManual && contest.status === 'active' && !showTimer;
+
   return (
     <div style={{
       fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
@@ -273,7 +215,7 @@ const DashboardPage: React.FC = () => {
           marginBottom: '12px',
           fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
         }}>
-          {dashboardData.contest.name}
+          {contest.name}
         </h1>
         <div 
           style={{
@@ -284,7 +226,7 @@ const DashboardPage: React.FC = () => {
             fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
           }}
           dangerouslySetInnerHTML={{ 
-            __html: processSimpleMarkdown(dashboardData.contest.description) 
+            __html: processSimpleMarkdown(contest.description) 
           }}
         />
         
@@ -295,14 +237,8 @@ const DashboardPage: React.FC = () => {
           flexWrap: 'wrap',
         }}>
           <span style={{
-            backgroundColor: dashboardData.contest.status === 'active' ? '#dcfce7' :
-                           dashboardData.contest.status === 'frozen' ? '#fef3c7' :
-                           dashboardData.contest.status === 'ended' ? '#f3f4f6' :
-                           '#dbeafe',
-            color: dashboardData.contest.status === 'active' ? '#166534' :
-                   dashboardData.contest.status === 'frozen' ? '#a16207' :
-                   dashboardData.contest.status === 'ended' ? '#6b7280' :
-                   '#1d4ed8',
+            backgroundColor: statusMeta.bg,
+            color: statusMeta.color,
             padding: '6px 12px',
             borderRadius: '8px',
             fontSize: '0.85rem',
@@ -310,17 +246,32 @@ const DashboardPage: React.FC = () => {
             textTransform: 'uppercase',
             fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
           }}>
-            {dashboardData.contest.status}
+            {statusMeta.label}
           </span>
+
+          {isManual && (
+            <span style={{
+              backgroundColor: '#fef2f2',
+              color: '#b91c1c',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            }}>
+              Manual Control
+            </span>
+          )}
           
-          {dashboardData.contest.status === 'active' && (
+          {showTimer && (
             <span style={{
               color: '#6b7280',
               fontSize: '0.95rem',
               fontWeight: 500,
               fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
             }}>
-              Time Remaining: {formatTime(dashboardData.contest.time_remaining)}
+              Time Remaining: {formatTime(contest.time_remaining)}
             </span>
           )}
           
@@ -335,13 +286,31 @@ const DashboardPage: React.FC = () => {
                 style={{ 
                   height: '100%',
                   backgroundColor: '#1d4ed8',
-                  width: `${dashboardData.contest.progress_percentage}%`,
+                  width: `${contest.progress_percentage}%`,
                   transition: 'width 0.3s ease',
                 }}
               />
             </div>
           </div>
         </div>
+
+        {(showManualPendingMessage || showManualActiveMessage) && (
+          <div
+            style={{
+              marginTop: '12px',
+              backgroundColor: '#f8fafc',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              color: '#4b5563',
+              fontSize: '0.9rem',
+              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            }}
+          >
+            {showManualPendingMessage
+              ? 'Contest will begin once an organizer starts it. Keep this page open for updates.'
+              : 'Contest is running in manual mode; organizers will announce when it ends.'}
+          </div>
+        )}
       </div>
 
       <div style={{ 
@@ -355,7 +324,6 @@ const DashboardPage: React.FC = () => {
           { key: 'problems', label: 'Problems' },
           { key: 'standings', label: 'Standings' },
           { key: 'activity', label: 'Recent Activity' },
-          { key: 'projects', label: 'Project Submission' },
         ].map((tab) => (
           <button 
             key={tab.key}
@@ -437,7 +405,7 @@ const DashboardPage: React.FC = () => {
                     color: '#1d4ed8',
                     marginBottom: '4px',
                     fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                  }}>{dashboardData.team_stats.rank}</div>
+                  }}>{dashboardData.teamStats.rank}</div>
                   <div style={{
                     fontSize: '0.85rem',
                     color: '#6b7280',
@@ -452,7 +420,7 @@ const DashboardPage: React.FC = () => {
                     color: '#16a34a',
                     marginBottom: '4px',
                     fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                  }}>{dashboardData.team_stats.problems_solved}</div>
+                  }}>{dashboardData.teamStats.problemsSolved}</div>
                   <div style={{
                     fontSize: '0.85rem',
                     color: '#6b7280',
@@ -467,7 +435,7 @@ const DashboardPage: React.FC = () => {
                     color: '#0ea5e9',
                     marginBottom: '4px',
                     fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                  }}>{dashboardData.team_stats.total_submissions}</div>
+                  }}>{dashboardData.teamStats.totalSubmissions}</div>
                   <div style={{
                     fontSize: '0.85rem',
                     color: '#6b7280',
@@ -482,7 +450,7 @@ const DashboardPage: React.FC = () => {
                     color: '#f59e0b',
                     marginBottom: '4px',
                     fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                  }}>{dashboardData.team_stats.accuracy_rate}%</div>
+                  }}>{dashboardData.teamStats.accuracyRate}%</div>
                   <div style={{
                     fontSize: '0.85rem',
                     color: '#6b7280',
@@ -517,7 +485,7 @@ const DashboardPage: React.FC = () => {
             </div>
             <div style={{ padding: '24px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {Object.entries(dashboardData.verdict_distribution).map(([verdict, count]) => {
+                {Object.entries(dashboardData.verdictDistribution).map(([verdict, count]) => {
                   const verdictColors = {
                     'AC': { color: '#16a34a', bg: '#dcfce7' },
                     'WA': { color: '#dc2626', bg: '#fef2f2' },
@@ -577,7 +545,7 @@ const DashboardPage: React.FC = () => {
               </h3>
             </div>
             <div style={{ padding: '24px' }}>
-              {dashboardData.recent_submissions.length === 0 ? (
+              {dashboardData.recentSubmissions.length === 0 ? (
                 <div style={{
                   textAlign: 'center',
                   padding: '32px 16px',
@@ -630,7 +598,7 @@ const DashboardPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {dashboardData.recent_submissions.slice(0, 5).map((submission) => {
+                      {dashboardData.recentSubmissions.slice(0, 5).map((submission) => {
                         const verdictColors = {
                           'AC': { color: '#16a34a', bg: '#dcfce7' },
                           'WA': { color: '#dc2626', bg: '#fef2f2' },
@@ -655,7 +623,7 @@ const DashboardPage: React.FC = () => {
                             }}
                           >
                             <td style={{ padding: '12px 8px', color: '#374151', fontWeight: 500 }}>
-                              {submission.problem_letter} - {submission.problem_title}
+                              {submission.problemLetter} - {submission.problemTitle}
                             </td>
                             <td style={{ padding: '12px 8px' }}>
                               <span style={{
@@ -731,18 +699,18 @@ const DashboardPage: React.FC = () => {
                             </span>
                           </td>
                           <td>
-                            {problem.is_solved ? (
+                            {problem.isSolved ? (
                               <span className="badge bg-success">Solved</span>
-                            ) : problem.attempt_count > 0 ? (
+                            ) : problem.attemptCount > 0 ? (
                               <span className="badge bg-warning">Attempted</span>
                             ) : (
                               <span className="badge bg-secondary">Not Attempted</span>
                             )}
                           </td>
-                          <td>{problem.attempt_count}</td>
+                          <td>{problem.attemptCount}</td>
                           <td>
-                            {problem.solved_at 
-                              ? new Date(problem.solved_at).toLocaleString()
+                            {problem.solvedAt
+                              ? new Date(problem.solvedAt).toLocaleString()
                               : '-'
                             }
                           </td>
@@ -781,16 +749,16 @@ const DashboardPage: React.FC = () => {
                     </thead>
                     <tbody>
                       {standings.map((team) => (
-                        <tr key={team.team_id}>
+                        <tr key={team.teamId}>
                           <td>
                             <strong>#{team.rank}</strong>
                           </td>
-                          <td>{team.team_name}</td>
-                          <td>{team.problems_solved}</td>
-                          <td>{team.total_points.toLocaleString()}</td>
+                          <td>{team.teamName}</td>
+                          <td>{team.problemsSolved}</td>
+                          <td>{team.penaltyTime.toLocaleString()}</td>
                           <td>
-                            {team.last_submission 
-                              ? new Date(team.last_submission).toLocaleString()
+                            {team.lastSubmission
+                              ? new Date(team.lastSubmission).toLocaleString()
                               : '-'
                             }
                           </td>
@@ -831,12 +799,12 @@ const DashboardPage: React.FC = () => {
                       <tbody>
                         {recentActivity.map((activity) => (
                           <tr key={activity.id}>
-                            <td>{activity.team_name}</td>
-                            <td>{activity.problem_letter} - {activity.problem_title}</td>
+                            <td>{activity.teamName}</td>
+                            <td>{activity.problemLetter} - {activity.problemTitle}</td>
                             <td>{activity.language}</td>
                             <td className={getVerdictColor(activity.verdict)}>{activity.verdict}</td>
-                            <td>{activity.execution_time ? `${activity.execution_time}ms` : '-'}</td>
-                            <td>{new Date(activity.submitted_at).toLocaleString()}</td>
+                            <td>{activity.executionTime ? `${activity.executionTime}ms` : '-'}</td>
+                            <td>{new Date(activity.submittedAt).toLocaleString()}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -844,275 +812,6 @@ const DashboardPage: React.FC = () => {
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'projects' && (
-        <div style={{
-          backgroundColor: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '16px',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            padding: '24px',
-            borderBottom: '1px solid #e2e8f0',
-          }}>
-            <h3 style={{
-              fontSize: '1.5rem',
-              fontWeight: 600,
-              color: '#1f2937',
-              margin: 0,
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-            }}>
-              Project Submission
-            </h3>
-            <p style={{
-              color: '#6b7280',
-              fontSize: '0.95rem',
-              marginTop: '8px',
-              margin: '8px 0 0 0',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-            }}>
-              Upload your hackathon project as a ZIP file. You can update your submission until the contest ends.
-            </p>
-          </div>
-          
-          <div style={{ padding: '24px' }}>
-            {projectSubmission && (
-              <div style={{
-                backgroundColor: '#f0f9ff',
-                border: '1px solid #0ea5e9',
-                borderRadius: '12px',
-                padding: '16px',
-                marginBottom: '24px',
-              }}>
-                <h4 style={{
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  color: '#0c4a6e',
-                  margin: '0 0 8px 0',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                }}>
-                  Current Submission: {projectSubmission.project_title}
-                </h4>
-                <p style={{ margin: '0 0 8px 0', color: '#0c4a6e', fontSize: '0.9rem' }}>
-                  <strong>File:</strong> {projectSubmission.original_filename}
-                </p>
-                <p style={{ margin: '0 0 8px 0', color: '#0c4a6e', fontSize: '0.9rem' }}>
-                  <strong>Size:</strong> {(projectSubmission.file_size / (1024 * 1024)).toFixed(2)} MB
-                </p>
-                <p style={{ margin: '0', color: '#0c4a6e', fontSize: '0.9rem' }}>
-                  <strong>Last Updated:</strong> {new Date(projectSubmission.updated_at || projectSubmission.submitted_at).toLocaleString()}
-                </p>
-                {projectSubmission.project_description && (
-                  <p style={{ margin: '12px 0 0 0', color: '#0c4a6e', fontSize: '0.9rem' }}>
-                    <strong>Description:</strong> {projectSubmission.project_description}
-                  </p>
-                )}
-              </div>
-            )}
-
-            <form onSubmit={handleProjectSubmit}>
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  color: '#374151',
-                  marginBottom: '8px',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                }}>
-                  Project Title *
-                </label>
-                <input
-                  type="text"
-                  value={projectTitle}
-                  onChange={(e) => setProjectTitle(e.target.value)}
-                  placeholder="Enter your project title"
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
-                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                    transition: 'border-color 0.2s ease',
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#1d4ed8'}
-                  onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                />
-              </div>
-
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  color: '#374151',
-                  marginBottom: '8px',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                }}>
-                  Project Description
-                </label>
-                <textarea
-                  value={projectDescription}
-                  onChange={(e) => setProjectDescription(e.target.value)}
-                  placeholder="Describe your project, technologies used, and key features"
-                  rows={4}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
-                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                    resize: 'vertical',
-                    transition: 'border-color 0.2s ease',
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#1d4ed8'}
-                  onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                />
-              </div>
-
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  color: '#374151',
-                  marginBottom: '8px',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                }}>
-                  Project File (ZIP) {!projectSubmission ? '*' : ''}
-                </label>
-                <div style={{
-                  border: '2px dashed #d1d5db',
-                  borderRadius: '8px',
-                  padding: '24px',
-                  textAlign: 'center',
-                  backgroundColor: '#f9fafb',
-                }}>
-                  <input
-                    id="project-file-input"
-                    type="file"
-                    accept=".zip,application/zip,application/x-zip-compressed"
-                    onChange={handleFileChange}
-                    style={{ display: 'none' }}
-                  />
-                  <label
-                    htmlFor="project-file-input"
-                    style={{
-                      cursor: 'pointer',
-                      display: 'inline-block',
-                    }}
-                  >
-                    <div style={{
-                      fontSize: '48px',
-                      color: '#6b7280',
-                      marginBottom: '12px',
-                    }}>
-                      📁
-                    </div>
-                    <div style={{
-                      fontSize: '1.1rem',
-                      fontWeight: 600,
-                      color: '#1d4ed8',
-                      marginBottom: '8px',
-                    }}>
-                      {projectFile ? projectFile.name : 'Click to select ZIP file'}
-                    </div>
-                    <div style={{
-                      fontSize: '0.9rem',
-                      color: '#6b7280',
-                    }}>
-                      {projectFile ? 
-                        `${(projectFile.size / (1024 * 1024)).toFixed(2)} MB` : 
-                        'Maximum file size: 100MB'
-                      }
-                    </div>
-                  </label>
-                  {projectFile && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setProjectFile(null);
-                        const fileInput = document.getElementById('project-file-input') as HTMLInputElement;
-                        if (fileInput) fileInput.value = '';
-                      }}
-                      style={{
-                        marginTop: '12px',
-                        background: '#ef4444',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '6px 12px',
-                        fontSize: '0.875rem',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Remove file
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={submittingProject || (!projectTitle || (!projectFile && !projectSubmission))}
-                style={{
-                  background: (submittingProject || (!projectTitle || (!projectFile && !projectSubmission))) ? 
-                    '#9ca3af' : 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '12px',
-                  padding: '14px 28px',
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  cursor: (submittingProject || (!projectTitle || (!projectFile && !projectSubmission))) ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  justifyContent: 'center',
-                  width: '100%',
-                }}
-              >
-                {submittingProject ? (
-                  <>
-                    <div style={{
-                      width: '20px',
-                      height: '20px',
-                      border: '2px solid #ffffff40',
-                      borderTop: '2px solid #ffffff',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite',
-                    }} />
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    {projectSubmission ? 'Update Project' : 'Submit Project'}
-                  </>
-                )}
-              </button>
-            </form>
-            
-            <div style={{
-              marginTop: '24px',
-              padding: '16px',
-              backgroundColor: '#fef3c7',
-              border: '1px solid #fbbf24',
-              borderRadius: '8px',
-              fontSize: '0.9rem',
-              color: '#92400e',
-            }}>
-              <strong>Note:</strong> Only ZIP files are accepted. Make sure your project includes all necessary files, documentation, and a README file explaining how to run your project.
             </div>
           </div>
         </div>

@@ -51,7 +51,7 @@ class JudgeEngine {
 
     const timeLimit = problem.timeLimit || 5000; // ms
     const memoryLimit = problem.memoryLimit || 256; // MB
-    
+
     let judgeResult = {
       submissionId,
       verdict: this.verdicts.SE,
@@ -83,8 +83,8 @@ class JudgeEngine {
         status: 'compiling'
       });
 
-      // Step 1: Compile code if necessary
-      const compileResult = await this.compileCode(code, language, timeLimit);
+      // Step 1: Compile code if necessary (for LeetCode-style, use template)
+      const compileResult = await this.compileLeetCodeStyle(problemId, code, language, timeLimit);
       if (!compileResult.success) {
         judgeResult.verdict = this.verdicts.CE;
         judgeResult.compilationTime = compileResult.executionTime || 0;
@@ -92,7 +92,7 @@ class JudgeEngine {
           error: compileResult.error,
           stage: 'compilation'
         });
-        
+
         // Broadcast compilation error
         await this.broadcastSubmissionResult({
           ...judgeResult,
@@ -102,7 +102,7 @@ class JudgeEngine {
           problemId,
           language
         });
-        
+
         // CE doesn't count as attempt
         await this.updateSubmissionResult(submissionId, judgeResult, false);
         return judgeResult;
@@ -120,9 +120,9 @@ class JudgeEngine {
         totalTestCases: testCases.length
       });
 
-      // Step 2: Run all test cases (all-or-nothing)
-      const testResult = await this.runAllTestCases(
-        code, language, testCases, timeLimit, memoryLimit
+      // Step 2: Run all test cases (LeetCode-style function execution)
+      const testResult = await this.runAllTestCasesLeetCodeStyle(
+        code, language, testCases, timeLimit, memoryLimit, problemId
       );
       
       judgeResult = { ...judgeResult, ...testResult };
@@ -187,7 +187,184 @@ class JudgeEngine {
   }
 
   /**
-   * Run all test cases with all-or-nothing evaluation
+   * Compile LeetCode-style code with template wrapper
+   * @param {number} problemId - Problem ID for template lookup
+   * @param {string} userCode - User's function implementation
+   * @param {string} language - Programming language
+   * @param {number} timeLimit - Maximum compilation time in milliseconds
+   * @returns {Promise<Object>} Compilation result with success status and error details
+   */
+  async compileLeetCodeStyle(problemId, userCode, language, timeLimit) {
+    try {
+      const codeTemplateService = require('./codeTemplateService');
+
+      // Generate complete executable code with template wrapper
+      const executableCode = await codeTemplateService.generateExecutableCode(
+        problemId,
+        language,
+        userCode
+      );
+
+      // Now compile the complete code with template
+      return await multiLangExecutor.compileCode(executableCode, language, {
+        timeLimit: Math.min(timeLimit, 30000) // Max 30s compile time
+      });
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        executionTime: 0
+      };
+    }
+  }
+
+  /**
+   * Run all test cases using LeetCode-style function execution
+   * @param {string} userCode - User's function implementation only
+   * @param {string} language - Programming language
+   * @param {Array} testCases - Array of test case objects with input_parameters/expected_return
+   * @param {number} timeLimit - Maximum execution time per test case in milliseconds
+   * @param {number} memoryLimit - Maximum memory usage in MB
+   * @param {number} problemId - Problem ID for template lookup
+   * @returns {Promise<Object>} Test execution result with verdict and performance data
+   * @throws {Error} If system error occurs during testing
+   */
+  async runAllTestCasesLeetCodeStyle(userCode, language, testCases, timeLimit, memoryLimit, problemId) {
+    let result = {
+      verdict: this.verdicts.AC,
+      totalTime: 0,
+      maxMemory: 0,
+      testCasesRun: 0,
+      testCasesPassed: 0,
+      details: []
+    };
+
+    for (let i = 0; i < testCases.length; i++) {
+      const testCase = testCases[i];
+      result.testCasesRun++;
+
+      try {
+        // Use LeetCode-style execution with function signature
+        let inputData, expectedOutput;
+
+        // Use new parameter-based format
+        inputData = JSON.stringify(testCase.input_parameters);
+        expectedOutput = typeof testCase.expected_return === 'string' ?
+          testCase.expected_return : JSON.stringify(testCase.expected_return);
+
+        const executeResult = await multiLangExecutor.executeLeetCodeStyle(
+          problemId,
+          userCode,
+          language,
+          inputData,
+          {
+            timeLimit,
+            memoryLimit,
+            usePerformanceMonitor: true
+          }
+        );
+
+        result.totalTime += executeResult.executionTime || 0;
+        result.maxMemory = Math.max(result.maxMemory, executeResult.memoryUsed || 0);
+
+        if (executeResult.monitoring) {
+          result.performanceMetrics = result.performanceMetrics || {};
+          result.performanceMetrics.netExecutionTime += executeResult.netExecutionTime || 0;
+          result.performanceMetrics.containerOverhead += executeResult.monitoring.containerOverhead || 0;
+          result.performanceMetrics.actualCpuTime += executeResult.monitoring.actualCpuTime || 0;
+          result.performanceMetrics.ioOperations += executeResult.monitoring.ioOperations || 0;
+          result.performanceMetrics.systemCalls += executeResult.monitoring.systemCalls || 0;
+        }
+
+        const testVerdict = this.analyzeExecution(
+          executeResult,
+          {
+            input: inputData,
+            output: expectedOutput
+          },
+          timeLimit,
+          memoryLimit
+        );
+
+        const isHidden =
+          typeof testCase.is_hidden === 'boolean'
+            ? testCase.is_hidden
+            : testCase.is_sample === true
+              ? false
+              : true;
+
+        const detail = {
+          testCase: i + 1,
+          testCaseName: isHidden
+            ? 'Hidden Test Case'
+            : testCase.test_case_name || `Test Case ${i + 1}`,
+          verdict: testVerdict,
+          time: executeResult.executionTime || 0,
+          netTime: executeResult.netExecutionTime || 0,
+          memory: executeResult.memoryUsed || 0,
+          isHidden,
+          performanceData: executeResult.monitoring
+        };
+
+        if (!isHidden) {
+          detail.inputParameters = testCase.input_parameters || inputData;
+          detail.expectedReturn = testCase.expected_return || expectedOutput;
+          detail.actualOutput = executeResult.output || '';
+
+          if (executeResult.error) {
+            detail.error = executeResult.error;
+          }
+
+          if (testCase.explanation) {
+            detail.explanation = testCase.explanation;
+          }
+        }
+
+        result.details.push(detail);
+
+        if (testVerdict === this.verdicts.AC) {
+          result.testCasesPassed++;
+        } else {
+          // Set verdict to first failure encountered, but continue running all tests
+          if (result.verdict === this.verdicts.AC) {
+            result.verdict = testVerdict;
+          }
+        }
+
+      } catch (error) {
+        // Set verdict to SE on first error, but continue running remaining tests
+        if (result.verdict === this.verdicts.AC) {
+          result.verdict = this.verdicts.SE;
+        }
+        const isHidden =
+          typeof testCase.is_hidden === 'boolean'
+            ? testCase.is_hidden
+            : testCase.is_sample === true
+              ? false
+              : true;
+
+        const detail = {
+          testCase: i + 1,
+          testCaseName: isHidden
+            ? 'Hidden Test Case'
+            : testCase.test_case_name || `Test Case ${i + 1}`,
+          verdict: this.verdicts.SE,
+          isHidden
+        };
+
+        if (!isHidden) {
+          detail.error = error.message;
+        }
+
+        result.details.push(detail);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Run all test cases with all-or-nothing evaluation (Legacy STDIN/STDOUT method)
    * @param {string} code - Source code to execute
    * @param {string} language - Programming language
    * @param {Array} testCases - Array of test case objects with input/output
@@ -234,36 +411,74 @@ class JudgeEngine {
           judgeResult.performanceMetrics.systemCalls += executeResult.monitoring.systemCalls || 0;
         }
 
-        const testVerdict = this.analyzeExecution(executeResult, testCase, timeLimit, memoryLimit);
-        
-        result.details.push({
+        const testVerdict = this.analyzeExecution(
+          executeResult,
+          testCase,
+          timeLimit,
+          memoryLimit
+        );
+
+        const isHidden =
+          typeof testCase.is_hidden === 'boolean'
+            ? testCase.is_hidden
+            : testCase.is_sample === true
+              ? false
+              : true;
+
+        const detail = {
           testCase: i + 1,
           verdict: testVerdict,
           time: executeResult.executionTime || 0,
           netTime: executeResult.netExecutionTime || 0,
           memory: executeResult.memoryUsed || 0,
-          input: testCase.input,
-          expectedOutput: testCase.output,
-          actualOutput: executeResult.output || '',
-          error: executeResult.error || '',
+          isHidden,
           performanceData: executeResult.monitoring
-        });
+        };
+
+        if (!isHidden) {
+          detail.input = testCase.input;
+          detail.expectedOutput = testCase.output;
+          detail.actualOutput = executeResult.output || '';
+
+          if (executeResult.error) {
+            detail.error = executeResult.error;
+          }
+        }
+
+        result.details.push(detail);
 
         if (testVerdict === this.verdicts.AC) {
           result.testCasesPassed++;
         } else {
-          result.verdict = testVerdict;
-          break;
+          // Set verdict to first failure encountered, but continue running all tests
+          if (result.verdict === this.verdicts.AC) {
+            result.verdict = testVerdict;
+          }
         }
 
       } catch (error) {
-        result.verdict = this.verdicts.SE;
-        result.details.push({
+        // Set verdict to SE on first error, but continue running remaining tests
+        if (result.verdict === this.verdicts.AC) {
+          result.verdict = this.verdicts.SE;
+        }
+        const isHidden =
+          typeof testCase.is_hidden === 'boolean'
+            ? testCase.is_hidden
+            : testCase.is_sample === true
+              ? false
+              : true;
+
+        const detail = {
           testCase: i + 1,
           verdict: this.verdicts.SE,
-          error: error.message
-        });
-        break;
+          isHidden
+        };
+
+        if (!isHidden) {
+          detail.error = error.message;
+        }
+
+        result.details.push(detail);
       }
     }
 
@@ -317,7 +532,8 @@ class JudgeEngine {
   }
 
   /**
-   * Compare program output with expected output using exact string matching
+   * Compare program output with expected output using semantic JSON comparison
+   * Falls back to string matching for non-JSON outputs
    * @param {string} actualOutput - Program's actual output
    * @param {string} expectedOutput - Expected output from test case
    * @returns {boolean} True if outputs match after normalization
@@ -325,8 +541,54 @@ class JudgeEngine {
   compareOutputs(actualOutput, expectedOutput) {
     const normalizedActual = this.normalizeOutput(actualOutput);
     const normalizedExpected = this.normalizeOutput(expectedOutput);
-    
-    return normalizedActual === normalizedExpected;
+
+    // Try JSON comparison first (for LeetCode-style problems)
+    try {
+      const actualJson = JSON.parse(normalizedActual);
+      const expectedJson = JSON.parse(normalizedExpected);
+
+      // Deep equality check for JSON values
+      return this.deepEqual(actualJson, expectedJson);
+    } catch (e) {
+      // Not valid JSON, fall back to string comparison
+      return normalizedActual === normalizedExpected;
+    }
+  }
+
+  /**
+   * Deep equality check for JSON values
+   * @param {any} a - First value
+   * @param {any} b - Second value
+   * @returns {boolean} True if values are deeply equal
+   * @private
+   */
+  deepEqual(a, b) {
+    // Handle null and undefined
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+
+    // Handle arrays
+    if (Array.isArray(a) && Array.isArray(b)) {
+      if (a.length !== b.length) return false;
+      return a.every((val, index) => this.deepEqual(val, b[index]));
+    }
+
+    // Handle objects
+    if (typeof a === 'object' && typeof b === 'object') {
+      const keysA = Object.keys(a);
+      const keysB = Object.keys(b);
+
+      if (keysA.length !== keysB.length) return false;
+      return keysA.every(key => this.deepEqual(a[key], b[key]));
+    }
+
+    // Handle primitives (including NaN)
+    if (typeof a === 'number' && typeof b === 'number') {
+      if (isNaN(a) && isNaN(b)) return true;
+      return a === b;
+    }
+
+    return a === b;
   }
 
   /**
@@ -380,11 +642,19 @@ class JudgeEngine {
    */
   async updateTeamScore(contestId, teamId, problemId, judgeResult) {
     try {
-      const contest = await db('contests').where('contest_id', contestId).first();
+      const contest = await db('contests').where('id', contestId).first();
       if (!contest) return;
 
       const solveTime = new Date();
+      if (!contest.start_time) {
+        console.warn(`Contest ${contestId} has no start time; skipping score update.`);
+        return;
+      }
       const contestStart = new Date(contest.start_time);
+      if (Number.isNaN(contestStart.getTime())) {
+        console.warn(`Contest ${contestId} has invalid start time; skipping score update.`);
+        return;
+      }
       const minutesFromStart = Math.floor((solveTime - contestStart) / (1000 * 60));
 
       const wrongAttempts = await db('submissions')
@@ -393,8 +663,8 @@ class JudgeEngine {
           team_id: teamId,
           problem_id: problemId
         })
-        .whereNot('verdict', 'Accepted')
-        .whereNot('verdict', 'Compilation Error')
+        .whereNot('status', 'accepted')
+        .whereNot('status', 'compilation_error')
         .count('* as count')
         .first();
 
@@ -474,20 +744,28 @@ class JudgeEngine {
       await db('submissions')
         .where('id', submissionId)
         .update({
-          verdict: judgeResult.verdict,
-          execution_time: judgeResult.totalTime,
-          memory_used: judgeResult.maxMemory,
-          score: judgeResult.score || 0,
+          status: judgeResult.verdict.toLowerCase().replace(/ /g, '_'), // Convert "Accepted" to "accepted"
+          execution_time: judgeResult.totalTime || 0,
+          memory_used: judgeResult.maxMemory || 0,
+          points_earned: judgeResult.score || 0,
+          test_cases_passed: judgeResult.testCasesPassed || 0,
+          total_test_cases: judgeResult.testCasesRun || 0,
           judged_at: new Date(),
-          judge_details: JSON.stringify({
+          judge_output: JSON.stringify({
             testCases: judgeResult.details,
             compilationTime: judgeResult.compilationTime,
             testCasesRun: judgeResult.testCasesRun,
-            testCasesPassed: judgeResult.testCasesPassed
+            testCasesPassed: judgeResult.testCasesPassed,
+            verdict: judgeResult.verdict
           })
         });
+
+      console.log(`✅ Updated submission ${submissionId} with status: ${judgeResult.verdict}`);
     } catch (error) {
-      console.error('Error updating submission:', error);
+      console.error('❌ Error updating submission:', error);
+      console.error('Submission ID:', submissionId);
+      console.error('Judge Result:', judgeResult);
+      throw error;
     }
   }
 
@@ -580,7 +858,7 @@ class JudgeEngine {
       const testCases = await db('test_cases')
         .where('problem_id', submission.problem_id)
         .orderBy('test_case_order')
-        .select('input', 'expected_output as output');
+        .select('input_parameters', 'expected_return as output');
 
       return await this.judgeSubmission({
         code: submission.source_code,

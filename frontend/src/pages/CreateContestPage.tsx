@@ -7,10 +7,8 @@ import { MdSave } from 'react-icons/md';
 interface ContestFormData {
   contest_name: string;
   description: string;
-  start_time: string;
   duration: number;
   freeze_time: number;
-  is_active: boolean;
 }
 
 const CreateContestPage: React.FC = () => {
@@ -20,10 +18,8 @@ const CreateContestPage: React.FC = () => {
   const [formData, setFormData] = useState<ContestFormData>({
     contest_name: '',
     description: '',
-    start_time: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16), 
-    duration: 180, 
-    freeze_time: 30, 
-    is_active: true,
+    duration: 0,
+    freeze_time: 0,
   });
   
   const [errors, setErrors] = useState<string[]>([]);
@@ -31,6 +27,7 @@ const CreateContestPage: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
 
   const durationOptions = [
+    { value: 0, label: 'Manual (no preset duration)' },
     { value: 60, label: '1 hour' },
     { value: 90, label: '1.5 hours' },
     { value: 120, label: '2 hours' },
@@ -49,10 +46,18 @@ const CreateContestPage: React.FC = () => {
   ];
 
   const handleChange = (field: keyof ContestFormData, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const next = {
+        ...prev,
+        [field]: value
+      };
+
+      if (field === 'duration' && value === 0) {
+        next.freeze_time = 0;
+      }
+
+      return next;
+    });
     if (errors.length > 0) setErrors([]);
     if (success) setSuccess(null);
   };
@@ -72,17 +77,15 @@ const CreateContestPage: React.FC = () => {
       newErrors.push('Contest description must be at least 10 characters long');
     }
 
-    if (!formData.start_time) {
-      newErrors.push('Start time is required');
-    } else if (new Date(formData.start_time) <= new Date()) {
-      newErrors.push('Start time must be in the future');
-    }
+    const isManualDuration = formData.duration === 0;
 
-    if (formData.duration < 30) {
+    if (!isManualDuration && formData.duration < 30) {
       newErrors.push('Contest duration must be at least 30 minutes');
     }
 
-    if (formData.freeze_time > formData.duration) {
+    if (isManualDuration && formData.freeze_time > 0) {
+      newErrors.push('Freeze time is not supported when no duration is set');
+    } else if (!isManualDuration && formData.freeze_time > formData.duration) {
       newErrors.push('Freeze time cannot be longer than contest duration');
     }
 
@@ -101,13 +104,15 @@ const CreateContestPage: React.FC = () => {
     setErrors([]);
 
     try {
+      const isManualDuration = formData.duration === 0;
       const contestData = {
         contest_name: formData.contest_name.trim(),
         description: formData.description.trim(),
-        start_time: new Date(formData.start_time).toISOString(),
-        duration: formData.duration,
-        freeze_time: formData.freeze_time,
-        is_active: formData.is_active,
+        start_time: null,
+        duration: isManualDuration ? null : formData.duration,
+        freeze_time: isManualDuration ? 0 : formData.freeze_time,
+        manual_control: true,
+        is_active: false
       };
 
       const response = await apiService.createContest(contestData);
@@ -259,6 +264,16 @@ const CreateContestPage: React.FC = () => {
             color: #6b7280;
             margin-top: 0.25rem;
           }
+
+          .manual-mode-banner {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1d4ed8;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+          }
           
           .form-row {
             display: grid;
@@ -394,17 +409,11 @@ const CreateContestPage: React.FC = () => {
 
                 <div className="form-row">
                   <div className="form-field">
-                    <label className="form-label">Start Time</label>
-                    <input
-                      className="form-input"
-                      type="datetime-local"
-                      value={formData.start_time}
-                      onChange={(e) => handleChange('start_time', e.target.value)}
-                      disabled={isLoading}
-                    />
-                    <div className="form-helper">When the contest begins</div>
+                    <label className="form-label">Contest Scheduling</label>
+                    <div className="manual-mode-banner">
+                      <strong>Manual control enabled.</strong> You can start and end this contest from the admin dashboard when you're ready. No preset start time is required.
+                    </div>
                   </div>
-                  
                   <div className="form-field">
                     <label className="form-label">Duration</label>
                     <select
@@ -419,7 +428,11 @@ const CreateContestPage: React.FC = () => {
                         </option>
                       ))}
                     </select>
-                    <div className="form-helper">How long the contest runs</div>
+                    <div className="form-helper">
+                      {formData.duration === 0
+                        ? 'Manual control: you decide when to end the contest.'
+                        : 'Planned contest duration used for timers and progress.'}
+                    </div>
                   </div>
                 </div>
 
@@ -430,7 +443,7 @@ const CreateContestPage: React.FC = () => {
                     className="form-select"
                     value={formData.freeze_time}
                     onChange={(e) => handleChange('freeze_time', parseInt(e.target.value))}
-                    disabled={isLoading}
+                    disabled={isLoading || formData.duration === 0}
                   >
                     {freezeTimeOptions.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -438,6 +451,11 @@ const CreateContestPage: React.FC = () => {
                       </option>
                     ))}
                   </select>
+                  <div className="form-helper">
+                    {formData.duration === 0
+                      ? 'Enable a preset duration to configure leaderboard freeze.'
+                      : 'How long before the end the leaderboard should freeze.'}
+                  </div>
                   <div className="form-helper">Scoreboard freeze before contest end</div>
                 </div>
 

@@ -52,7 +52,7 @@ const FunctionSignatureEditor: React.FC<Props> = ({ problemId, onSave, onCancel 
     try {
       const response = await fetch(`/api/admin/problems/${problemId}/templates`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('programming_contest_admin_token')}`,
           'Content-Type': 'application/json'
         }
       });

@@ -84,7 +84,7 @@ class MultiLangExecutor {
    * @param {number} problemId - Problem ID for template lookup
    * @param {string} userCode - User's function implementation only
    * @param {string} language - Programming language
-   * @param {string} input - Input data for test case
+   * @param {string} input - Input data for test case (JSON format)
    * @param {Object} options - Execution options
    * @returns {Promise<Object>} Execution result
    */
@@ -97,7 +97,7 @@ class MultiLangExecutor {
         userCode
       );
 
-      // Execute the complete code normally
+      // Execute the complete code using standard execution method
       return await this.executeCode(executableCode, language, input, options);
     } catch (error) {
       console.error('LeetCode-style execution failed:', error);
@@ -105,6 +105,7 @@ class MultiLangExecutor {
         success: false,
         verdict: 'System Error',
         error: error.message,
+        output: '',
         executionTime: 0,
         memoryUsed: 0
       };
@@ -197,10 +198,28 @@ class MultiLangExecutor {
 
     return new Promise((resolve) => {
       const startTime = Date.now();
+
+      // Ensure compiler paths are in PATH for Windows
+      const env = { ...process.env };
+      if (os.platform() === 'win32') {
+        const compilerPaths = [
+          'C:\\msys64\\mingw64\\bin',
+          'C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.7.6-hotspot\\bin',
+          'C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.14.7-hotspot\\bin'
+        ];
+        const existingPath = env.PATH || '';
+        const pathsToAdd = compilerPaths.filter(p => !existingPath.includes(p));
+        if (pathsToAdd.length > 0) {
+          env.PATH = pathsToAdd.join(';') + ';' + existingPath;
+        }
+      }
+
       const child = spawn(command, args, {
         cwd,
         stdio: ['pipe', 'pipe', 'pipe'],
-        detached: false
+        detached: false,
+        env: env,
+        shell: true // Use shell on Windows to properly resolve PATH
       });
 
       let stdout = '';

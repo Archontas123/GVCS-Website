@@ -24,11 +24,12 @@
  * @requires helmet
  * @requires express-rate-limit
  * @requires winston
- * @requires dotenv
+ * @requires ./config/env
  * @author Programming Contest Platform Team
  * @version 1.5.0
  */
 
+require('./config/env');
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
@@ -51,7 +52,6 @@ const {
   ConflictError,
   RateLimitError 
 } = require('./utils/errors');
-require('dotenv').config();
 
 /**
  * Express application instance configured with middleware and routes.
@@ -122,8 +122,11 @@ const limiter = rateLimit({
   legacyHeaders: false,
   trustProxy: false, 
   skip: (req) => {
-    if (process.env.NODE_ENV === 'development' && (req.ip === '::1' || req.ip === '127.0.0.1')) {
-      return true;
+    // Skip rate limiting in development mode for localhost requests
+    if (process.env.NODE_ENV === 'development') {
+      const ip = req.ip || req.connection.remoteAddress;
+      const isLocalhost = ip === '::1' || ip === '127.0.0.1' || ip === '::ffff:127.0.0.1' || ip.includes('127.0.0.1') || ip.includes('::1');
+      return isLocalhost;
     }
     return false;
   }
@@ -148,8 +151,11 @@ app.use(cors({
 /**
  * Apply rate limiting middleware to all routes.
  * Prevents abuse by limiting requests per IP address.
+ * Temporarily disabled in development for debugging.
  */
-app.use(limiter);
+if (process.env.NODE_ENV !== 'development') {
+  app.use(limiter);
+}
 
 /**
  * JSON body parser middleware with 10MB limit.
@@ -258,6 +264,9 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 /** Problem routes - contest problems and test cases (public access) */
 app.use('/api/problems', require('./routes/problems'));
 
+/** Test routes - development testing endpoints (no authentication) */
+app.use('/api/test', require('./routes/test'));
+
 /**
  * Contest code validation endpoint.
  * Validates contest registration codes and returns contest information
@@ -313,15 +322,6 @@ app.get('/api/contests/:contestCode/validate', async (req, res, next) => {
         success: false,
         message: 'Contest not found or registration is closed',
         error: 'CONTEST_NOT_FOUND'
-      });
-    }
-    
-    const now = new Date();
-    if (contest.start_time && new Date(contest.start_time) <= now) {
-      return res.status(400).json({
-        success: false,
-        message: 'Contest has already started. Registration is closed.',
-        error: 'CONTEST_STARTED'
       });
     }
     
@@ -844,18 +844,20 @@ if (process.env.NODE_ENV !== 'test') {
     try {
       await testConnection();
       startSessionCleanupInterval();
-      
+
       websocketService.initialize(server);
-      
-      contestScheduler.start();
-      
+
+      // Contest scheduler disabled - all contests use manual control
+      // Admins must manually start/end contests via API endpoints
+      // contestScheduler.start();
+
       const queueInitialized = await judgeQueueService.initialize();
       if (!queueInitialized) {
         console.log('⚠️  Judge Queue System failed to initialize - Redis may not be available');
       }
-      
+
       await performanceStatsStorage.initialize();
-      
+
     } catch (error) {
       logger.error('Failed to initialize server:', error);
       console.error('❌ Server initialization failed. Please check your database connection.');
@@ -873,3 +875,4 @@ if (process.env.NODE_ENV !== 'test') {
  * @property {Object} server - HTTP server instance
  */
 module.exports = { app, server };
+

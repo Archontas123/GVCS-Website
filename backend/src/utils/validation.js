@@ -54,18 +54,34 @@ const teamRegistrationSchema = Joi.object({
       'any.required': 'School name is required'
     }),
 
-  memberNames: Joi.array()
+  members: Joi.array()
     .items(
-      Joi.string()
-        .trim()
-        .min(2)
-        .max(50)
-        .pattern(/^[a-zA-Z\s\-\.']+$/)
-        .messages({
-          'string.min': 'Member name must be at least 2 characters long',
-          'string.max': 'Member name must not exceed 50 characters',
-          'string.pattern.base': 'Member names can only contain letters, spaces, hyphens, and apostrophes'
-        })
+      Joi.object({
+        firstName: Joi.string()
+          .trim()
+          .min(2)
+          .max(50)
+          .pattern(/^[a-zA-Z\s\-\.']+$/)
+          .required()
+          .messages({
+            'string.min': 'First name must be at least 2 characters long',
+            'string.max': 'First name must not exceed 50 characters',
+            'string.pattern.base': 'First name can only contain letters, spaces, hyphens, and apostrophes',
+            'any.required': 'First name is required'
+          }),
+        lastName: Joi.string()
+          .trim()
+          .min(2)
+          .max(50)
+          .pattern(/^[a-zA-Z\s\-\.']+$/)
+          .required()
+          .messages({
+            'string.min': 'Last name must be at least 2 characters long',
+            'string.max': 'Last name must not exceed 50 characters',
+            'string.pattern.base': 'Last name can only contain letters, spaces, hyphens, and apostrophes',
+            'any.required': 'Last name is required'
+          })
+      })
     )
     .min(1)
     .max(3)

@@ -1,6 +1,6 @@
 /**
- * Contest Detail Page - Custom Styles to match problems section
- * Contest detail view matching the problem pages design pattern
+ * Contest Detail Page - RETRO STYLE
+ * Matching the Hack The Valley retro aesthetic
  */
 
 import React, { useState, useEffect } from 'react';
@@ -18,12 +18,13 @@ interface Contest {
   id: number;
   contest_name: string;
   description: string;
-  start_time: string;
-  duration: number;
+  start_time?: string | null;
+  duration?: number | null;
+  manual_control?: boolean;
   freeze_time?: number;
   registration_code: string;
   contest_url?: string;
-  status: 'not_started' | 'running' | 'frozen' | 'ended';
+  status: 'pending_manual' | 'not_started' | 'running' | 'frozen' | 'ended';
   is_active: boolean;
 }
 
@@ -43,31 +44,20 @@ interface Problem {
   order_in_contest: number;
 }
 
-interface ProjectSubmission {
-  id: number;
-  team_id: number;
-  team_name: string;
-  project_title: string;
-  project_description: string;
-  original_filename: string;
-  file_size: number;
-  submitted_at: string;
-}
-
 const ContestDetailPage: React.FC = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const navigate = useNavigate();
   const { admin } = useAdminAuth();
-  
+
   const [activeTab, setActiveTab] = useState(0);
   const [contest, setContest] = useState<Contest | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
   const [problems, setProblems] = useState<Problem[]>([]);
-  const [projectSubmissions, setProjectSubmissions] = useState<ProjectSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addProblemModalOpen, setAddProblemModalOpen] = useState(false);
+  const [actionInProgress, setActionInProgress] = useState(false);
 
   const breadcrumbItems = [
     { label: 'Administration', href: '/admin' },
@@ -86,8 +76,6 @@ const ContestDetailPage: React.FC = () => {
       fetchTeams();
     } else if (activeTab === 2 && problems.length === 0) {
       fetchProblems();
-    } else if (activeTab === 3 && projectSubmissions.length === 0) {
-      fetchProjectSubmissions();
     }
   }, [activeTab]);
 
@@ -95,7 +83,7 @@ const ContestDetailPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const contestResult = await apiService.getAdminContest(parseInt(contestId!));
       if (contestResult.success && contestResult.data) {
         setContest(contestResult.data);
@@ -132,38 +120,28 @@ const ContestDetailPage: React.FC = () => {
     }
   };
 
-  const fetchProjectSubmissions = async () => {
-    try {
-      const projectsResult = await apiService.getAdminContestProjects(parseInt(contestId!));
-      if (projectsResult.success && projectsResult.data) {
-        setProjectSubmissions(projectsResult.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch project submissions:', error);
-    }
-  };
-
-  const handleDownloadProject = async (submissionId: number, filename: string) => {
-    try {
-      const blob = await apiService.downloadProject(submissionId);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Failed to download project:', error);
-      setError('Failed to download project file');
-    }
-  };
-
   const handleProblemAdded = () => {
-    // Refresh the problems list
     fetchProblems();
     setAddProblemModalOpen(false);
+  };
+
+  const handleDeleteProblem = async (problemId: number, problemTitle: string) => {
+    if (!window.confirm(`Are you sure you want to delete the problem "${problemTitle}"?\n\nThis action cannot be undone. The problem can only be deleted if it has no submissions.`)) {
+      return;
+    }
+
+    try {
+      const result = await apiService.deleteProblem(problemId);
+      if (result.success) {
+        // Refresh the problems list
+        fetchProblems();
+      } else {
+        alert(result.message || 'Failed to delete problem');
+      }
+    } catch (error: any) {
+      console.error('Failed to delete problem:', error);
+      alert(error.response?.data?.message || 'Failed to delete problem. It may have submissions or you may not have permission.');
+    }
   };
 
   const handleSaveChanges = async () => {
@@ -171,18 +149,18 @@ const ContestDetailPage: React.FC = () => {
 
     try {
       setSaving(true);
-      // Use updateContest instead of updateAdminContest since contest data is already in snake_case
       const result = await apiService.updateContest(contest.id, {
         contest_name: contest.contest_name,
         description: contest.description,
-        start_time: contest.start_time,
-        duration: contest.duration,
-        freeze_time: contest.freeze_time,
+        start_time: contest.start_time || null,
+        duration: contest.duration ?? null,
+        freeze_time: contest.freeze_time ?? 0,
+        manual_control: contest.manual_control ?? true,
         is_active: contest.is_active
       });
       if (result.success) {
         console.log('Contest updated successfully');
-        setError(null); // Clear any previous errors
+        setError(null);
       } else {
         throw new Error(result.message || 'Failed to update contest');
       }
@@ -199,15 +177,6 @@ const ContestDetailPage: React.FC = () => {
     return contest.contest_url || getContestUrl(contest.contest_name);
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'running': return '';
-      case 'frozen': return '';
-      case 'ended': return '';
-      default: return '';
-    }
-  };
-
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'easy': return '#28a745';
@@ -216,9 +185,62 @@ const ContestDetailPage: React.FC = () => {
     }
   };
 
+  const handleStartContest = async () => {
+    if (!contest) return;
+
+    if (!window.confirm(`Start contest "${contest.contest_name}"?\n\nThis will make the contest active and allow teams to submit solutions.`)) {
+      return;
+    }
+
+    try {
+      setActionInProgress(true);
+      const result = await apiService.startContest(contest.id);
+      if (result.success) {
+        alert('Contest started successfully!');
+        await fetchContestData(); // Refresh contest data
+      } else {
+        throw new Error(result.message || 'Failed to start contest');
+      }
+    } catch (error: any) {
+      console.error('Failed to start contest:', error);
+      // Extract error message from API response
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to start contest';
+      alert(`Cannot start contest:\n\n${errorMessage}`);
+    } finally {
+      setActionInProgress(false);
+    }
+  };
+
+  const handleEndContest = async () => {
+    if (!contest) return;
+
+    if (!window.confirm(`End contest "${contest.contest_name}"?\n\nThis will stop the contest and prevent any further submissions. This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setActionInProgress(true);
+      const result = await apiService.endContest(contest.id);
+      if (result.success) {
+        alert('Contest ended successfully!');
+        await fetchContestData(); // Refresh contest data
+      } else {
+        throw new Error(result.message || 'Failed to end contest');
+      }
+    } catch (error: any) {
+      console.error('Failed to end contest:', error);
+      // Extract error message from API response
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to end contest';
+      alert(`Cannot end contest:\n\n${errorMessage}`);
+    } finally {
+      setActionInProgress(false);
+    }
+  };
+
   if (loading && !contest) {
     return (
       <>
+        <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
         <style>
           {`
             @keyframes spin {
@@ -230,7 +252,7 @@ const ContestDetailPage: React.FC = () => {
         <div
           style={{
             minHeight: '100vh',
-            background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
+            backgroundColor: '#CECDE2',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
@@ -240,12 +262,12 @@ const ContestDetailPage: React.FC = () => {
             style={{
               width: '40px',
               height: '40px',
-              border: '4px solid #e5e7eb',
-              borderTop: '4px solid #1d4ed8',
+              border: '4px solid transparent',
+              borderTop: '4px solid #212529',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
             }}
-          ></div>
+          />
         </div>
       </>
     );
@@ -253,229 +275,219 @@ const ContestDetailPage: React.FC = () => {
 
   if (error) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
-          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-          padding: '32px 16px',
-        }}
-      >
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div 
-            style={{ 
-              padding: '16px 20px',
-              backgroundColor: '#fef2f2',
-              border: '1px solid #fecaca',
-              borderRadius: '12px',
-              color: '#dc2626',
-              fontSize: '0.9rem',
-              fontWeight: 500,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <span><strong>Error:</strong> {error}</span>
+      <>
+        <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+        <div
+          style={{
+            fontFamily: "'Press Start 2P', cursive",
+            backgroundColor: '#CECDE2',
+            backgroundImage: `
+              linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px)
+            `,
+            backgroundSize: '30px 30px',
+            minHeight: '100vh',
+            padding: '32px 16px',
+          }}
+        >
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <div
+              style={{
+                padding: '16px 20px',
+                backgroundColor: '#fef2f2',
+                border: '4px solid #dc2626',
+                color: '#dc2626',
+                fontSize: '0.7rem',
+                lineHeight: '1.6',
+                marginBottom: '16px',
+              }}
+            >
+              Error: {error}
+            </div>
             <button
               onClick={() => window.location.reload()}
               style={{
-                background: 'none',
-                border: 'none',
-                color: '#dc2626',
-                fontWeight: 600,
+                position: 'relative',
+                border: '4px solid #212529',
+                backgroundColor: '#2D58A6',
+                color: 'white',
+                transition: 'all 0.15s ease-in-out',
+                boxShadow: '6px 6px 0px #212529',
+                textShadow: '2px 2px 0px #212529',
+                fontSize: '1rem',
+                padding: '16px 24px',
                 cursor: 'pointer',
-                fontSize: '0.9rem',
-                textDecoration: 'underline',
+                fontFamily: "'Press Start 2P', cursive",
               }}
             >
               Retry
             </button>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   if (!contest) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          flexDirection: 'column',
-        }}
-      >
-        <h2 style={{ marginBottom: '16px', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-          Contest not found
-        </h2>
-        <button 
-          onClick={() => navigate('/admin/contests')}
+      <>
+        <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+        <div
           style={{
-            background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '12px',
-            padding: '12px 20px',
-            fontSize: '1rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            fontFamily: "'Press Start 2P', cursive",
+            backgroundColor: '#CECDE2',
+            backgroundImage: `
+              linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px)
+            `,
+            backgroundSize: '30px 30px',
+            minHeight: '100vh',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            flexDirection: 'column',
           }}
         >
-          Back to Contests
-        </button>
-      </div>
+          <h2 style={{
+            marginBottom: '24px',
+            color: 'white',
+            fontSize: '1.5rem',
+            textShadow: '4px 4px 0px #212529',
+          }}>
+            Contest not found
+          </h2>
+          <button
+            onClick={() => navigate('/admin/contests')}
+            style={{
+              border: '4px solid #212529',
+              backgroundColor: '#2D58A6',
+              color: 'white',
+              boxShadow: '6px 6px 0px #212529',
+              textShadow: '2px 2px 0px #212529',
+              padding: '12px 20px',
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              fontFamily: "'Press Start 2P', cursive",
+            }}
+          >
+            ← Back to Contests
+          </button>
+        </div>
+      </>
     );
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
-        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-        padding: '32px 16px',
-      }}
-    >
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        {/* Breadcrumb */}
-        <Breadcrumb items={breadcrumbItems} />
-
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: '32px',
-            flexWrap: 'wrap',
-            gap: '16px',
-          }}
-        >
-          <div>
-            <h1
-              style={{
-                fontSize: '2rem',
-                fontWeight: 700,
-                color: '#1f2937',
-                margin: '0 0 8px 0',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              }}
-            >
+    <>
+      <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+      <div
+        style={{
+          fontFamily: "'Press Start 2P', cursive",
+          backgroundColor: '#CECDE2',
+          backgroundImage: `
+            linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px)
+          `,
+          backgroundSize: '30px 30px',
+          minHeight: '100vh',
+          padding: '32px 16px',
+        }}
+      >
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          {/* Header */}
+          <div style={{ marginBottom: '32px', textAlign: 'center' }}>
+            <h1 style={{
+              fontSize: 'clamp(1.5rem, 4vw, 3rem)',
+              fontWeight: 'bold',
+              color: 'white',
+              marginBottom: '16px',
+              letterSpacing: '0.05em',
+              textShadow: '4px 4px 0px #212529',
+            }}>
               {contest.contest_name}
             </h1>
-            <p
-              style={{
-                color: '#6b7280',
-                fontSize: '1rem',
-                margin: '0 0 8px 0',
-                fontFamily: 'monospace',
-              }}
-            >
+
+            <h2 style={{
+              fontSize: 'clamp(0.6rem, 2vw, 0.8rem)',
+              color: '#FFD700',
+              marginBottom: '24px',
+              letterSpacing: '0.05em',
+              textShadow: '2px 2px 0px #212529',
+            }}>
               {getContestUrlForContest()}
-            </p>
+            </h2>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => navigate('/admin/contests')}
+                style={{
+                  border: '4px solid #212529',
+                  backgroundColor: '#ffffff',
+                  color: '#212529',
+                  boxShadow: '4px 4px 0px #212529',
+                  fontSize: '0.65rem',
+                  padding: '10px 16px',
+                  cursor: 'pointer',
+                  fontFamily: "'Press Start 2P', cursive",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#e5e7eb';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#ffffff';
+                }}
+              >
+                ← Back
+              </button>
+              <button
+                onClick={() => window.open(getContestUrlForContest(), '_blank')}
+                style={{
+                  border: '4px solid #212529',
+                  backgroundColor: '#2D58A6',
+                  color: 'white',
+                  boxShadow: '4px 4px 0px #212529',
+                  textShadow: '2px 2px 0px #212529',
+                  fontSize: '0.65rem',
+                  padding: '10px 16px',
+                  cursor: 'pointer',
+                  fontFamily: "'Press Start 2P', cursive",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#3B6BBD';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#2D58A6';
+                }}
+              >
+                Preview
+              </button>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => window.open(getContestUrlForContest(), '_blank')}
-              style={{
-                background: '#ffffff',
-                border: '2px solid #1d4ed8',
-                borderRadius: '8px',
-                color: '#1d4ed8',
-                padding: '8px 16px',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#1d4ed8';
-                e.currentTarget.style.color = '#ffffff';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#ffffff';
-                e.currentTarget.style.color = '#1d4ed8';
-              }}
-            >
-              Preview Landing Page
-            </button>
-            <button
-              onClick={() => window.open(`${getContestUrlForContest()}/problems`, '_blank')}
-              style={{
-                background: '#ffffff',
-                border: '2px solid #1d4ed8',
-                borderRadius: '8px',
-                color: '#1d4ed8',
-                padding: '8px 16px',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#1d4ed8';
-                e.currentTarget.style.color = '#ffffff';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#ffffff';
-                e.currentTarget.style.color = '#1d4ed8';
-              }}
-            >
-              Preview Problems Page
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Navigation */}
-        <div
-          style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '12px 12px 0 0',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-          }}
-        >
-          <div style={{ borderBottom: '1px solid #e5e7eb', display: 'flex' }}>
+          {/* Tab Navigation */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '12px',
+              marginBottom: '0',
+              flexWrap: 'wrap',
+            }}
+          >
             <button
               onClick={() => setActiveTab(0)}
               style={{
-                background: activeTab === 0 ? '#1d4ed8' : 'transparent',
-                color: activeTab === 0 ? 'white' : '#374151',
-                border: 'none',
-                padding: '16px 24px',
-                fontSize: '1rem',
-                fontWeight: 600,
+                border: '4px solid #212529',
+                backgroundColor: activeTab === 0 ? '#2D58A6' : '#ffffff',
+                color: activeTab === 0 ? 'white' : '#212529',
+                boxShadow: '4px 4px 0px #212529',
+                textShadow: activeTab === 0 ? '2px 2px 0px #212529' : 'none',
+                fontSize: '0.65rem',
+                padding: '12px 16px',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                minHeight: '64px',
-                borderRadius: activeTab === 0 ? '8px 8px 0 0' : '0',
-              }}
-              onMouseEnter={(e) => {
-                if (activeTab !== 0) {
-                  e.currentTarget.style.background = '#f3f4f6';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== 0) {
-                  e.currentTarget.style.background = 'transparent';
-                }
+                fontFamily: "'Press Start 2P', cursive",
+                flex: 1,
+                minWidth: '120px',
               }}
             >
               Details
@@ -483,30 +495,17 @@ const ContestDetailPage: React.FC = () => {
             <button
               onClick={() => setActiveTab(1)}
               style={{
-                background: activeTab === 1 ? '#1d4ed8' : 'transparent',
-                color: activeTab === 1 ? 'white' : '#374151',
-                border: 'none',
-                padding: '16px 24px',
-                fontSize: '1rem',
-                fontWeight: 600,
+                border: '4px solid #212529',
+                backgroundColor: activeTab === 1 ? '#2D58A6' : '#ffffff',
+                color: activeTab === 1 ? 'white' : '#212529',
+                boxShadow: '4px 4px 0px #212529',
+                textShadow: activeTab === 1 ? '2px 2px 0px #212529' : 'none',
+                fontSize: '0.65rem',
+                padding: '12px 16px',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                minHeight: '64px',
-                borderRadius: activeTab === 1 ? '8px 8px 0 0' : '0',
-              }}
-              onMouseEnter={(e) => {
-                if (activeTab !== 1) {
-                  e.currentTarget.style.background = '#f3f4f6';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== 1) {
-                  e.currentTarget.style.background = 'transparent';
-                }
+                fontFamily: "'Press Start 2P', cursive",
+                flex: 1,
+                minWidth: '120px',
               }}
             >
               Teams ({teams.length})
@@ -514,538 +513,534 @@ const ContestDetailPage: React.FC = () => {
             <button
               onClick={() => setActiveTab(2)}
               style={{
-                background: activeTab === 2 ? '#1d4ed8' : 'transparent',
-                color: activeTab === 2 ? 'white' : '#374151',
-                border: 'none',
-                padding: '16px 24px',
-                fontSize: '1rem',
-                fontWeight: 600,
+                border: '4px solid #212529',
+                backgroundColor: activeTab === 2 ? '#2D58A6' : '#ffffff',
+                color: activeTab === 2 ? 'white' : '#212529',
+                boxShadow: '4px 4px 0px #212529',
+                textShadow: activeTab === 2 ? '2px 2px 0px #212529' : 'none',
+                fontSize: '0.65rem',
+                padding: '12px 16px',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                minHeight: '64px',
-                borderRadius: activeTab === 2 ? '8px 8px 0 0' : '0',
-              }}
-              onMouseEnter={(e) => {
-                if (activeTab !== 2) {
-                  e.currentTarget.style.background = '#f3f4f6';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== 2) {
-                  e.currentTarget.style.background = 'transparent';
-                }
+                fontFamily: "'Press Start 2P', cursive",
+                flex: 1,
+                minWidth: '120px',
               }}
             >
               Problems ({problems.length})
             </button>
-            <button
-              onClick={() => setActiveTab(3)}
-              style={{
-                background: activeTab === 3 ? '#1d4ed8' : 'transparent',
-                color: activeTab === 3 ? 'white' : '#374151',
-                border: 'none',
-                padding: '16px 24px',
-                fontSize: '1rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                minHeight: '64px',
-                borderRadius: activeTab === 3 ? '8px 8px 0 0' : '0',
-              }}
-              onMouseEnter={(e) => {
-                if (activeTab !== 3) {
-                  e.currentTarget.style.background = '#f3f4f6';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== 3) {
-                  e.currentTarget.style.background = 'transparent';
-                }
-              }}
-            >
-              Projects ({projectSubmissions.length})
-            </button>
           </div>
-        </div>
 
-        {/* Tab Content */}
-        <div
-          style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '0 0 12px 12px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-            padding: '32px',
-          }}
-        >
-          {activeTab === 0 && contest && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <h3 style={{ fontWeight: 600, fontSize: '1.25rem', margin: 0, fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                  Contest Details
-                </h3>
-                <button
-                  onClick={handleSaveChanges}
-                  disabled={saving}
-                  style={{
-                    background: saving ? '#6b7280' : 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '12px 20px',
-                    fontSize: '1rem',
-                    fontWeight: 600,
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.2s ease',
-                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
-                >
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
-                <div>
-                  <label style={{
-                    display: 'block',
-                    marginBottom: '8px',
-                    fontWeight: 600,
-                    fontSize: '0.875rem',
-                    color: '#374151',
-                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
-                  }}>
-                    Contest Name
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={contest.contest_name}
-                    onChange={(e) => setContest({ ...contest, contest_name: e.target.value })}
+          {/* Tab Content */}
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              border: '4px solid #212529',
+              borderTop: 'none',
+              boxShadow: '8px 8px 0px #212529',
+              padding: '24px',
+              minHeight: '400px',
+            }}
+          >
+            {activeTab === 0 && contest && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '3px solid #212529' }}>
+                  <h3 style={{ fontWeight: 'bold', fontSize: '0.9rem', margin: 0, color: '#212529' }}>
+                    Contest Details
+                  </h3>
+                  <button
+                    onClick={handleSaveChanges}
+                    disabled={saving}
                     style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '1rem',
-                      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                      transition: 'border-color 0.2s ease',
+                      background: saving ? '#6b7280' : '#2D58A6',
+                      color: 'white',
+                      border: '4px solid #212529',
+                      boxShadow: '4px 4px 0px #212529',
+                      textShadow: '2px 2px 0px #212529',
+                      padding: '10px 16px',
+                      fontSize: '0.65rem',
+                      fontWeight: 'bold',
+                      cursor: saving ? 'not-allowed' : 'pointer',
+                      fontFamily: "'Press Start 2P', cursive",
                     }}
-                  />
+                  >
+                    {saving ? 'Saving...' : 'Save'}
+                  </button>
                 </div>
 
-                <div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      marginBottom: '8px',
+                      fontWeight: 'bold',
+                      fontSize: '0.65rem',
+                      color: '#212529',
+                    }}>
+                      Contest Name
+                    </label>
+                    <input
+                      type="text"
+                      value={contest.contest_name}
+                      onChange={(e) => setContest({ ...contest, contest_name: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        border: '4px solid #212529',
+                        background: '#ffffff',
+                        color: '#212529',
+                        fontSize: '0.7rem',
+                        fontFamily: "'Press Start 2P', cursive",
+                        boxShadow: '4px 4px 0px #212529',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      marginBottom: '8px',
+                      fontWeight: 'bold',
+                      fontSize: '0.65rem',
+                      color: '#212529',
+                    }}>
+                      Registration Code
+                    </label>
+                    <input
+                      type="text"
+                      value={contest.registration_code}
+                      readOnly
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        border: '4px solid #212529',
+                        background: '#e0e7ff',
+                        color: '#2D58A6',
+                        fontSize: '0.8rem',
+                        fontFamily: "'Press Start 2P', cursive",
+                        fontWeight: 'bold',
+                        letterSpacing: '3px',
+                        boxShadow: '4px 4px 0px #212529',
+                      }}
+                    />
+                    <small style={{
+                      display: 'block',
+                      marginTop: '6px',
+                      color: '#6b7280',
+                      fontSize: '0.55rem',
+                    }}>
+                      Teams use this code to register
+                    </small>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '24px' }}>
                   <label style={{
                     display: 'block',
                     marginBottom: '8px',
-                    fontWeight: 600,
-                    fontSize: '0.875rem',
-                    color: '#374151',
-                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                    fontWeight: 'bold',
+                    fontSize: '0.65rem',
+                    color: '#212529',
                   }}>
-                    Registration Code
+                    Contest URL
                   </label>
                   <input
                     type="text"
-                    className="form-control"
-                    value={contest.registration_code}
+                    value={getContestUrlForContest()}
                     readOnly
                     style={{
                       width: '100%',
-                      padding: '12px 16px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '1.1rem',
-                      fontFamily: 'monospace',
-                      fontWeight: 600,
-                      color: '#1d4ed8',
-                      letterSpacing: '1px',
-                      backgroundColor: '#f9fafb',
+                      padding: '12px',
+                      border: '4px solid #212529',
+                      background: '#f3f4f6',
+                      color: '#6b7280',
+                      fontSize: '0.65rem',
+                      fontFamily: "'Press Start 2P', cursive",
+                      boxShadow: '4px 4px 0px #212529',
                     }}
                   />
                   <small style={{
                     display: 'block',
-                    marginTop: '4px',
+                    marginTop: '6px',
                     color: '#6b7280',
-                    fontSize: '0.75rem',
-                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
+                    fontSize: '0.55rem',
                   }}>
-                    Teams use this code to register
+                    Auto-generated from contest name
                   </small>
                 </div>
-              </div>
 
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontWeight: 600,
-                  fontSize: '0.875rem',
-                  color: '#374151',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
-                }}>
-                  Contest URL
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={getContestUrlForContest()}
-                  readOnly
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
-                    fontFamily: 'monospace',
-                    backgroundColor: '#f9fafb',
-                  }}
-                />
-                <small style={{
-                  display: 'block',
-                  marginTop: '4px',
-                  color: '#6b7280',
-                  fontSize: '0.75rem',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
-                }}>
-                  Auto-generated from contest name
-                </small>
-              </div>
-
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontWeight: 600,
-                  fontSize: '0.875rem',
-                  color: '#374151',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif'
-                }}>
-                  Description
-                </label>
-                <textarea
-                  className="form-control"
-                  value={contest.description}
-                  onChange={(e) => setContest({ ...contest, description: e.target.value })}
-                  placeholder="Enter contest description (supports markdown)"
-                  rows={4}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
-                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                    transition: 'border-color 0.2s ease',
-                    resize: 'vertical',
-                  }}
-                />
-                <div style={{ 
-                  marginTop: '12px', 
-                  padding: '12px', 
-                  backgroundColor: '#f8f9fa', 
-                  borderRadius: '8px', 
-                  border: '1px solid #e5e7eb' 
-                }}>
-                  <h4 style={{ marginBottom: '8px', fontWeight: 600, fontSize: '0.875rem', margin: '0 0 8px 0', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                    Preview:
-                  </h4>
-                  <div style={{ color: '#6b7280', fontSize: '0.875rem', lineHeight: '1.5' }}>
-                    <ReactMarkdown>
-                      {contest.description || '*No description provided*'}
-                    </ReactMarkdown>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '1rem', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif', color: '#374151' }}>
-                    Start Time
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontWeight: 'bold',
+                    fontSize: '0.65rem',
+                    color: '#212529',
+                  }}>
+                    Description
                   </label>
-                  <DateTimePicker
-                    value={contest.start_time}
-                    onChange={(value) => setContest({ ...contest, start_time: value })}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '1rem', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif', color: '#374151' }}>
-                    End Time
-                  </label>
-                  <DateTimePicker
-                    value={new Date(new Date(contest.start_time).getTime() + contest.duration * 60000).toISOString()}
-                    onChange={(value) => {
-                      const endTime = new Date(value);
-                      const startTime = new Date(contest.start_time);
-                      const duration = Math.floor((endTime.getTime() - startTime.getTime()) / 60000);
-                      setContest({ ...contest, duration });
+                  <textarea
+                    value={contest.description}
+                    onChange={(e) => setContest({ ...contest, description: e.target.value })}
+                    placeholder="Enter contest description (supports markdown)"
+                    rows={4}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '4px solid #212529',
+                      background: '#ffffff',
+                      color: '#212529',
+                      fontSize: '0.65rem',
+                      fontFamily: "'Press Start 2P', cursive",
+                      resize: 'vertical',
+                      lineHeight: '1.6',
+                      boxShadow: '4px 4px 0px #212529',
                     }}
                   />
+                  <div style={{
+                    marginTop: '12px',
+                    padding: '12px',
+                    background: '#f9fafb',
+                    border: '3px solid #212529'
+                  }}>
+                    <h4 style={{ marginBottom: '8px', fontWeight: 'bold', fontSize: '0.6rem', margin: '0 0 8px 0', color: '#212529' }}>
+                      Preview:
+                    </h4>
+                    <div style={{ color: '#374151', fontSize: '0.65rem', lineHeight: '1.6' }}>
+                      <ReactMarkdown>
+                        {contest.description || '*No description provided*'}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Contest Control Panel */}
+                <div style={{
+                  marginBottom: '24px',
+                  padding: '20px',
+                  border: '4px solid #212529',
+                  background: contest.is_active ? '#dcfce7' : '#fef9c3',
+                  boxShadow: '6px 6px 0px #212529',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                    <div>
+                      <h4 style={{
+                        margin: '0 0 8px 0',
+                        fontSize: '0.75rem',
+                        fontWeight: 'bold',
+                        color: '#212529',
+                      }}>
+                        Contest Status: {contest.is_active ? '🟢 ACTIVE' : '⚪ INACTIVE'}
+                      </h4>
+                      <p style={{
+                        margin: 0,
+                        fontSize: '0.6rem',
+                        lineHeight: '1.6',
+                        color: '#4b5563',
+                      }}>
+                        {contest.is_active
+                          ? 'Contest is running. Teams can submit solutions.'
+                          : 'Contest is not active. Click Start to begin.'}
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      {!contest.is_active ? (
+                        <button
+                          onClick={handleStartContest}
+                          disabled={actionInProgress}
+                          style={{
+                            background: actionInProgress ? '#6b7280' : '#16a34a',
+                            color: 'white',
+                            border: '4px solid #212529',
+                            boxShadow: '4px 4px 0px #212529',
+                            textShadow: '2px 2px 0px #212529',
+                            padding: '12px 20px',
+                            fontSize: '0.7rem',
+                            fontWeight: 'bold',
+                            cursor: actionInProgress ? 'not-allowed' : 'pointer',
+                            fontFamily: "'Press Start 2P', cursive",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!actionInProgress) e.currentTarget.style.backgroundColor = '#15803d';
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!actionInProgress) e.currentTarget.style.backgroundColor = '#16a34a';
+                          }}
+                        >
+                          {actionInProgress ? '⏳ Starting...' : '▶️ Start Contest'}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleEndContest}
+                          disabled={actionInProgress}
+                          style={{
+                            background: actionInProgress ? '#6b7280' : '#dc2626',
+                            color: 'white',
+                            border: '4px solid #212529',
+                            boxShadow: '4px 4px 0px #212529',
+                            textShadow: '2px 2px 0px #212529',
+                            padding: '12px 20px',
+                            fontSize: '0.7rem',
+                            fontWeight: 'bold',
+                            cursor: actionInProgress ? 'not-allowed' : 'pointer',
+                            fontFamily: "'Press Start 2P', cursive",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!actionInProgress) e.currentTarget.style.backgroundColor = '#b91c1c';
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!actionInProgress) e.currentTarget.style.backgroundColor = '#dc2626';
+                          }}
+                        >
+                          {actionInProgress ? '⏳ Ending...' : '⏹️ End Contest'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '0.65rem', color: '#212529' }}>
+                      Start Time (Optional)
+                    </label>
+                    <DateTimePicker
+                      value={contest.start_time}
+                      onChange={(value) => setContest({ ...contest, start_time: value || null })}
+                    />
+                    <small style={{
+                      display: 'block',
+                      marginTop: '6px',
+                      color: '#6b7280',
+                      fontSize: '0.55rem',
+                    }}>
+                      For planning/display only
+                    </small>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '0.65rem', color: '#212529' }}>
+                      End Time
+                    </label>
+                    {contest.start_time && contest.duration ? (
+                      <DateTimePicker
+                        value={new Date(new Date(contest.start_time).getTime() + (contest.duration || 0) * 60000).toISOString()}
+                        onChange={(value) => {
+                          if (!contest.start_time) return;
+                          const endTime = new Date(value);
+                          const startTime = new Date(contest.start_time);
+                          if (Number.isNaN(endTime.getTime()) || Number.isNaN(startTime.getTime())) return;
+                          const duration = Math.max(0, Math.floor((endTime.getTime() - startTime.getTime()) / 60000));
+                          setContest({ ...contest, duration });
+                        }}
+                      />
+                    ) : (
+                      <div style={{
+                        padding: '12px',
+                        border: '3px dashed #212529',
+                        background: '#f9fafb',
+                        fontSize: '0.6rem',
+                        color: '#6b7280'
+                      }}>
+                        Provide a start time and duration to calculate an estimated end time.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
               </div>
+            )}
 
-            </div>
-          )}
+            {activeTab === 1 && (
+              <div>
+                <h3 style={{ fontWeight: 'bold', marginBottom: '24px', fontSize: '0.9rem', margin: '0 0 24px 0', color: '#212529', borderBottom: '3px solid #212529', paddingBottom: '12px' }}>
+                  Registered Teams
+                </h3>
 
-          {activeTab === 1 && (
-            <div>
-              <h3 style={{ fontWeight: 600, marginBottom: '24px', fontSize: '1.25rem', margin: '0 0 24px 0', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                Registered Teams
-              </h3>
-              
-              {teams.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '48px' }}>
-                  <div style={{ fontSize: '64px', color: '#6b7280', marginBottom: '16px' }}>Teams</div>
-                  <h4 style={{ color: '#6b7280', marginBottom: '8px', fontSize: '1.25rem', margin: '0 0 8px 0', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                    No teams registered yet
-                  </h4>
-                  <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0, fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                    Teams will appear here once they register for this contest.
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  {teams.map((team) => (
-                    <div key={team.id} style={{ padding: '16px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                      <div style={{ color: '#1d4ed8', fontSize: '1.2rem', marginTop: '4px' }}>•</div>
-                      <div style={{ flex: 1 }}>
-                        <h4 style={{ fontWeight: 600, fontSize: '1rem', margin: '0 0 8px 0', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                          {team.team_name}
+                {teams.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '48px', border: '3px dashed #212529' }}>
+                    <p style={{ fontSize: '0.7rem', color: '#6b7280', marginBottom: '8px' }}>
+                      No teams registered yet
+                    </p>
+                    <p style={{ fontSize: '0.6rem', color: '#9ca3af', margin: 0 }}>
+                      Teams will appear here once they register for this contest.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {teams.map((team, index) => (
+                      <div
+                        key={team.id}
+                        onClick={() => navigate(`/admin/contests/${contestId}/teams/${team.id}`)}
+                        style={{
+                          padding: '16px',
+                          border: '4px solid #212529',
+                          background: '#ffffff',
+                          boxShadow: '4px 4px 0px #212529',
+                          cursor: 'pointer',
+                          transition: 'transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f0f9ff';
+                          e.currentTarget.style.transform = 'translate(-2px, -2px)';
+                          e.currentTarget.style.boxShadow = '6px 6px 0px #212529';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#ffffff';
+                          e.currentTarget.style.transform = 'translate(0, 0)';
+                          e.currentTarget.style.boxShadow = '4px 4px 0px #212529';
+                        }}
+                      >
+                        <h4 style={{ fontWeight: 'bold', fontSize: '0.75rem', margin: '0 0 12px 0', color: '#212529' }}>
+                          {index + 1}. {team.team_name}
                         </h4>
-                        <div>
-                          <p style={{ marginBottom: '4px', fontSize: '0.875rem', margin: '0 0 4px 0', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                            <strong>Lead:</strong> {team.team_lead_name} ({team.team_lead_email})
-                          </p>
-                          <p style={{ marginBottom: '4px', fontSize: '0.875rem', margin: '0 0 4px 0', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                            <strong>Members:</strong> {team.members_count}
-                          </p>
-                          <p style={{ fontSize: '0.875rem', margin: 0, fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                            <strong>Registered:</strong> {new Date(team.registration_time).toLocaleString()}
-                          </p>
+                        <div style={{ fontSize: '0.6rem', color: '#6b7280', lineHeight: '1.8' }}>
+                          <div>Lead: {team.team_lead_name} ({team.team_lead_email})</div>
+                          <div>Members: {team.members_count}</div>
+                          <div>Registered: {new Date(team.registration_time).toLocaleString()}</div>
+                        </div>
+                        <div style={{ marginTop: '8px', fontSize: '0.55rem', color: '#2D58A6', fontWeight: 'bold' }}>
+                          Click to view submissions →
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 2 && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <h3 style={{ fontWeight: 600, fontSize: '1.25rem', margin: 0, fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                  Contest Problems
-                </h3>
-                <button
-                  onClick={() => setAddProblemModalOpen(true)}
-                  style={{
-                    background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '12px 20px',
-                    fontSize: '1rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                  }}
-                >
-                  Add Problem
-                </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              
-              {problems.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '48px' }}>
-                  <div style={{ fontSize: '64px', color: '#6b7280', marginBottom: '16px', display: 'flex', justifyContent: 'center' }}><MdEdit /></div>
-                  <h4 style={{ color: '#6b7280', marginBottom: '8px', fontSize: '1.25rem', margin: '0 0 8px 0', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                    No problems added yet
-                  </h4>
-                  <p style={{ color: '#6b7280', marginBottom: '24px', fontSize: '0.875rem', margin: '0 0 24px 0', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                    Add problems to this contest to get started.
-                  </p>
+            )}
+
+            {activeTab === 2 && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '3px solid #212529', paddingBottom: '12px' }}>
+                  <h3 style={{ fontWeight: 'bold', fontSize: '0.9rem', margin: 0, color: '#212529' }}>
+                    Contest Problems
+                  </h3>
                   <button
                     onClick={() => setAddProblemModalOpen(true)}
                     style={{
-                      background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+                      background: '#2D58A6',
                       color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '12px 20px',
-                      fontSize: '1rem',
-                      fontWeight: 600,
+                      border: '4px solid #212529',
+                      boxShadow: '4px 4px 0px #212529',
+                      textShadow: '2px 2px 0px #212529',
+                      padding: '10px 16px',
+                      fontSize: '0.65rem',
+                      fontWeight: 'bold',
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                      fontFamily: "'Press Start 2P', cursive",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#3B6BBD';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#2D58A6';
                     }}
                   >
-                    Add First Problem
+                    + Add Problem
                   </button>
                 </div>
-              ) : (
-                <div>
-                  {problems.map((problem) => (
-                    <div 
-                      key={problem.id}
-                      onClick={() => navigate(`/admin/problems/${problem.id}`)}
-                      style={{ 
-                        padding: '16px', 
-                        borderBottom: '1px solid #e5e7eb',
+
+                {problems.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '48px', border: '3px dashed #212529' }}>
+                    <p style={{ fontSize: '0.7rem', color: '#6b7280', marginBottom: '24px' }}>
+                      No problems added yet
+                    </p>
+                    <button
+                      onClick={() => setAddProblemModalOpen(true)}
+                      style={{
+                        background: '#2D58A6',
+                        color: 'white',
+                        border: '4px solid #212529',
+                        boxShadow: '6px 6px 0px #212529',
+                        textShadow: '2px 2px 0px #212529',
+                        padding: '12px 24px',
+                        fontSize: '0.75rem',
+                        fontWeight: 'bold',
                         cursor: 'pointer',
-                        transition: 'background-color 0.2s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#f8fafc';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
+                        fontFamily: "'Press Start 2P', cursive",
                       }}
                     >
-                      <div style={{ color: '#1d4ed8', fontSize: '1.2rem' }}>•</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <h4 style={{ fontWeight: 600, fontSize: '1rem', margin: 0, fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
+                      + Add First Problem
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {problems.map((problem) => (
+                      <div
+                        key={problem.id}
+                        onClick={() => navigate(`/admin/problems/${problem.id}`)}
+                        style={{
+                          padding: '16px',
+                          border: '4px solid #212529',
+                          background: '#ffffff',
+                          cursor: 'pointer',
+                          boxShadow: '4px 4px 0px #212529',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f0f9ff';
+                          e.currentTarget.style.transform = 'translate(-2px, -2px)';
+                          e.currentTarget.style.boxShadow = '6px 6px 0px #212529';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#ffffff';
+                          e.currentTarget.style.transform = 'translate(0, 0)';
+                          e.currentTarget.style.boxShadow = '4px 4px 0px #212529';
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between' }}>
+                          <h4 style={{ fontWeight: 'bold', fontSize: '0.75rem', margin: 0, color: '#212529' }}>
                             {problem.order_in_contest}. {problem.title}
                           </h4>
-                          <span
-                            style={{
-                              backgroundColor: getDifficultyColor(problem.difficulty) + '20',
-                              color: getDifficultyColor(problem.difficulty),
-                              fontSize: '0.75rem',
-                              fontWeight: 600,
-                              textTransform: 'capitalize',
-                              padding: '4px 8px',
-                              borderRadius: '4px',
-                            }}
-                          >
-                            {problem.difficulty}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span
+                              style={{
+                                backgroundColor: getDifficultyColor(problem.difficulty) + '40',
+                                color: getDifficultyColor(problem.difficulty),
+                                fontSize: '0.6rem',
+                                fontWeight: 'bold',
+                                textTransform: 'uppercase',
+                                padding: '4px 8px',
+                                border: '2px solid ' + getDifficultyColor(problem.difficulty),
+                              }}
+                            >
+                              {problem.difficulty}
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent navigation
+                                handleDeleteProblem(problem.id, problem.title);
+                              }}
+                              style={{
+                                background: '#dc2626',
+                                color: 'white',
+                                border: '3px solid #212529',
+                                boxShadow: '3px 3px 0px #212529',
+                                textShadow: '1px 1px 0px #212529',
+                                padding: '4px 8px',
+                                fontSize: '0.6rem',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                fontFamily: "'Press Start 2P', cursive",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#b91c1c';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '#dc2626';
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
-          {activeTab === 3 && (
-            <div>
-              <h3 style={{ fontWeight: 600, marginBottom: '24px', fontSize: '1.25rem', margin: '0 0 24px 0', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                Project Submissions
-              </h3>
-              
-              {projectSubmissions.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '48px' }}>
-                  <div style={{ fontSize: '64px', color: '#6b7280', marginBottom: '16px' }}>📁</div>
-                  <h4 style={{ color: '#6b7280', marginBottom: '8px', fontSize: '1.25rem', margin: '0 0 8px 0', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                    No project submissions yet
-                  </h4>
-                  <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0, fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                    Teams will be able to submit their project files here during the hackathon.
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  {projectSubmissions.map((submission) => (
-                    <div 
-                      key={submission.id}
-                      style={{ 
-                        padding: '20px', 
-                        borderBottom: '1px solid #e5e7eb',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '16px',
-                        transition: 'background-color 0.2s ease',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#f8fafc';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                      }}
-                    >
-                      <div style={{ color: '#1d4ed8', fontSize: '1.5rem', marginTop: '4px' }}>Details</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
-                          <div>
-                            <h4 style={{ fontWeight: 600, fontSize: '1.1rem', margin: '0 0 4px 0', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif', color: '#1f2937' }}>
-                              {submission.project_title}
-                            </h4>
-                            <p style={{ fontWeight: 500, fontSize: '0.9rem', margin: '0 0 8px 0', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif', color: '#1d4ed8' }}>
-                              Team: {submission.team_name}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => handleDownloadProject(submission.id, submission.original_filename)}
-                            style={{
-                              background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '8px',
-                              padding: '8px 16px',
-                              fontSize: '0.875rem',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease',
-                              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.transform = 'translateY(-1px)';
-                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(29, 78, 216, 0.3)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.transform = 'translateY(0)';
-                              e.currentTarget.style.boxShadow = 'none';
-                            }}
-                          >
-                            Download
-                          </button>
-                        </div>
-                        
-                        {submission.project_description && (
-                          <div style={{ marginBottom: '12px' }}>
-                            <p style={{ fontSize: '0.9rem', margin: 0, fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif', color: '#4b5563', lineHeight: '1.5' }}>
-                              {submission.project_description}
-                            </p>
-                          </div>
-                        )}
-                        
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '0.875rem', color: '#6b7280' }}>
-                          <span style={{ fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                            <strong>File:</strong> {submission.original_filename}
-                          </span>
-                          <span style={{ fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                            <strong>Size:</strong> {(submission.file_size / (1024 * 1024)).toFixed(2)} MB
-                          </span>
-                          <span style={{ fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                            <strong>Submitted:</strong> {new Date(submission.submitted_at).toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Add Problem Modal */}
@@ -1056,7 +1051,7 @@ const ContestDetailPage: React.FC = () => {
           onProblemAdded={handleProblemAdded}
         />
       </div>
-    </div>
+    </>
   );
 };
 

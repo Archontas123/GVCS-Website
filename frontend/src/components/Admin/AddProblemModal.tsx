@@ -53,7 +53,7 @@ const AddProblemModal: React.FC<AddProblemModalProps> = ({
     try {
       setLoading(true);
       setError(null);
-      
+
       const result = await apiService.getAdminProblems();
       if (result.success && result.data) {
         setProblems(result.data);
@@ -72,7 +72,7 @@ const AddProblemModal: React.FC<AddProblemModalProps> = ({
     try {
       setCopyingId(problemId);
       setError(null);
-      
+
       const result = await apiService.copyProblemToContest(contestId, problemId);
       if (result.success) {
         onProblemAdded();
@@ -95,9 +95,9 @@ const AddProblemModal: React.FC<AddProblemModalProps> = ({
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'easy': return '#10b981';
-      case 'hard': return '#ef4444';
-      default: return '#f59e0b';
+      case 'easy': return '#28a745';
+      case 'hard': return '#dc3545';
+      default: return '#ffc107';
     }
   };
 
@@ -110,181 +110,228 @@ const AddProblemModal: React.FC<AddProblemModalProps> = ({
   if (!open) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    }}>
+    <>
+      <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
       <div style={{
-        backgroundColor: 'white',
-        borderRadius: '16px',
-        minHeight: '600px',
-        width: '90%',
-        maxWidth: '800px',
-        maxHeight: '90vh',
-        overflow: 'hidden',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
         display: 'flex',
-        flexDirection: 'column'
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        fontFamily: "'Press Start 2P', cursive"
       }}>
         <div style={{
+          backgroundColor: '#ffffff',
+          border: '4px solid #212529',
+          boxShadow: '8px 8px 0px #212529',
+          minHeight: '600px',
+          width: '90%',
+          maxWidth: '800px',
+          maxHeight: '90vh',
+          overflow: 'hidden',
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '16px 24px',
-          borderBottom: '1px solid #e5e7eb'
+          flexDirection: 'column'
         }}>
-          <h2 style={{ margin: 0, fontWeight: 600 }}>
-            Add Problem to Contest
-          </h2>
-          <button
-            onClick={handleClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '24px',
-              cursor: 'pointer',
-              color: '#6b7280'
-            }}
-          >
-            ×
-          </button>
-        </div>
-
-        <div style={{ padding: '16px 24px', flex: 1, overflow: 'auto' }}>
-          {error && (
-            <div style={{
-              backgroundColor: '#fef2f2',
-              border: '1px solid #fecaca',
-              borderRadius: '8px',
-              padding: '12px',
-              marginBottom: '16px',
-              color: '#dc2626',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '16px 24px',
+            borderBottom: '3px solid #212529',
+            backgroundColor: '#2D58A6'
+          }}>
+            <h2 style={{
+              margin: 0,
+              fontWeight: 'bold',
+              fontSize: '0.9rem',
+              color: 'white',
+              textShadow: '2px 2px 0px #212529'
             }}>
-              <span>{error}</span>
-              <button
-                onClick={() => setError(null)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '16px',
-                  cursor: 'pointer',
-                  color: '#dc2626'
-                }}
-              >
-                ×
-              </button>
-            </div>
-          )}
+              Add Problem
+            </h2>
+            <button
+              onClick={handleClose}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer',
+                color: 'white',
+                lineHeight: 1
+              }}
+            >
+              ×
+            </button>
+          </div>
 
-          <input
-            type="text"
-            placeholder="Search problems by title or contest name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              marginBottom: '16px',
-              fontSize: '14px',
-              boxSizing: 'border-box'
-            }}
-          />
-
-          <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#6b7280' }}>
-            Select an existing problem to add to this contest:
-          </p>
-
-          {loading ? (
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              minHeight: '300px'
-            }}>
+          {/* Content */}
+          <div style={{ padding: '16px 24px', flex: 1, overflow: 'auto' }}>
+            {error && (
               <div style={{
-                border: '3px solid #f3f4f6',
-                borderTop: '3px solid #3b82f6',
-                borderRadius: '50%',
-                width: '32px',
-                height: '32px',
-                animation: 'spin 1s linear infinite'
-              }}></div>
-            </div>
-          ) : filteredProblems.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px 16px' }}>
-              <p style={{ color: '#6b7280', marginBottom: '16px' }}>
-                {searchTerm.trim() !== '' ? 'No problems found matching your search.' : 'No problems available.'}
-              </p>
-              <button
-                onClick={handleCreateNew}
-                style={{
-                  backgroundColor: 'transparent',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  padding: '8px 16px',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}
-              >
-                Create New Problem
-              </button>
-            </div>
-          ) : (
-            <div style={{ maxHeight: '400px', overflow: 'auto' }}>
-              {filteredProblems.map((problem, index) => (
-                <div key={problem.id}>
+                backgroundColor: '#fef2f2',
+                border: '4px solid #dc2626',
+                padding: '12px',
+                marginBottom: '16px',
+                color: '#dc2626',
+                fontSize: '0.65rem',
+                lineHeight: '1.6',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span>{error}</span>
+                <button
+                  onClick={() => setError(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '16px',
+                    cursor: 'pointer',
+                    color: '#dc2626'
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            <input
+              type="text"
+              placeholder="Search problems..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                border: '4px solid #212529',
+                marginBottom: '16px',
+                fontSize: '0.65rem',
+                boxSizing: 'border-box',
+                fontFamily: "'Press Start 2P', cursive",
+                boxShadow: '4px 4px 0px #212529'
+              }}
+            />
+
+            <p style={{ margin: '0 0 16px 0', fontSize: '0.6rem', color: '#6b7280', lineHeight: '1.6' }}>
+              Select an existing problem to add to this contest:
+            </p>
+
+            {loading ? (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '300px'
+              }}>
+                <div style={{
+                  border: '4px solid transparent',
+                  borderTop: '4px solid #212529',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  animation: 'spin 1s linear infinite'
+                }}></div>
+              </div>
+            ) : filteredProblems.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px 16px', border: '3px dashed #212529' }}>
+                <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '0.65rem', lineHeight: '1.6' }}>
+                  {searchTerm.trim() !== '' ? 'No problems found matching your search.' : 'No problems available.'}
+                </p>
+                <button
+                  onClick={handleCreateNew}
+                  style={{
+                    backgroundColor: '#2D58A6',
+                    color: 'white',
+                    border: '4px solid #212529',
+                    boxShadow: '4px 4px 0px #212529',
+                    textShadow: '2px 2px 0px #212529',
+                    padding: '10px 16px',
+                    cursor: 'pointer',
+                    fontSize: '0.65rem',
+                    fontFamily: "'Press Start 2P', cursive"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#3B6BBD';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#2D58A6';
+                  }}
+                >
+                  Create New Problem
+                </button>
+              </div>
+            ) : (
+              <div style={{ maxHeight: '400px', overflow: 'auto' }}>
+                {filteredProblems.map((problem) => (
                   <div
+                    key={problem.id}
                     style={{
                       padding: '12px',
-                      borderRadius: '8px',
-                      marginBottom: '8px',
+                      marginBottom: '12px',
                       cursor: copyingId === problem.id ? 'not-allowed' : 'pointer',
-                      backgroundColor: 'rgba(0, 0, 0, 0.02)',
-                      border: '1px solid #f3f4f6',
+                      backgroundColor: '#ffffff',
+                      border: '4px solid #212529',
+                      boxShadow: '4px 4px 0px #212529',
                       opacity: copyingId === problem.id ? 0.6 : 1,
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center'
                     }}
                     onClick={() => copyingId !== problem.id && handleCopyProblem(problem.id)}
+                    onMouseEnter={(e) => {
+                      if (copyingId !== problem.id) {
+                        e.currentTarget.style.backgroundColor = '#f0f9ff';
+                        e.currentTarget.style.transform = 'translate(-2px, -2px)';
+                        e.currentTarget.style.boxShadow = '6px 6px 0px #212529';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (copyingId !== problem.id) {
+                        e.currentTarget.style.backgroundColor = '#ffffff';
+                        e.currentTarget.style.transform = 'translate(0, 0)';
+                        e.currentTarget.style.boxShadow = '4px 4px 0px #212529';
+                      }
+                    }}
                   >
                     <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ fontWeight: 500 }}>{problem.title}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 'bold', fontSize: '0.7rem' }}>{problem.title}</span>
                         <span
                           style={{
-                            backgroundColor: getDifficultyColor(problem.difficulty),
-                            color: 'white',
-                            fontSize: '12px',
-                            padding: '2px 8px',
-                            borderRadius: '12px',
-                            textTransform: 'capitalize'
+                            backgroundColor: getDifficultyColor(problem.difficulty) + '40',
+                            color: getDifficultyColor(problem.difficulty),
+                            fontSize: '0.55rem',
+                            padding: '4px 8px',
+                            border: '2px solid ' + getDifficultyColor(problem.difficulty),
+                            textTransform: 'uppercase'
                           }}
                         >
                           {problem.difficulty}
                         </span>
                       </div>
-                      <div style={{ fontSize: '14px', color: '#6b7280' }}>
+                      <div style={{ fontSize: '0.6rem', color: '#6b7280' }}>
                         From: {problem.contest_name}
                       </div>
                     </div>
                     <div>
                       {copyingId === problem.id ? (
                         <div style={{
-                          border: '2px solid #f3f4f6',
-                          borderTop: '2px solid #3b82f6',
+                          border: '3px solid transparent',
+                          borderTop: '3px solid #212529',
                           borderRadius: '50%',
                           width: '20px',
                           height: '20px',
@@ -297,13 +344,21 @@ const AddProblemModal: React.FC<AddProblemModalProps> = ({
                             handleCopyProblem(problem.id);
                           }}
                           style={{
-                            backgroundColor: '#3b82f6',
+                            backgroundColor: '#2D58A6',
                             color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '6px 12px',
+                            border: '3px solid #212529',
+                            boxShadow: '3px 3px 0px #212529',
+                            textShadow: '1px 1px 0px #212529',
+                            padding: '8px 12px',
                             cursor: 'pointer',
-                            fontSize: '14px'
+                            fontSize: '0.6rem',
+                            fontFamily: "'Press Start 2P', cursive"
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#3B6BBD';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#2D58A6';
                           }}
                         >
                           Add
@@ -311,61 +366,66 @@ const AddProblemModal: React.FC<AddProblemModalProps> = ({
                       )}
                     </div>
                   </div>
-                  {index < filteredProblems.length - 1 && (
-                    <hr style={{ border: 'none', borderTop: '1px solid #f3f4f6', margin: '8px 0' }} />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-        <div style={{
-          padding: '16px 24px',
-          borderTop: '1px solid #e5e7eb',
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '8px'
-        }}>
-          <button
-            onClick={handleClose}
-            style={{
-              backgroundColor: 'transparent',
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              padding: '8px 16px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleCreateNew}
-            style={{
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '8px 16px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            Create New Problem
-          </button>
+          {/* Footer */}
+          <div style={{
+            padding: '16px 24px',
+            borderTop: '3px solid #212529',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '12px'
+          }}>
+            <button
+              onClick={handleClose}
+              style={{
+                backgroundColor: '#ffffff',
+                color: '#212529',
+                border: '4px solid #212529',
+                boxShadow: '4px 4px 0px #212529',
+                padding: '10px 16px',
+                cursor: 'pointer',
+                fontSize: '0.65rem',
+                fontFamily: "'Press Start 2P', cursive"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e5e7eb';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#ffffff';
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreateNew}
+              style={{
+                backgroundColor: '#2D58A6',
+                color: 'white',
+                border: '4px solid #212529',
+                boxShadow: '4px 4px 0px #212529',
+                textShadow: '2px 2px 0px #212529',
+                padding: '10px 16px',
+                cursor: 'pointer',
+                fontSize: '0.65rem',
+                fontFamily: "'Press Start 2P', cursive"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#3B6BBD';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#2D58A6';
+              }}
+            >
+              Create New Problem
+            </button>
+          </div>
         </div>
-
-        <style>
-          {`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `}
-        </style>
       </div>
-    </div>
+    </>
   );
 };
 

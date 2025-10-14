@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(find:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(npm install:*)",
+      "Bash(npx playwright:*)",
+      "Bash(node:*)",
+      "Bash(netstat:*)",
+      "Bash(if [ ! -f \".github/workflows/ci.yml\" ])",
+      "Bash(then echo \"File does not exist\")",
+      "Bash(fi)"
     ],
     "deny": [],
     "ask": [],

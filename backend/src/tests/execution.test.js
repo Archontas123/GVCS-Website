@@ -4,7 +4,7 @@
  */
 
 const request = require('supertest');
-const app = require('../server');
+const { app } = require('../server');
 const DockerExecutor = require('../services/dockerExecutor');
 
 describe('Phase 1.3: Docker Code Execution Environment', () => {

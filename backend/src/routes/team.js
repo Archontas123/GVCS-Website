@@ -20,7 +20,45 @@ const { db } = require('../utils/db');
 const { generateToken, generateSessionToken } = require('../utils/auth');
 const { validate, teamRegistrationSchema, teamLoginSchema } = require('../utils/validation');
 const { authenticateTeam } = require('../middleware/auth');
+const Contest = require('../controllers/contestController');
 
+/**
+ * Transform problem object from snake_case to camelCase for frontend consumption
+ * @param {Object} problem - Problem object with snake_case fields
+ * @returns {Object} Problem object with camelCase fields
+ */
+const transformProblemToFrontend = (problem) => {
+  return {
+    id: problem.id,
+    contestId: problem.contest_id,
+    contest_id: problem.contest_id, // Also include snake_case for compatibility
+    problemLetter: problem.problem_letter,
+    title: problem.title,
+    description: problem.description,
+    inputFormat: problem.input_format,
+    outputFormat: problem.output_format,
+    sampleInput: problem.sample_input,
+    sampleOutput: problem.sample_output,
+    constraints: problem.constraints,
+    timeLimit: problem.time_limit,
+    memoryLimit: problem.memory_limit,
+    difficulty: problem.difficulty,
+    // LeetCode-style fields
+    uses_leetcode_style: problem.uses_leetcode_style,
+    function_signature_cpp: problem.function_signature_cpp,
+    function_signature_java: problem.function_signature_java,
+    function_signature_python: problem.function_signature_python,
+    function_name: problem.function_name,
+    function_parameters: problem.function_parameters,
+    return_type: problem.return_type,
+    // Additional fields that might be present
+    attemptCount: problem.attempt_count,
+    isSolved: problem.is_solved,
+    solvedAt: problem.solved_at,
+    firstSubmission: problem.first_submission,
+    sampleTestCases: problem.sample_test_cases
+  };
+};
 
 /**
  * @route POST /api/team/register
@@ -97,13 +135,13 @@ const { authenticateTeam } = require('../middleware/auth');
  */
 router.post('/register', validate(teamRegistrationSchema), async (req, res, next) => {
   try {
-    const { teamName, contestCode, password, schoolName, memberNames } = req.body;
-    
+    const { teamName, contestCode, password, schoolName, members } = req.body;
+
     const contest = await db('contests')
       .where({ registration_code: contestCode })
       .andWhere({ is_active: true })
       .first();
-    
+
     if (!contest) {
       return res.status(400).json({
         success: false,
@@ -111,13 +149,13 @@ router.post('/register', validate(teamRegistrationSchema), async (req, res, next
         error: 'INVALID_CONTEST_CODE'
       });
     }
-    
-    
+
+
     const existingTeam = await db('teams')
       .where({ team_name: teamName })
       .andWhere({ contest_code: contestCode })
       .first();
-    
+
     if (existingTeam) {
       return res.status(409).json({
         success: false,
@@ -125,35 +163,46 @@ router.post('/register', validate(teamRegistrationSchema), async (req, res, next
         error: 'DUPLICATE_TEAM_NAME'
       });
     }
-    
+
     // Hash the password
     const bcrypt = require('bcrypt');
     const passwordHash = await bcrypt.hash(password, 10);
-    
+
     const sessionToken = generateSessionToken();
-    
+
+    // Build team insert object with member data
+    const teamData = {
+      team_name: teamName,
+      contest_code: contestCode,
+      password_hash: passwordHash,
+      school_name: schoolName,
+      session_token: sessionToken,
+      registered_at: db.fn.now(),
+      last_activity: db.fn.now(),
+      is_active: true
+    };
+
+    // Add member first and last names
+    if (members && members.length > 0) {
+      members.forEach((member, index) => {
+        if (index < 3) { // Only support up to 3 members
+          const memberNum = index + 1;
+          teamData[`member${memberNum}_first_name`] = member.firstName || '';
+          teamData[`member${memberNum}_last_name`] = member.lastName || '';
+        }
+      });
+      // Store as JSON for backward compatibility
+      teamData.member_names = JSON.stringify(members.map(m => m.lastName));
+    }
+
     const [teamResult] = await db('teams')
-      .insert({
-        team_name: teamName,
-        contest_code: contestCode,
-        password_hash: passwordHash,
-        school_name: schoolName,
-        member_names: JSON.stringify(memberNames),
-        session_token: sessionToken,
-        registered_at: db.fn.now(),
-        last_activity: db.fn.now(),
-        is_active: true
-      })
+      .insert(teamData)
       .returning('id');
-    
+
     const teamId = teamResult.id;
-    
-    await db('team_contests').insert({
-      team_id: teamId,
-      contest_id: contest.id,
-      registered_at: db.fn.now()
-    });
-    
+
+    // Team is already linked to contest via contest_code, no need for team_contests table
+
     await db('contest_results').insert({
       contest_id: contest.id,
       team_id: teamId,
@@ -179,7 +228,7 @@ router.post('/register', validate(teamRegistrationSchema), async (req, res, next
         contestCode: contestCode,
         contestName: contest.contest_name,
         schoolName: schoolName,
-        memberNames: memberNames,
+        members: members,
         token: jwtToken,
         registeredAt: new Date().toISOString()
       }
@@ -193,7 +242,7 @@ router.post('/register', validate(teamRegistrationSchema), async (req, res, next
         error: 'DUPLICATE_TEAM_NAME'
       });
     }
-    
+
     const dbError = new Error('Registration failed');
     dbError.name = 'DatabaseError';
     next(dbError);
@@ -447,23 +496,15 @@ router.get('/status', authenticateTeam, async (req, res, next) => {
       })
       .first();
     
-    const now = new Date();
-    const startTime = new Date(contest.start_time);
-    const endTime = new Date(startTime.getTime() + (contest.duration * 60 * 1000));
+    const statusSnapshot = Contest.getContestStatus(contest);
     
-    let contestStatus = 'not_started';
-    let timeRemaining = null;
-    let timeUntilStart = null;
-    
-    if (now < startTime) {
-      contestStatus = 'not_started';
-      timeUntilStart = Math.max(0, startTime.getTime() - now.getTime());
-    } else if (now >= startTime && now < endTime) {
-      contestStatus = 'running';
-      timeRemaining = Math.max(0, endTime.getTime() - now.getTime());
-    } else {
-      contestStatus = 'ended';
-    }
+    const contestStatus = statusSnapshot.status;
+    const timeRemaining = statusSnapshot.time_remaining_seconds !== null
+      ? statusSnapshot.time_remaining_seconds
+      : null;
+    const timeUntilStart = statusSnapshot.time_until_start_seconds !== null
+      ? statusSnapshot.time_until_start_seconds
+      : null;
     
     const submissionCount = await db('submissions')
       .where({ team_id: team.id })
@@ -475,20 +516,26 @@ router.get('/status', authenticateTeam, async (req, res, next) => {
       data: {
         team: {
           id: team.id,
+          teamName: team.name,
           name: team.name,
+          contestCode: team.contestCode,
           registeredAt: team.registeredAt,
-          lastActivity: team.lastActivity
+          lastActivity: team.lastActivity,
+          sessionToken: team.sessionToken,
+          isActive: team.isActive
         },
         contest: {
           id: contest.id,
           name: contest.contest_name,
           code: team.contestCode,
           status: contestStatus,
-          startTime: contest.start_time,
+          startTime: statusSnapshot.start_time,
           duration: contest.duration,
           timeUntilStart,
           timeRemaining,
-          freezeTime: contest.freeze_time
+          freezeTime: contest.freeze_time,
+          manualControl: statusSnapshot.manual_control,
+          isFrozen: statusSnapshot.is_frozen
         },
         results: {
           problemsSolved: contestResults?.problems_solved || 0,
@@ -644,7 +691,6 @@ router.post('/logout', authenticateTeam, async (req, res, next) => {
  * }
  */
 router.get('/contest/problems', authenticateTeam, async (req, res, next) => {
-router.get('/contest/problems', authenticateTeam, async (req, res, next) => {
   try {
     const Problem = require('../controllers/problemController');
     
@@ -659,11 +705,9 @@ router.get('/contest/problems', authenticateTeam, async (req, res, next) => {
       });
     }
     
-    // Check if contest has started
-    const now = new Date();
-    const startTime = new Date(contest.start_time);
+    const statusSnapshot = Contest.getContestStatus(contest);
     
-    if (now < startTime) {
+    if (['not_started', 'pending_manual'].includes(statusSnapshot.status)) {
       return res.status(403).json({
         success: false,
         message: 'Contest has not started yet'
@@ -681,21 +725,35 @@ router.get('/contest/problems', authenticateTeam, async (req, res, next) => {
     // Add sample test cases for each problem
     const problemsWithSamples = await Promise.all(
       problems.map(async (problem) => {
-        const sampleTestCases = await db('test_cases')
-          .select('input', 'expected_output')
+        let sampleTestCases = await db('test_cases')
+          .select('input_parameters', 'expected_return', 'test_case_name', 'explanation')
           .where('problem_id', problem.id)
           .where('is_sample', true);
-        
+
+        // Normalize JSON formatting for consistent display
+        sampleTestCases = sampleTestCases.map(tc => ({
+          ...tc,
+          input_parameters: typeof tc.input_parameters === 'string'
+            ? JSON.stringify(JSON.parse(tc.input_parameters))
+            : JSON.stringify(tc.input_parameters),
+          expected_return: typeof tc.expected_return === 'string'
+            ? JSON.stringify(JSON.parse(tc.expected_return))
+            : JSON.stringify(tc.expected_return)
+        }));
+
         return {
           ...problem,
           sample_test_cases: sampleTestCases
         };
       })
     );
-    
+
+    // Transform to camelCase for frontend
+    const transformedProblems = problemsWithSamples.map(transformProblemToFrontend);
+
     res.json({
       success: true,
-      data: problemsWithSamples,
+      data: transformedProblems,
       message: 'Contest problems retrieved successfully'
     });
     
@@ -792,7 +850,6 @@ router.get('/contest/problems', authenticateTeam, async (req, res, next) => {
  * }
  */
 router.get('/problems/:id', authenticateTeam, async (req, res, next) => {
-router.get('/problems/:id', authenticateTeam, async (req, res, next) => {
   try {
     const problemId = parseInt(req.params.id);
     
@@ -808,10 +865,9 @@ router.get('/problems/:id', authenticateTeam, async (req, res, next) => {
     }
     
     // Check if contest has started
-    const now = new Date();
-    const startTime = new Date(contest.start_time);
+    const statusSnapshot = Contest.getContestStatus(contest);
     
-    if (now < startTime) {
+    if (['not_started', 'pending_manual'].includes(statusSnapshot.status)) {
       return res.status(403).json({
         success: false,
         message: 'Contest has not started yet'
@@ -820,9 +876,11 @@ router.get('/problems/:id', authenticateTeam, async (req, res, next) => {
     
     // Get problem (ensure it belongs to the team's contest)
     const problem = await db('problems')
-      .select('id', 'problem_letter', 'title', 'description', 'input_format', 
+      .select('id', 'contest_id', 'problem_letter', 'title', 'description', 'input_format',
               'output_format', 'sample_input', 'sample_output', 'constraints',
-              'time_limit', 'memory_limit', 'difficulty')
+              'time_limit', 'memory_limit', 'difficulty', 'uses_leetcode_style',
+              'function_signature_cpp', 'function_signature_java', 'function_signature_python',
+              'function_name', 'function_parameters', 'return_type')
       .where('id', problemId)
       .where('contest_id', contest.id)
       .first();
@@ -835,31 +893,47 @@ router.get('/problems/:id', authenticateTeam, async (req, res, next) => {
     }
     
     // Get sample test cases
-    const sampleTestCases = await db('test_cases')
-      .select('input', 'expected_output')
+    let sampleTestCases = await db('test_cases')
+      .select('input_parameters', 'expected_return', 'test_case_name', 'explanation')
       .where('problem_id', problemId)
       .where('is_sample', true);
-    
+
+    // Normalize JSON formatting for consistent display
+    sampleTestCases = sampleTestCases.map(tc => ({
+      ...tc,
+      input_parameters: typeof tc.input_parameters === 'string'
+        ? JSON.stringify(JSON.parse(tc.input_parameters))  // Re-stringify without spacing
+        : JSON.stringify(tc.input_parameters),
+      expected_return: typeof tc.expected_return === 'string'
+        ? JSON.stringify(JSON.parse(tc.expected_return))  // Re-stringify without spacing
+        : JSON.stringify(tc.expected_return)
+    }));
+
     // Get team's submission statistics for this problem
     const submissionStats = await db('submissions')
       .select('status')
       .where('team_id', req.team.id)
       .where('problem_id', problemId)
-      .orderBy('submission_time', 'desc');
+      .orderBy('submitted_at', 'desc');
     
     const totalAttempts = submissionStats.length;
     const hasAccepted = submissionStats.some(s => s.status === 'accepted');
     const latestStatus = submissionStats.length > 0 ? submissionStats[0].status : null;
-    
+
+    // Transform problem to camelCase for frontend
+    const transformedProblem = transformProblemToFrontend({
+      ...problem,
+      sample_test_cases: sampleTestCases
+    });
+
     res.json({
       success: true,
       data: {
-        ...problem,
-        sample_test_cases: sampleTestCases,
-        team_statistics: {
-          total_attempts: totalAttempts,
-          has_solved: hasAccepted,
-          latest_status: latestStatus
+        ...transformedProblem,
+        teamStatistics: {
+          totalAttempts: totalAttempts,
+          hasSolved: hasAccepted,
+          latestStatus: latestStatus
         }
       },
       message: 'Problem details retrieved successfully'
@@ -872,3 +946,4 @@ router.get('/problems/:id', authenticateTeam, async (req, res, next) => {
 
 
 module.exports = router;
+ 

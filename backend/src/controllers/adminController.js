@@ -117,8 +117,18 @@ class Admin {
    */
   static verifyToken(token) {
     try {
-      return jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      console.log('🔐 Verifying token with secret:', process.env.JWT_SECRET ? '[REDACTED]' : 'default-key');
+      console.log('🔐 Token length:', token ? token.length : 'null');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      console.log('✅ Token verification successful for user:', decoded.username);
+      return decoded;
     } catch (error) {
+      console.error('❌ Token verification failed:', error.message);
+      console.error('❌ Token details:', {
+        tokenProvided: !!token,
+        secretUsed: process.env.JWT_SECRET ? '[REDACTED]' : 'default-key',
+        errorType: error.name
+      });
       throw new AuthenticationError('Invalid or expired token');
     }
   }
@@ -137,12 +147,12 @@ class Admin {
   static async create(adminData) {
     this.validateRegistrationData(adminData);
 
-    const existingUsername = await db('admins').where('username', adminData.username.trim()).first();
+    const existingUsername = await db('admin_users').where('username', adminData.username.trim()).first();
     if (existingUsername) {
       throw new ConflictError('Username already exists');
     }
 
-    const existingEmail = await db('admins').where('email', adminData.email.trim().toLowerCase()).first();
+    const existingEmail = await db('admin_users').where('email', adminData.email.trim().toLowerCase()).first();
     if (existingEmail) {
       throw new ConflictError('Email already registered');
     }
@@ -150,7 +160,7 @@ class Admin {
     try {
       const hashedPassword = await this.hashPassword(adminData.password);
 
-      const [result] = await db('admins').insert({
+      const [result] = await db('admin_users').insert({
         username: adminData.username.trim(),
         email: adminData.email.trim().toLowerCase(),
         password_hash: hashedPassword,
@@ -179,7 +189,7 @@ class Admin {
     }
 
     try {
-      const admin = await db('admins')
+      const admin = await db('admin_users')
         .where('username', username.trim())
         .orWhere('email', username.trim().toLowerCase())
         .first();
@@ -239,7 +249,7 @@ class Admin {
    */
   static async findById(adminId) {
     try {
-      const admin = await db('admins')
+      const admin = await db('admin_users')
         .select('*')
         .where('id', adminId)
         .first();
@@ -275,7 +285,7 @@ class Admin {
    */
   static async findByUsername(username) {
     try {
-      const admin = await db('admins')
+      const admin = await db('admin_users')
         .select('*')
         .where('username', username.trim())
         .first();
@@ -298,7 +308,7 @@ class Admin {
    */
   static async findAll() {
     try {
-      const admins = await db('admins')
+      const admins = await db('admin_users')
         .select('id', 'username', 'email', 'role', 'created_at')
         .orderBy('created_at', 'desc');
 
@@ -337,7 +347,7 @@ class Admin {
     }
 
     if (updates.email) {
-      const existingEmail = await db('admins')
+      const existingEmail = await db('admin_users')
         .where('email', updates.email.trim().toLowerCase())
         .where('id', '!=', adminId)
         .first();
@@ -348,7 +358,7 @@ class Admin {
     }
 
     try {
-      await db('admins')
+      await db('admin_users')
         .where('id', adminId)
         .update(updates);
 
@@ -387,7 +397,7 @@ class Admin {
     try {
       const hashedPassword = await this.hashPassword(newPassword);
       
-      await db('admins')
+      await db('admin_users')
         .where('id', adminId)
         .update({ password_hash: hashedPassword });
 
@@ -405,17 +415,18 @@ class Admin {
    */
   static async getStatistics(adminId) {
     try {
+      // Since contests table doesn't have created_by column,
+      // return general statistics instead of admin-specific ones
       const [contestsCount, activeContestsCount] = await Promise.all([
-        db('contests').where('created_by', adminId).count('* as count').first(),
+        db('contests').count('* as count').first(),
         db('contests')
-          .where('created_by', adminId)
           .where('is_active', true)
           .count('* as count')
           .first()
       ]);
 
       return {
-        contests_created: parseInt(contestsCount.count),
+        total_contests: parseInt(contestsCount.count),
         active_contests: parseInt(activeContestsCount.count)
       };
     } catch (error) {

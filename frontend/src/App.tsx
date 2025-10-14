@@ -21,14 +21,20 @@ import ContestsListPage from './pages/admin/contests/ContestsListPage';
 import ContestDetailPage from './pages/admin/contests/ContestDetailPage';
 import CreateContestPageNew from './pages/admin/contests/CreateContestPage';
 import ProblemsListPage from './pages/admin/problems/ProblemsListPage';
+import TeamDetailPage from './pages/admin/teams/TeamDetailPage';
 import ContestPage from './pages/ContestPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
+import ProblemTestPage from './pages/ProblemTestPage';
+import { createContestSlug } from './utils/contestUtils';
 
 function App() {
   const auth = useAuth();
   const adminAuth = useAdminAuth();
   const [contestTimer, setContestTimer] = useState<number | undefined>(undefined);
+  const teamContestSlug =
+    auth.team?.contestSlug ||
+    (auth.team?.contestName ? createContestSlug(auth.team.contestName) : null);
 
   useEffect(() => {
     if (auth.isAuthenticated && auth.team?.contestCode) {
@@ -126,6 +132,15 @@ function App() {
               </AdminProtectedRoute>
             }
           />
+
+          <Route
+            path="/admin/contests/create"
+            element={
+              <AdminProtectedRoute>
+                <CreateContestPageNew />
+              </AdminProtectedRoute>
+            }
+          />
           
           <Route
             path="/admin/contests/:contestId"
@@ -135,7 +150,16 @@ function App() {
               </AdminProtectedRoute>
             }
           />
-          
+
+          <Route
+            path="/admin/contests/:contestId/teams/:teamId"
+            element={
+              <AdminProtectedRoute>
+                <TeamDetailPage />
+              </AdminProtectedRoute>
+            }
+          />
+
           <Route
             path="/admin/problems"
             element={
@@ -176,13 +200,19 @@ function App() {
           />
 
           {/* Public Routes */}
-          <Route 
-            path="/" 
+          <Route
+            path="/"
             element={
-              auth.isAuthenticated ? 
-              <Navigate to="/dashboard" replace /> : 
+              auth.isAuthenticated ?
+              <Navigate to="/dashboard" replace /> :
               <HomePage />
-            } 
+            }
+          />
+
+          {/* Authless Test Route */}
+          <Route
+            path="/test-problems"
+            element={<ProblemTestPage />}
           />
 
           <Route 
@@ -194,13 +224,22 @@ function App() {
             } 
           />
 
-          <Route 
-            path="/team-registration" 
+          <Route
+            path="/team-registration"
             element={
-              auth.isAuthenticated ? 
-              <Navigate to="/dashboard" replace /> : 
+              auth.isAuthenticated ?
+              <Navigate to={teamContestSlug ? `/contest/${teamContestSlug}` : '/dashboard'} replace /> :
               <TeamRegistrationPage />
-            } 
+            }
+          />
+
+          <Route
+            path="/register"
+            element={
+              auth.isAuthenticated ?
+              <Navigate to={teamContestSlug ? `/contest/${teamContestSlug}` : '/dashboard'} replace /> :
+              <TeamRegistrationPage />
+            }
           />
           
           <Route 
@@ -209,15 +248,6 @@ function App() {
               auth.isAuthenticated ? 
               <Navigate to="/dashboard" replace /> : 
               <TeamLoginPage />
-            } 
-          />
-
-          <Route 
-            path="/contest/:contestSlug" 
-            element={
-              <ProtectedRoute>
-                <ContestPage />
-              </ProtectedRoute>
             } 
           />
 
@@ -231,6 +261,15 @@ function App() {
               onLogout={auth.logout}
             >
               <Routes>
+            <Route
+              path="/contest/:contestSlug"
+              element={
+                <ProtectedRoute>
+                  <ContestPage />
+                </ProtectedRoute>
+              }
+            />
+
             <Route
               path="/dashboard"
               element={

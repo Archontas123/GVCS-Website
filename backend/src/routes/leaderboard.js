@@ -19,6 +19,7 @@ const express = require('express');
 const router = express.Router();
 const scoringService = require('../services/scoringService');
 const submissionController = require('../controllers/submissionController');
+const Contest = require('../controllers/contestController');
 const websocketService = require('../services/websocketService');
 const { authenticateTeam } = require('../middleware/auth');
 const { verifyAdminToken } = require('../middleware/adminAuth');
@@ -461,15 +462,9 @@ router.get('/:contestId/live', verifyAdminToken, async (req, res) => {
     const pendingCount = await submissionController.getPendingSubmissionsCount();
 
     // Calculate contest timing
-    const now = new Date();
-    const startTime = new Date(contest.start_time);
-    const endTime = new Date(startTime.getTime() + contest.duration * 60 * 1000);
-    
-    const contestStatus = now < startTime ? 'not_started' : 
-                         now > endTime ? 'ended' : 'running';
-    
-    const timeRemaining = contestStatus === 'running' ? 
-      Math.max(0, Math.floor((endTime - now) / 1000)) : 0;
+    const statusSnapshot = Contest.getContestStatus(contest);
+    const contestStatus = statusSnapshot.status;
+    const timeRemaining = statusSnapshot.time_remaining_seconds ?? 0;
 
     res.json({
       success: true,

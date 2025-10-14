@@ -30,6 +30,31 @@ class Problem {
     this.difficulty = data.difficulty;
     this.max_points = data.max_points;
     this.created_at = data.created_at;
+
+    // LeetCode-style fields
+    this.uses_leetcode_style = data.uses_leetcode_style;
+    this.function_name = data.function_name;
+    this.function_parameters = data.function_parameters;
+    this.return_type = data.return_type;
+    this.parameter_descriptions = data.parameter_descriptions;
+
+    // Function signatures for different languages
+    this.function_signature_cpp = data.function_signature_cpp;
+    this.function_signature_java = data.function_signature_java;
+    this.function_signature_python = data.function_signature_python;
+    this.function_signature_javascript = data.function_signature_javascript;
+
+    // I/O wrappers for different languages
+    this.io_wrapper_cpp = data.io_wrapper_cpp;
+    this.io_wrapper_java = data.io_wrapper_java;
+    this.io_wrapper_python = data.io_wrapper_python;
+    this.io_wrapper_javascript = data.io_wrapper_javascript;
+
+    // Default solutions for different languages
+    this.default_solution_cpp = data.default_solution_cpp;
+    this.default_solution_java = data.default_solution_java;
+    this.default_solution_python = data.default_solution_python;
+    this.default_solution_javascript = data.default_solution_javascript;
   }
 
   /**
@@ -181,9 +206,6 @@ class Problem {
    */
   static async create(problemData, contestId, adminId) {
     const contest = await Contest.findById(contestId);
-    if (contest.created_by !== adminId) {
-      throw new AuthenticationError('Not authorized to create problems for this contest');
-    }
 
     this.validateProblemData(problemData);
 
@@ -268,18 +290,35 @@ class Problem {
    */
   static async findByContestId(contestId, includeStatistics = false) {
     try {
+      console.log(`Fetching problems for contest ${contestId}, includeStatistics: ${includeStatistics}`);
+
       const problems = await db('problems')
         .select('*')
         .where('contest_id', contestId)
         .orderBy('problem_letter');
 
+      console.log(`Found ${problems.length} problems for contest ${contestId}`);
+
       const problemInstances = problems.map(problem => new Problem(problem));
 
       if (includeStatistics) {
+        console.log('Including statistics for problems');
         const problemsWithStats = await Promise.all(
           problemInstances.map(async (problem) => {
-            const stats = await this.getStatistics(problem.id);
-            return { ...problem, statistics: stats };
+            try {
+              console.log(`Getting statistics for problem ${problem.id}`);
+              const stats = await this.getStatistics(problem.id);
+              console.log(`Got statistics for problem ${problem.id}:`, stats);
+              return { ...problem, statistics: stats };
+            } catch (error) {
+              console.error(`Failed to get statistics for problem ${problem.id}:`, error);
+              return { ...problem, statistics: {
+                total_submissions: 0,
+                accepted_submissions: 0,
+                test_cases_count: 0,
+                acceptance_rate: 0
+              }};
+            }
           })
         );
         return problemsWithStats;
@@ -287,7 +326,42 @@ class Problem {
 
       return problemInstances;
     } catch (error) {
+      console.error('Error in findByContestId:', error);
       throw new DatabaseError('Failed to fetch problems for contest', error);
+    }
+  }
+
+  /**
+   * Gets problem statistics including submissions and test cases
+   * @param {number} problemId - The problem ID
+   * @returns {Promise<Object>} Problem statistics
+   * @throws {DatabaseError} When database operation fails
+   */
+  static async getStatistics(problemId) {
+    try {
+      const [submissions, testCases, acceptedSubmissions] = await Promise.all([
+        db('submissions').where('problem_id', problemId).count('* as count').first(),
+        db('test_cases').where('problem_id', problemId).count('* as count').first(),
+        db('submissions').where('problem_id', problemId).where('verdict', 'accepted').count('* as count').first()
+      ]);
+
+      return {
+        total_submissions: parseInt(submissions?.count) || 0,
+        accepted_submissions: parseInt(acceptedSubmissions?.count) || 0,
+        test_cases_count: parseInt(testCases?.count) || 0,
+        acceptance_rate: submissions?.count > 0
+          ? Math.round((acceptedSubmissions?.count / submissions?.count) * 100)
+          : 0
+      };
+    } catch (error) {
+      console.error('Statistics error for problem', problemId, ':', error);
+      // Return default statistics instead of throwing to prevent breaking the entire response
+      return {
+        total_submissions: 0,
+        accepted_submissions: 0,
+        test_cases_count: 0,
+        acceptance_rate: 0
+      };
     }
   }
 
@@ -297,10 +371,9 @@ class Problem {
   static async update(problemId, updateData, adminId) {
     const problem = await this.findById(problemId);
     const contest = await Contest.findById(problem.contest_id);
-    
-    if (contest.created_by !== adminId) {
-      throw new AuthenticationError('Not authorized to update this problem');
-    }
+
+    // Any authenticated admin can update problems
+    // Authorization is handled by the verifyAdminToken middleware
 
     const contestStatus = Contest.getContestStatus(contest);
     if (contestStatus.status === 'running' || contestStatus.status === 'frozen') {
@@ -362,24 +435,30 @@ class Problem {
    */
   static async delete(problemId, adminId) {
     const problem = await this.findById(problemId);
-    const contest = await Contest.findById(problem.contest_id);
-    
-    if (contest.created_by !== adminId) {
-      throw new AuthenticationError('Not authorized to delete this problem');
-    }
 
-    const submissionsCount = await db('submissions')
-      .where('problem_id', problemId)
-      .count('* as count')
-      .first();
-
-    if (parseInt(submissionsCount.count) > 0) {
-      throw new ConflictError('Cannot delete problem that has submissions. Consider archiving instead.');
-    }
+    // Any authenticated admin can delete problems
+    // Authorization is handled by the verifyAdminToken middleware
 
     try {
-      await db('problems').where('id', problemId).del();
-      
+      await db.transaction(async trx => {
+        const submissionIds = await trx('submissions')
+          .where('problem_id', problemId)
+          .pluck('id');
+
+        if (submissionIds.length > 0) {
+          // Clear submission artifacts tied to this problem before removing the submissions themselves
+          await trx('submission_test_results').whereIn('submission_id', submissionIds).del();
+          await trx('partial_scores').whereIn('submission_id', submissionIds).del();
+          await trx('submissions').whereIn('id', submissionIds).del();
+        }
+
+        await trx('team_problem_code').where('problem_id', problemId).del();
+        await trx('clarifications').where('problem_id', problemId).del();
+        await trx('test_cases').where('problem_id', problemId).del();
+
+        await trx('problems').where('id', problemId).del();
+      });
+
       return { success: true, message: 'Problem deleted successfully' };
     } catch (error) {
       throw new DatabaseError('Failed to delete problem', error);
@@ -395,6 +474,7 @@ class Problem {
         .join('contests', 'problems.contest_id', 'contests.id')
         .select(
           'problems.*',
+          'problems.max_points as points_value',
           'contests.contest_name',
           'contests.created_by'
         )
@@ -418,21 +498,47 @@ class Problem {
   }
 
   /**
+   * Get all problems (for admin overview)
+   */
+  static async findAll() {
+    try {
+      const problems = await db('problems')
+        .join('contests', 'problems.contest_id', 'contests.id')
+        .select(
+          'problems.*',
+          'problems.max_points as points_value',
+          'contests.contest_name',
+          'contests.created_by'
+        )
+        .orderBy('problems.created_at', 'desc');
+
+      const problemInstances = problems.map(problem => {
+        const problemData = { ...problem };
+        delete problemData.contest_name;
+        delete problemData.created_by;
+        return {
+          ...new Problem(problemData),
+          contest_name: problem.contest_name
+        };
+      });
+
+      return problemInstances;
+    } catch (error) {
+      throw new DatabaseError('Failed to fetch all problems', error);
+    }
+  }
+
+  /**
    * Copy a problem to another contest
    */
   static async copyToContest(originalProblemId, targetContestId, adminId) {
     try {
         const originalProblem = await this.findById(originalProblemId);
-      
-      const originalContest = await Contest.findById(originalProblem.contest_id);
-      if (originalContest.created_by !== adminId) {
-        throw new AuthenticationError('Not authorized to copy this problem');
-      }
+
+      // Any authenticated admin can copy problems between contests
+      // Authorization is handled by the verifyAdminToken middleware
 
       const targetContest = await Contest.findById(targetContestId);
-      if (targetContest.created_by !== adminId) {
-        throw new AuthenticationError('Not authorized to add problems to this contest');
-      }
 
       const existingProblems = await this.findByContestId(targetContestId);
       const usedLetters = existingProblems.map(p => p.problem_letter).sort();
@@ -461,20 +567,53 @@ class Problem {
         time_limit: originalProblem.time_limit,
         memory_limit: originalProblem.memory_limit,
         difficulty: originalProblem.difficulty,
+        max_points: originalProblem.max_points,
         problem_letter: nextLetter
       };
 
       const copiedProblem = await this.create(newProblemData, targetContestId, adminId);
 
-      const TestCase = require('./testCaseController');
-      const originalTestCases = await TestCase.findByProblemId(originalProblemId);
-      
-      for (const testCase of originalTestCases) {
-        await TestCase.create({
-          input: testCase.input,
-          expected_output: testCase.expected_output,
-          is_sample: testCase.is_sample
-        }, copiedProblem.id, adminId);
+      const originalTestCases = await db('test_cases')
+        .where('problem_id', originalProblemId)
+        .select('*');
+
+      if (originalTestCases.length > 0) {
+        const serializeJsonField = (value) => {
+          if (value === null || value === undefined) {
+            return null;
+          }
+          if (typeof value === 'string') {
+            const trimmed = value.trim();
+            return trimmed.length === 0 ? null : trimmed;
+          }
+          try {
+            return JSON.stringify(value);
+          } catch (serializationError) {
+            console.warn('Failed to serialize JSON field during problem copy:', serializationError);
+            return null;
+          }
+        };
+
+        const jsonColumns = ['input_parameters', 'expected_return', 'parameter_types'];
+
+        const copiedTestCases = originalTestCases.map(testCase => {
+          const { id, problem_id, ...testCaseData } = testCase;
+          const normalizedData = { ...testCaseData };
+
+          jsonColumns.forEach(column => {
+            if (Object.prototype.hasOwnProperty.call(normalizedData, column)) {
+              normalizedData[column] = serializeJsonField(normalizedData[column]);
+            }
+          });
+
+          return {
+            ...normalizedData,
+            problem_id: copiedProblem.id,
+            created_at: testCase.created_at || new Date()
+          };
+        });
+
+        await db('test_cases').insert(copiedTestCases);
       }
 
       return copiedProblem;
@@ -483,48 +622,15 @@ class Problem {
     }
   }
 
-  /**
-   * Get problem statistics
-   */
-  static async getStatistics(problemId) {
-    try {
-      const [testCasesCount, submissionsCount, acceptedCount, uniqueSolvers] = await Promise.all([
-        db('test_cases').where('problem_id', problemId).count('* as count').first(),
-        db('submissions').where('problem_id', problemId).count('* as count').first(),
-        db('submissions').where('problem_id', problemId).where('status', 'accepted').count('* as count').first(),
-        db('submissions')
-          .where('problem_id', problemId)
-          .where('status', 'accepted')
-          .countDistinct('team_id as count')
-          .first()
-      ]);
-
-      const totalSubmissions = parseInt(submissionsCount.count);
-      const acceptedSubmissions = parseInt(acceptedCount.count);
-      const acceptanceRate = totalSubmissions > 0 ? (acceptedSubmissions / totalSubmissions * 100) : 0;
-
-      return {
-        test_cases_count: parseInt(testCasesCount.count),
-        total_submissions: totalSubmissions,
-        accepted_submissions: acceptedSubmissions,
-        unique_solvers: parseInt(uniqueSolvers.count),
-        acceptance_rate: Math.round(acceptanceRate * 100) / 100
-      };
-    } catch (error) {
-      throw new DatabaseError('Failed to fetch problem statistics', error);
-    }
-  }
 
   /**
    * Set problem points and recalculate test case distribution
    */
   static async setProblemPoints(problemId, maxPoints, adminId) {
     const problem = await this.findById(problemId);
-    const contest = await Contest.findById(problem.contest_id);
-    
-    if (contest.created_by !== adminId) {
-      throw new AuthenticationError('Not authorized to update this problem');
-    }
+
+    // Any authenticated admin can update problem points
+    // Authorization is handled by the verifyAdminToken middleware
 
     if (maxPoints < 1 || maxPoints > 1000) {
       throw new ValidationError('Max points must be between 1 and 1000');
@@ -543,11 +649,9 @@ class Problem {
    */
   static async getScoringStats(problemId, adminId) {
     const problem = await this.findById(problemId);
-    const contest = await Contest.findById(problem.contest_id);
-    
-    if (contest.created_by !== adminId) {
-      throw new AuthenticationError('Not authorized to view scoring stats for this problem');
-    }
+
+    // Any authenticated admin can view scoring stats
+    // Authorization is handled by the verifyAdminToken middleware
 
     try {
       return await partialScoringService.getProblemScoringStats(problemId);

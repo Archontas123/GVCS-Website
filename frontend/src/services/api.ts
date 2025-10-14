@@ -52,11 +52,25 @@ class ApiService {
         if (error.response?.status === 401) {
           // Check if this is an admin route error
           if (error.config?.url?.startsWith('/admin/')) {
-            localStorage.removeItem('programming_contest_admin_token');
-            window.location.href = '/admin/login';
+            // Only redirect for login/auth verification failures, not for regular API failures
+            const url = error.config?.url || '';
+            if (url.includes('/admin/login') || url.includes('/admin/profile')) {
+              localStorage.removeItem('programming_contest_admin_token');
+              window.location.href = '/admin/login';
+            }
+            // For other admin endpoints, just reject the error without redirecting
           } else {
-            localStorage.removeItem('programming_contest_token');
-            window.location.href = '/';
+            const url = error.config?.url || '';
+            const skipRedirectRoutes = ['/team/login', '/team/register'];
+            const shouldSkipRedirect = skipRedirectRoutes.some(route => url.includes(route));
+
+            if (!shouldSkipRedirect) {
+              localStorage.removeItem('programming_contest_token');
+
+              if (!window.location.pathname.startsWith('/login')) {
+                window.location.href = '/login';
+              }
+            }
           }
         }
         return Promise.reject(error);
@@ -64,13 +78,13 @@ class ApiService {
     );
   }
 
-  async registerTeam(data: RegisterFormData): Promise<ApiResponse<{ teamId: number; teamName: string; contestCode: string; contestName: string; schoolName: string; memberNames: string[]; token: string; registeredAt: string }>> {
+  async registerTeam(data: RegisterFormData): Promise<ApiResponse<{ teamId: number; teamName: string; contestCode: string; contestName: string; schoolName: string; members: Array<{ firstName: string; lastName: string }>; token: string; registeredAt: string }>> {
     const payload = {
       teamName: data.teamName,
       contestCode: data.contestCode,
       password: data.password,
       schoolName: data.schoolName,
-      memberNames: data.memberNames
+      members: data.members
     };
     const response = await this.api.post('/team/register', payload);
     return response.data;
@@ -105,42 +119,15 @@ class ApiService {
     return response.data;
   }
 
-  // REMOVED: Public problem access methods - now require authentication
-  // async getProblemPublic(problemId: number): Promise<ApiResponse<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>> {
-  //   const response = await this.api.get(`/admin/problems/${problemId}/public`);
-  //   return response.data;
-  // }
-
-  // async getContestProblemsPublic(contestId: number): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>>> {
-  //   const response = await this.api.get(`/admin/contests/${contestId}/problems/public`);
-  //   return response.data;
-  // }
-
-  // async getContestProblemsByCode(registrationCode: string): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>>> {
-  //   const response = await this.api.get(`/contests/${registrationCode}/problems/public`);
-  //   return response.data;
-  // }
-
-  // async getContestProblemsBySlug(contestSlug: string): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>>> {
-  //   const response = await this.api.get(`/contests/${contestSlug}/problems/public`);
-  //   return response.data;
-  // }
-
-  // REMOVED: Public contest problems access - now requires authentication
-  // async getContestProblemsByName(contestName: string): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>>> {
-  //   const slug = createContestSlug(contestName);
-  //   const response = await this.api.get(`/contests/${slug}/problems/public`);
-  //   return response.data;
-  // }
 
   // Authenticated methods for contest problems (requires team login)
-  async getContestProblemsBySlug(contestSlug: string): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input: string; expected_output: string }> }>>> {
+  async getContestProblemsBySlug(contestSlug: string): Promise<ApiResponse<Array<Problem & { sample_test_cases: Array<{ input_parameters: any; expected_return: any; test_case_name: string; explanation: string }> }>>> {
     const response = await this.api.get(`/contests/${contestSlug}/problems/public`);
     return response.data;
   }
 
   async submitSolution(data: SubmissionFormData): Promise<ApiResponse<{ submissionId: number }>> {
-    const response = await this.api.post('/execute/submit', {
+    const response = await this.api.post('/submissions/submit', {
       language: data.language,
       code: data.code,
       problemId: data.problemId,
@@ -156,6 +143,11 @@ class ApiService {
 
   async getSubmission(submissionId: number): Promise<ApiResponse<Submission>> {
     const response = await this.api.get(`/submissions/${submissionId}`);
+    return response.data;
+  }
+
+  async getSubmissionStatus(submissionId: number): Promise<ApiResponse<any>> {
+    const response = await this.api.get(`/submissions/${submissionId}/status`);
     return response.data;
   }
 
@@ -239,7 +231,13 @@ class ApiService {
   }
 
   async createContest(data: any): Promise<ApiResponse<any>> {
-    const response = await this.api.post('/admin/contests', data);
+    const payload = {
+      ...data,
+      start_time: data.start_time || null,
+      duration: data.duration ?? null,
+      manual_control: data.manual_control ?? true
+    };
+    const response = await this.api.post('/admin/contests', payload);
     return response.data;
   }
 
@@ -254,7 +252,13 @@ class ApiService {
   }
 
   async updateContest(contestId: number, data: any): Promise<ApiResponse<any>> {
-    const response = await this.api.put(`/admin/contests/${contestId}`, data);
+    const payload = {
+      ...data,
+      start_time: data.start_time ?? null,
+      duration: data.duration ?? null,
+      manual_control: data.manual_control ?? true
+    };
+    const response = await this.api.put(`/admin/contests/${contestId}`, payload);
     return response.data;
   }
 
@@ -262,10 +266,11 @@ class ApiService {
     const transformedData = {
       contest_name: data.contestName,
       description: data.description,
-      start_time: data.startTime,
-      duration: data.duration,
+      start_time: data.startTime || null,
+      duration: data.duration ?? null,
       freeze_time: data.freezeTime,
-      is_active: data.isActive
+      is_active: data.isActive,
+      manual_control: data.manualControl ?? true
     };
     
     const response = await this.api.put(`/admin/contests/${contestId}`, transformedData);
@@ -299,6 +304,11 @@ class ApiService {
 
   async getAdminProblems(): Promise<ApiResponse<any[]>> {
     const response = await this.api.get('/admin/problems');
+    return response.data;
+  }
+
+  async getAdminProblem(problemId: number): Promise<ApiResponse<any>> {
+    const response = await this.api.get(`/admin/problems/${problemId}`);
     return response.data;
   }
 
@@ -439,34 +449,13 @@ class ApiService {
         return acc;
       }, {} as Record<string, string>)
     ).toString() : '';
-    
+
     const response = await this.api.get(`/admin/system/logs${queryString}`);
     return response.data;
   }
 
-  async getAdminContestProjects(contestId: number): Promise<ApiResponse<any[]>> {
-    const response = await this.api.get(`/admin/contests/${contestId}/projects`);
-    return response.data;
-  }
-
-  async downloadProject(submissionId: number): Promise<Blob> {
-    const response = await this.api.get(`/admin/projects/${submissionId}/download`, {
-      responseType: 'blob',
-    });
-    return response.data;
-  }
-
-  async submitProject(contestId: number, formData: FormData): Promise<ApiResponse<any>> {
-    const response = await this.api.post(`/team/contests/${contestId}/projects`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  }
-
-  async getTeamProjectSubmission(contestId: number): Promise<ApiResponse<any>> {
-    const response = await this.api.get(`/team/contests/${contestId}/projects/my-submission`);
+  async getTeamSubmissions(contestId: number, teamId: number): Promise<ApiResponse<any>> {
+    const response = await this.api.get(`/admin/contests/${contestId}/teams/${teamId}/submissions`);
     return response.data;
   }
 

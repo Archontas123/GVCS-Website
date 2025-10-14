@@ -20,6 +20,25 @@ const logger = {
 };
 
 /**
+ * Map database status values to frontend verdict format
+ * @param {string} status - Database status value (e.g., 'accepted', 'wrong_answer')
+ * @returns {string} Frontend verdict format (e.g., 'AC', 'WA')
+ */
+const mapStatusToVerdict = (status) => {
+  const verdictMap = {
+    'accepted': 'AC',
+    'wrong_answer': 'WA',
+    'time_limit_exceeded': 'TLE',
+    'memory_limit_exceeded': 'MLE',
+    'runtime_error': 'RE',
+    'compilation_error': 'CE',
+    'pending': 'PENDING',
+    'judging': 'JUDGING'
+  };
+  return verdictMap[status] || status?.toUpperCase() || 'UNKNOWN';
+};
+
+/**
  * Middleware to verify team authentication token
  * @param {Object} req - Express request object
  * @param {Object} req.headers - Request headers
@@ -140,16 +159,19 @@ router.get('/overview', verifyTeamToken, async (req, res, next) => {
     }
 
     const now = new Date();
-    const startTime = new Date(contest.start_time);
-    const endTime = new Date(startTime.getTime() + contest.duration * 60 * 1000);
-    const freezeTime = contest.freeze_time ? new Date(endTime.getTime() - contest.freeze_time * 60 * 1000) : null;
+    const statusSnapshot = Contest.getContestStatus(contest);
+    const statusMap = {
+      pending_manual: 'pending_manual',
+      not_started: 'upcoming',
+      running: 'active',
+      frozen: 'frozen',
+      ended: 'ended'
+    };
 
-    let contestStatus = 'upcoming';
-    if (now >= startTime && now < endTime) {
-      contestStatus = freezeTime && now >= freezeTime ? 'frozen' : 'active';
-    } else if (now >= endTime) {
-      contestStatus = 'ended';
-    }
+    const contestStatus = statusMap[statusSnapshot.status] || statusSnapshot.status;
+    const timeRemainingSeconds = statusSnapshot.time_remaining_seconds ?? 0;
+    const progressPercentage = statusSnapshot.progress_percentage ?? 0;
+    const normalizedProgress = Math.max(0, Math.min(100, progressPercentage));
 
     const [teamStats, problemStats, recentSubmissions] = await Promise.all([
       db('submissions')
@@ -176,8 +198,8 @@ router.get('/overview', verifyTeamToken, async (req, res, next) => {
           'problems.difficulty',
           db.raw('MAX(CASE WHEN submissions.status = \'accepted\' THEN 1 ELSE 0 END) as is_solved'),
           db.raw('COUNT(submissions.id) as attempt_count'),
-          db.raw('MIN(submissions.submission_time) as first_submission'),
-          db.raw('MAX(CASE WHEN submissions.status = \'accepted\' THEN submissions.submission_time END) as solved_at')
+          db.raw('MIN(submissions.submitted_at) as first_submission'),
+          db.raw('MAX(CASE WHEN submissions.status = \'accepted\' THEN submissions.submitted_at END) as solved_at')
         )
         .where('problems.contest_id', contestId)
         .groupBy('problems.id', 'problems.problem_letter', 'problems.title', 'problems.difficulty')
@@ -191,7 +213,7 @@ router.get('/overview', verifyTeamToken, async (req, res, next) => {
           'problems.title'
         )
         .where('submissions.team_id', teamId)
-        .orderBy('submissions.submission_time', 'desc')
+        .orderBy('submissions.submitted_at', 'desc')
         .limit(10)
     ]);
 
@@ -214,13 +236,14 @@ router.get('/overview', verifyTeamToken, async (req, res, next) => {
         name: contest.contest_name,
         description: contest.description,
         status: contestStatus,
-        start_time: contest.start_time,
+        start_time: statusSnapshot.start_time,
         duration_minutes: contest.duration,
         freeze_time_minutes: contest.freeze_time,
-        time_remaining: contestStatus === 'active' ? Math.max(0, Math.floor((endTime.getTime() - now.getTime()) / 1000)) : 0,
-        progress_percentage: contestStatus === 'upcoming' ? 0 : 
-                           contestStatus === 'ended' ? 100 : 
-                           Math.min(100, ((now.getTime() - startTime.getTime()) / (endTime.getTime() - startTime.getTime())) * 100)
+        manual_control: statusSnapshot.manual_control ?? true,
+        time_remaining: contestStatus === 'active' ? Math.max(0, Math.floor(timeRemainingSeconds)) : 0,
+        progress_percentage: contestStatus === 'upcoming' ? 0 :
+                           contestStatus === 'ended' ? 100 :
+                           normalizedProgress
       },
       team_stats: {
         rank: teamRank,
@@ -250,11 +273,11 @@ router.get('/overview', verifyTeamToken, async (req, res, next) => {
       })),
       recent_submissions: recentSubmissions.map(s => ({
         id: s.id,
-        problem_letter: s.problem_letter,
-        problem_title: s.title,
+        problemLetter: s.problem_letter,
+        problemTitle: s.title,
         language: s.language,
-        verdict: s.status,
-        submitted_at: s.submission_time,
+        verdict: mapStatusToVerdict(s.status),
+        submittedAt: s.submitted_at,
         execution_time: s.execution_time,
         memory_used: s.memory_used
       }))
@@ -312,7 +335,7 @@ router.get('/standings', verifyTeamToken, async (req, res, next) => {
         't.team_name',
         db.raw('COUNT(DISTINCT CASE WHEN s.status = \'accepted\' THEN s.problem_id END) as problems_solved'),
         db.raw('COUNT(*) as total_submissions'),
-        db.raw('MAX(s.submission_time) as last_submission')
+        db.raw('MAX(s.submitted_at) as last_submission')
       )
       .where('p.contest_id', contestId)
       .groupBy('t.id', 't.team_name')
@@ -386,18 +409,28 @@ router.get('/activity', verifyTeamToken, async (req, res, next) => {
         'p.problem_letter',
         'p.title as problem_title',
         's.language',
-        's.status as verdict',
-        's.submission_time as submitted_at',
+        's.status',
+        's.submitted_at as submitted_at',
         's.execution_time',
         's.memory_used'
       )
       .where('p.contest_id', contestId)
-      .orderBy('s.submission_time', 'desc')
+      .orderBy('s.submitted_at', 'desc')
       .limit(limit);
 
     res.json({
       success: true,
-      data: activity,
+      data: activity.map(a => ({
+        id: a.id,
+        teamName: a.team_name,
+        problemLetter: a.problem_letter,
+        problemTitle: a.problem_title,
+        language: a.language,
+        verdict: mapStatusToVerdict(a.status),
+        submittedAt: a.submitted_at,
+        executionTime: a.execution_time,
+        memoryUsed: a.memory_used
+      })),
       message: 'Recent activity retrieved successfully'
     });
 
@@ -460,7 +493,7 @@ router.get('/analytics', verifyTeamToken, async (req, res, next) => {
       db('submissions as s')
         .join('problems as p', 's.problem_id', 'p.id')
         .select(
-          db.raw('strftime(\'%Y-%m-%d %H:00:00\', s.submission_time) as hour'),
+          db.raw('strftime(\'%Y-%m-%d %H:00:00\', s.submitted_at) as hour'),
           db.raw('COUNT(*) as submission_count')
         )
         .where('p.contest_id', contestId)
@@ -497,7 +530,7 @@ router.get('/analytics', verifyTeamToken, async (req, res, next) => {
       db('submissions as s')
         .join('problems as p', 's.problem_id', 'p.id')
         .select(
-          's.status as verdict',
+          's.status',
           db.raw('COUNT(*) as count')
         )
         .where('p.contest_id', contestId)
@@ -527,7 +560,7 @@ router.get('/analytics', verifyTeamToken, async (req, res, next) => {
           ((prob.successful_attempts / prob.total_attempts) * 100).toFixed(1) : 0
       })),
       verdict_distribution: verdictStats.reduce((acc, stat) => {
-        acc[stat.verdict] = parseInt(stat.count);
+        acc[mapStatusToVerdict(stat.status)] = parseInt(stat.count);
         return acc;
       }, {})
     };

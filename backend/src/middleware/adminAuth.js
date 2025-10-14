@@ -140,6 +140,7 @@ const requireContestAccess = async (req, res, next) => {
       throw new AuthorizationError('Admin role required');
     }
 
+    // Skip contest ownership check for now
     next();
   } catch (error) {
     next(error);

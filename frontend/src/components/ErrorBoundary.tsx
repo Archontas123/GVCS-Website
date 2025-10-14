@@ -54,7 +54,12 @@ class ErrorBoundary extends Component<Props, State> {
   };
 
   public handleReload = () => {
-    window.location.reload();
+    try {
+      window.location.reload();
+    } catch (error) {
+      // Fallback: navigate to home page
+      window.location.href = '/';
+    }
   };
 
   public render() {

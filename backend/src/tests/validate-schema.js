@@ -1,5 +1,5 @@
 const { Pool } = require('pg');
-require('dotenv').config();
+require('../config/env');
 
 async function validateDatabaseSchema() {
     console.log('🔍 Validating database schema...');

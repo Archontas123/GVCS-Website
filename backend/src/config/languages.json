@@ -1,15 +1,16 @@
 {
+  "_comment": "Language configurations for code execution. Time/memory multipliers adjust limits based on language performance characteristics.",
   "cpp": {
     "name": "C++",
     "extension": ".cpp",
-    "compileCmd": "g++ -O2 -std=c++17 -o solution {source}",
-    "executeCmd": "./solution",
+    "compileCmd": "g++ -O2 -std=c++17 -o solution.exe {source}",
+    "executeCmd": "solution.exe",
     "compileTimeout": 30000,
     "timeMultiplier": 1.0,
     "memoryMultiplier": 1.0,
     "supportsCompilation": true,
     "mainFile": "solution.cpp",
-    "outputFile": "solution",
+    "outputFile": "solution.exe",
     "errorPatterns": [
       "error:",
       "undefined reference",
@@ -37,9 +38,9 @@
   "python": {
     "name": "Python",
     "extension": ".py",
-    "executeCmd": "python3 {source}",
+    "executeCmd": "python {source}",
     "compileTimeout": 0,
-    "timeMultiplier": 5.0,
+    "timeMultiplier": 3.0,
     "memoryMultiplier": 1.5,
     "supportsCompilation": false,
     "mainFile": "solution.py",

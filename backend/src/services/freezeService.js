@@ -20,7 +20,11 @@ class FreezeService {
     try {
       const contest = await db('contests').where('id', contestId).first();
       
-      if (!contest || contest.is_frozen) {
+      if (!contest || contest.is_frozen || contest.manual_control) {
+        return false;
+      }
+
+      if (!contest.start_time || contest.duration === null || contest.duration === undefined) {
         return false;
       }
       
@@ -57,10 +61,17 @@ class FreezeService {
       
       const now = new Date();
       const startTime = new Date(contest.start_time);
-      const endTime = new Date(startTime.getTime() + contest.duration * 60 * 1000);
+      if (Number.isNaN(startTime.getTime())) {
+        throw new Error('Contest start time is invalid');
+      }
+
+      const hasDuration = contest.duration !== null && contest.duration !== undefined;
+      const endTime = hasDuration
+        ? new Date(startTime.getTime() + contest.duration * 60 * 1000)
+        : null;
       
       // Check if contest has ended
-      if (now >= endTime) {
+      if (endTime && now >= endTime) {
         throw new Error('Cannot freeze contest that has already ended');
       }
       
@@ -195,10 +206,14 @@ class FreezeService {
     try {
       const contest = await db('contests').where('id', contestId).first();
       
-      if (!contest || contest.is_frozen) {
+      if (!contest || contest.is_frozen || contest.manual_control) {
         return null;
       }
       
+      if (!contest.start_time || contest.duration === null || contest.duration === undefined) {
+        return null;
+      }
+
       const now = new Date();
       const startTime = new Date(contest.start_time);
       const endTime = new Date(startTime.getTime() + contest.duration * 60 * 1000);

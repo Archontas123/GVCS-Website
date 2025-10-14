@@ -1,13 +1,14 @@
 const { db } = require('../utils/db');
-const { 
-  ValidationError, 
-  AuthenticationError, 
+const {
+  ValidationError,
+  AuthenticationError,
   NotFoundError,
   ConflictError,
-  DatabaseError 
+  DatabaseError
 } = require('../utils/errors');
 const Problem = require('./problemController');
 const Contest = require('./contestController');
+const TypeSystemService = require('../services/typeSystemService');
 
 /**
  * TestCase Model Class - Handles test case creation, management, and CRUD operations
@@ -17,45 +18,111 @@ class TestCase {
   constructor(data) {
     this.id = data.id;
     this.problem_id = data.problem_id;
-    this.input = data.input;
-    this.expected_output = data.expected_output;
+
+    // LeetCode-style fields (parse JSON strings if needed)
+    this.input_parameters = this.parseJSON(data.input_parameters);
+    this.expected_return = this.parseJSON(data.expected_return);
+    this.parameter_types = this.parseJSON(data.parameter_types);
+    this.test_case_name = data.test_case_name;
+    this.explanation = data.explanation;
+    this.converted_to_params = data.converted_to_params;
+
+    // Common fields
     this.is_sample = data.is_sample;
+    this.is_hidden = data.is_hidden;
+    this.points = data.points;
+    this.time_limit = data.time_limit;
+    this.memory_limit = data.memory_limit;
     this.created_at = data.created_at;
   }
 
   /**
-   * Validates test case data with comprehensive validation rules
-   * @param {Object} data - The test case data to validate
-   * @param {string} data.input - Test case input (required, can be empty string, max 10000 chars)
-   * @param {string} data.expected_output - Expected output (required, can be empty string, max 10000 chars)
-   * @param {boolean} [data.is_sample] - Whether this is a sample test case
+   * Helper method to parse JSON fields that might be strings
+   * @param {*} value - The value to parse
+   * @returns {*} Parsed JSON or original value
+   */
+  parseJSON(value) {
+    if (value === null || value === undefined) {
+      return value;
+    }
+
+    // If it's already an object or array, return as-is
+    if (typeof value === 'object') {
+      return value;
+    }
+
+    // If it's a string, try to parse it
+    if (typeof value === 'string') {
+      // Empty strings should return null
+      if (value.trim() === '') {
+        return null;
+      }
+
+      try {
+        return JSON.parse(value);
+      } catch (error) {
+        // If parsing fails, return the original string
+        console.warn('Failed to parse JSON field:', error);
+        return value;
+      }
+    }
+
+    // For primitives (numbers, booleans), return as-is
+    return value;
+  }
+
+  /**
+   * Validates test case data before creation/update
+   * @param {Object} data - Test case data to validate
+   * @param {Array} problemParameters - Problem's function parameter definitions
    * @throws {ValidationError} When validation fails
    */
-  static validateTestCaseData(data) {
+  static validateTestCaseData(data, problemParameters = null) {
     const errors = [];
 
-    if (data.input === undefined || data.input === null) {
-      errors.push('Input is required (can be empty string)');
-    }
-    if (typeof data.input !== 'string') {
-      errors.push('Input must be a string');
-    }
-    if (data.input && data.input.length > 10000) {
-      errors.push('Input must not exceed 10000 characters');
+    if (!data.test_case_name || typeof data.test_case_name !== 'string') {
+      errors.push('Test case name is required and must be a string');
     }
 
-    if (data.expected_output === undefined || data.expected_output === null) {
-      errors.push('Expected output is required (can be empty string)');
+    if (data.test_case_name && data.test_case_name.length > 200) {
+      errors.push('Test case name must not exceed 200 characters');
     }
-    if (typeof data.expected_output !== 'string') {
-      errors.push('Expected output must be a string');
+
+    if (!data.input_parameters) {
+      errors.push('Input parameters are required');
     }
-    if (data.expected_output && data.expected_output.length > 10000) {
-      errors.push('Expected output must not exceed 10000 characters');
+
+    if (!data.expected_return) {
+      errors.push('Expected return value is required');
+    }
+
+    if (!data.parameter_types) {
+      errors.push('Parameter types are required');
+    }
+
+    if (data.explanation && typeof data.explanation !== 'string') {
+      errors.push('Explanation must be a string');
+    }
+
+    if (data.explanation && data.explanation.length > 1000) {
+      errors.push('Explanation must not exceed 1000 characters');
     }
 
     if (data.is_sample !== undefined && typeof data.is_sample !== 'boolean') {
       errors.push('is_sample must be a boolean');
+    }
+
+    // Validate parameters against problem definition
+    if (data.input_parameters && problemParameters) {
+      try {
+        this.validateParametersAgainstProblem(data, problemParameters);
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          errors.push(...error.details.map(d => d.message || d));
+        } else {
+          errors.push('Parameter validation failed: ' + error.message);
+        }
+      }
     }
 
     if (errors.length > 0) {
@@ -64,11 +131,63 @@ class TestCase {
   }
 
   /**
+   * Validates test case parameters against problem definition
+   * @param {Object} data - Test case data containing input_parameters
+   * @param {Array} problemParameters - Problem's function parameter definitions
+   * @throws {ValidationError} When parameter validation fails
+   */
+  static validateParametersAgainstProblem(data, problemParameters) {
+    const errors = [];
+
+    if (!data.input_parameters) {
+      errors.push('Test cases require input_parameters');
+      throw new ValidationError('Parameter validation failed', errors);
+    }
+
+    let inputParams;
+    try {
+      inputParams = typeof data.input_parameters === 'string' ?
+        JSON.parse(data.input_parameters) : data.input_parameters;
+    } catch (error) {
+      errors.push('input_parameters must be valid JSON');
+      throw new ValidationError('Parameter validation failed', errors);
+    }
+
+    // Check that all required parameters are provided and validate types
+    problemParameters.forEach(paramDef => {
+      const value = inputParams[paramDef.name];
+
+      if (value === undefined) {
+        errors.push(`Missing parameter: ${paramDef.name}`);
+        return;
+      }
+
+      // Validate parameter type using bracket notation (INT, INT[], INT[][], etc.)
+      const validationResult = TypeSystemService.validateParameter(value, paramDef.type);
+
+      if (!validationResult.valid) {
+        errors.push(`Parameter '${paramDef.name}': ${validationResult.error}`);
+      }
+    });
+
+    // Check for extra parameters not defined in problem
+    Object.keys(inputParams).forEach(paramName => {
+      const isDefined = problemParameters.some(param => param.name === paramName);
+      if (!isDefined) {
+        errors.push(`Unexpected parameter: ${paramName}`);
+      }
+    });
+
+    if (errors.length > 0) {
+      throw new ValidationError('Parameter validation failed', errors);
+    }
+  }
+
+  /**
    * Checks if an admin has permission to manage test cases for a problem
    * @param {number} problemId - The problem ID
    * @param {number} adminId - The admin ID
    * @returns {Promise<Object>} Object containing problem and contest data
-   * @throws {AuthenticationError} When admin is not authorized
    * @throws {NotFoundError} When problem or contest not found
    * @throws {DatabaseError} When database operation fails
    */
@@ -76,14 +195,11 @@ class TestCase {
     try {
       const problem = await Problem.findById(problemId);
       const contest = await Contest.findById(problem.contest_id);
-      
-      if (contest.created_by !== adminId) {
-        throw new AuthenticationError('Not authorized to manage test cases for this problem');
-      }
 
+      // Any admin can manage test cases
       return { problem, contest };
     } catch (error) {
-      if (error instanceof AuthenticationError || error instanceof NotFoundError) {
+      if (error instanceof NotFoundError) {
         throw error;
       }
       throw new DatabaseError('Failed to verify admin access', error);
@@ -101,9 +217,19 @@ class TestCase {
    * @throws {DatabaseError} When database operation fails
    */
   static async create(testCaseData, problemId, adminId) {
-    const { contest } = await this.checkAdminAccess(problemId, adminId);
+    const { contest, problem } = await this.checkAdminAccess(problemId, adminId);
 
-    this.validateTestCaseData(testCaseData);
+    // Get problem parameters for validation
+    let problemParameters = null;
+    if (problem.function_parameters) {
+      try {
+        problemParameters = JSON.parse(problem.function_parameters);
+      } catch (error) {
+        console.warn('Failed to parse problem function_parameters:', error);
+      }
+    }
+
+    this.validateTestCaseData(testCaseData, problemParameters);
 
     const contestStatus = Contest.getContestStatus(contest);
     if (contestStatus.status === 'running' || contestStatus.status === 'frozen') {
@@ -111,12 +237,21 @@ class TestCase {
     }
 
     try {
-      const [result] = await db('test_cases').insert({
+      const insertData = {
         problem_id: problemId,
-        input: testCaseData.input || '',
-        expected_output: testCaseData.expected_output || '',
-        is_sample: testCaseData.is_sample || false
-      }).returning('id');
+        test_case_name: testCaseData.test_case_name,
+        input_parameters: typeof testCaseData.input_parameters === 'string' ?
+          testCaseData.input_parameters : JSON.stringify(testCaseData.input_parameters),
+        expected_return: typeof testCaseData.expected_return === 'string' ?
+          testCaseData.expected_return : JSON.stringify(testCaseData.expected_return),
+        parameter_types: typeof testCaseData.parameter_types === 'string' ?
+          testCaseData.parameter_types : JSON.stringify(testCaseData.parameter_types),
+        explanation: testCaseData.explanation || '',
+        is_sample: testCaseData.is_sample || false,
+        converted_to_params: true
+      };
+
+      const [result] = await db('test_cases').insert(insertData).returning('id');
 
       return await this.findById(result.id);
     } catch (error) {

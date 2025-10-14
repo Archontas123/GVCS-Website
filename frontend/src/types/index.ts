@@ -3,6 +3,8 @@ export interface Team {
   id: number;
   teamName: string;
   contestCode: string;
+  contestName?: string;
+  contestSlug?: string;
   schoolName?: string;
   memberNames?: string[];
   sessionToken: string;
@@ -16,17 +18,17 @@ export interface Contest {
   contestName: string;
   description: string;
   registrationCode: string;
-  startTime: string;
-  duration: number; 
-  freezeTime: number; 
+  startTime?: string | null;
+  duration?: number | null; 
+  freezeTime?: number | null; 
   isActive: boolean;
+  manualControl?: boolean;
 }
 
 export interface Problem {
   id: number;
   contestId: number;
-  problemLetter?: string;
-  letter?: string;
+  problemLetter: string;
   title: string;
   description: string;
   inputFormat?: string;
@@ -38,9 +40,16 @@ export interface Problem {
   memoryLimit: number; // in MB
   difficulty: 'easy' | 'medium' | 'hard';
   // Additional fields from API response
-  attempt_count?: number;
-  is_solved?: boolean;
-  solved_at?: string;
+  attemptCount?: number;
+  isSolved?: boolean;
+  solvedAt?: string;
+  firstSubmission?: string;
+  sampleTestCases?: any[];
+  teamStatistics?: {
+    totalAttempts: number;
+    hasSolved: boolean;
+    latestStatus: string | null;
+  };
 }
 
 // Submission types
@@ -150,7 +159,10 @@ export interface RegisterFormData {
   contestCode: string;
   password: string;
   schoolName: string;
-  memberNames: string[];
+  members: Array<{
+    firstName: string;
+    lastName: string;
+  }>;
 }
 
 export interface LoginFormData {
@@ -170,6 +182,20 @@ export interface RouteConfig {
   component: React.ComponentType<any>;
   requiresAuth: boolean;
   exact?: boolean;
+}
+
+// Test case types
+export interface TestCase {
+  id: number;
+  problemId: number;
+  test_case_name: string;
+  input_parameters: any;
+  expected_return: any;
+  parameter_types: Array<{ name: string; type: string }> | string;
+  explanation?: string;
+  is_sample: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Theme types (extending MUI theme)

@@ -13,12 +13,13 @@ interface ContestStats {
 interface ActiveContest {
   id: number;
   contest_name: string;
-  start_time: string;
-  duration: number;
+  start_time?: string | null;
+  duration?: number | null;
   time_remaining_seconds: number;
   time_elapsed_seconds: number;
   progress_percentage: number;
-  status: 'not_started' | 'running' | 'frozen' | 'ended';
+  status: 'pending_manual' | 'not_started' | 'running' | 'frozen' | 'ended';
+  manual_control?: boolean;
   registration_code: string;
   teams_count: number;
   submissions_count: number;
@@ -47,7 +48,7 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
     try {
       const response = await fetch('/api/admin/contests', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('programming_contest_admin_token')}`,
           'Content-Type': 'application/json'
         }
       });
@@ -65,7 +66,7 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
             try {
               const progressResponse = await fetch(`/api/admin/contests/${contest.id}/progress`, {
                 headers: {
-                  'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+                  'Authorization': `Bearer ${localStorage.getItem('programming_contest_admin_token')}`,
                   'Content-Type': 'application/json'
                 }
               });
@@ -74,7 +75,7 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
               const progress = progressData.success ? progressData.data : null;
               const statsResponse = await fetch(`/api/admin/contests/${contest.id}/live-stats`, {
                 headers: {
-                  'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+                  'Authorization': `Bearer ${localStorage.getItem('programming_contest_admin_token')}`,
                   'Content-Type': 'application/json'
                 }
               });
@@ -85,12 +86,13 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
               return {
                 id: contest.id,
                 contest_name: contest.contest_name,
-                start_time: contest.start_time,
-                duration: contest.duration,
+                start_time: contest.start_time || null,
+                duration: contest.duration ?? null,
                 time_remaining_seconds: progress?.time_remaining_seconds || 0,
                 time_elapsed_seconds: progress?.time_elapsed_seconds || 0,
                 progress_percentage: progress?.progress_percentage || 0,
                 status: progress?.status || 'not_started',
+                manual_control: progress?.manual_control ?? contest.manual_control ?? true,
                 registration_code: contest.registration_code,
                 teams_count: liveStats?.teams_count || 0,
                 submissions_count: liveStats?.submissions_count || 0,
@@ -143,6 +145,7 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
 
   const getStatusText = (status: string) => {
     switch (status) {
+      case 'pending_manual': return 'Awaiting Start';
       case 'not_started': return 'Not Started';
       case 'running': return 'Running';
       case 'frozen': return 'Frozen';
@@ -454,7 +457,7 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
                         fontSize: '0.75rem',
                         color: '#6b7280'
                       }}>
-                        Duration: {contest.duration} min
+                        Duration: {contest.duration ? `${contest.duration} min` : 'Manual'}
                       </span>
                     </div>
                   </div>

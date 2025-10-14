@@ -3,6 +3,7 @@ import Editor from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import { MdCheck, MdClose, MdLightbulb, MdSave, MdPlayArrow } from 'react-icons/md';
 import '../../styles/theme.css';
+import apiService from '../../services/api';
 
 const codeEditorStyles = `
   .code-editor {
@@ -31,30 +32,32 @@ const codeEditorStyles = `
   }
 
   .lang-btn {
-    padding: 6px 12px;
-    border: 1px solid #d1d5db;
+    padding: 8px 16px;
+    border: 3px solid #212529;
     background: #ffffff;
-    color: #374151;
-    border-radius: 4px;
+    color: #212529;
     cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 500;
-    transition: all 0.2s ease;
+    font-size: 0.65rem;
+    font-weight: bold;
+    transition: all 0.15s ease-in-out;
+    font-family: 'Press Start 2P', cursive;
+    box-shadow: 3px 3px 0px #212529;
   }
 
   .lang-btn:hover:not(:disabled) {
-    background: #f3f4f6;
-    border-color: #2563eb;
+    background: #e5e7eb;
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0px #212529;
   }
 
   .lang-btn.active {
-    background: #2563eb;
-    border-color: #2563eb;
+    background: #2D58A6;
     color: white;
+    text-shadow: 2px 2px 0px #212529;
   }
 
   .lang-btn:disabled {
-    opacity: 0.5;
+    opacity: 0.6;
     cursor: not-allowed;
   }
 
@@ -148,43 +151,46 @@ const codeEditorStyles = `
   }
 
   .test-btn, .submit-btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    font-weight: 600;
+    padding: 12px 20px;
+    border: 4px solid #212529;
+    font-size: 0.65rem;
+    font-weight: bold;
     cursor: pointer;
-    transition: all 0.2s ease;
-    min-width: 120px;
+    transition: all 0.15s ease-in-out;
+    min-width: 140px;
+    font-family: 'Press Start 2P', cursive;
   }
 
   .test-btn {
-    background: #0e639c;
+    background: #2D58A6;
     color: white;
+    box-shadow: 4px 4px 0px #212529;
+    text-shadow: 2px 2px 0px #212529;
   }
 
   .test-btn:hover:not(:disabled) {
-    background: #1177bb;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(14, 99, 156, 0.3);
+    background: #3B6BBD;
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px #212529;
   }
 
   .submit-btn {
     background: #16a085;
     color: white;
+    box-shadow: 4px 4px 0px #212529;
+    text-shadow: 2px 2px 0px #212529;
   }
 
   .submit-btn:hover:not(:disabled) {
     background: #1abc9c;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(22, 160, 133, 0.3);
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px #212529;
   }
 
   .test-btn:disabled, .submit-btn:disabled {
-    opacity: 0.5;
+    opacity: 0.6;
     cursor: not-allowed;
     transform: none;
-    box-shadow: none;
   }
 
   .test-result {
@@ -273,26 +279,6 @@ const codeEditorStyles = `
     background: #fef2f2;
   }
 
-  .editor-help {
-    background: #f8f9fa;
-    border-top: 1px solid #e1e5e9;
-    padding: 12px 16px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-  }
-
-  .help-item {
-    font-size: 0.75rem;
-    color: #6b7280;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .help-item strong {
-    color: #1f2937;
-  }
 
   @media (max-width: 768px) {
     .editor-header {
@@ -318,28 +304,20 @@ const codeEditorStyles = `
       width: 100%;
     }
 
-    .editor-help {
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .help-item {
-      justify-content: flex-start;
-    }
   }
 
   @media (max-width: 480px) {
     .editor-container {
       min-height: 300px;
     }
-    
+
     .test-input textarea {
       min-height: 60px;
     }
-    
+
     .lang-btn {
       padding: 8px 12px;
-      font-size: 0.8125rem;
+      font-size: 0.6rem;
     }
   }
 `;
@@ -363,6 +341,7 @@ interface CodeEditorProps {
     error: string;
     executionTime: number;
   } | null;
+  showTestingControls?: boolean;
 }
 
 
@@ -379,6 +358,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   readOnly = false,
   isLoading = false,
   testResult = null,
+  showTestingControls = true,
 }) => {
   const [language, setLanguage] = useState<'cpp' | 'java' | 'python'>(initialLanguage as 'cpp' | 'java' | 'python');
   const [code, setCode] = useState<string>(value || initialCode || '// Loading...');
@@ -387,6 +367,10 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   const [isLoadingSignature, setIsLoadingSignature] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savePromiseRef = useRef<Promise<void>>(Promise.resolve());
+  const saveRequestIdRef = useRef(0);
+  const lastSavedCodeRef = useRef(code);
 
   useEffect(() => {
     if (onChange) {
@@ -400,81 +384,114 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     }
   }, [language, onLanguageChange]);
 
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
   const loadCode = useCallback(async () => {
     if (!problemId) return;
     
     setIsLoadingSignature(true);
     try {
-      const token = localStorage.getItem('teamToken');
-      
+      const token = apiService.getAuthToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
       const response = await fetch(
         `/api/problems/${problemId}/code/${language}`,
         {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+          headers
         }
       );
 
       if (response.ok) {
         const data = await response.json();
         setCode(data.data.code);
+        lastSavedCodeRef.current = data.data.code;
       } else {
         const signatureResponse = await fetch(
           `/api/problems/${problemId}/signature/${language}`,
           {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
+            headers
           }
         );
 
         if (signatureResponse.ok) {
           const signatureData = await signatureResponse.json();
           setCode(signatureData.data.signature);
+          lastSavedCodeRef.current = signatureData.data.signature;
         } else {
           setCode('// Error loading function signature');
+          lastSavedCodeRef.current = '// Error loading function signature';
         }
       }
     } catch (error) {
       console.error('Error loading code:', error);
       setCode('// Error loading function signature');
+      lastSavedCodeRef.current = '// Error loading function signature';
     } finally {
       setIsLoadingSignature(false);
     }
   }, [problemId, language]);
 
-  const saveCode = useCallback(async (codeToSave: string) => {
+  const saveCode = useCallback((codeToSave: string) => {
     if (!problemId || isLoadingSignature || codeToSave === '// Loading...' || codeToSave === '// Error loading function signature') {
-      return;
+      return Promise.resolve();
     }
 
-    setIsSaving(true);
-    try {
-      const token = localStorage.getItem('teamToken');
-      
-      const response = await fetch(
-        `/api/problems/${problemId}/code/${language}`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ code: codeToSave })
+    if (codeToSave === lastSavedCodeRef.current) {
+      return Promise.resolve();
+    }
+
+    const token = apiService.getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const currentSaveId = saveRequestIdRef.current + 1;
+    saveRequestIdRef.current = currentSaveId;
+
+    const executeSave = async () => {
+      setIsSaving(true);
+      try {
+        const response = await fetch(
+          `/api/problems/${problemId}/code/${language}`,
+          {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ code: codeToSave })
+          }
+        );
+
+        if (response.ok && saveRequestIdRef.current === currentSaveId) {
+          lastSavedCodeRef.current = codeToSave;
+          setLastSaved(new Date());
         }
-      );
-
-      if (response.ok) {
-        setLastSaved(new Date());
+      } catch (error) {
+        console.error('Error saving code:', error);
+      } finally {
+        if (saveRequestIdRef.current === currentSaveId) {
+          setIsSaving(false);
+        }
       }
-    } catch (error) {
-      console.error('Error saving code:', error);
-    } finally {
-      setIsSaving(false);
-    }
+    };
+
+    savePromiseRef.current = savePromiseRef.current.then(executeSave);
+    return savePromiseRef.current;
   }, [problemId, language, isLoadingSignature]);
 
   useEffect(() => {
@@ -486,10 +503,14 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     setCode(newCode);
     onChange?.(newCode);
 
-    const saveTimer = setTimeout(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      saveTimeoutRef.current = null;
       saveCode(newCode);
     }, 2000);
-    return () => clearTimeout(saveTimer);
   }, [onChange, saveCode]);
 
   const handleLanguageChange = useCallback((newLanguage: string) => {
@@ -501,11 +522,11 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   }, [code, isLoadingSignature, saveCode, onLanguageChange]);
 
   const handleTest = useCallback(() => {
-    if (code && onTest) {
+    if (showTestingControls && code && onTest) {
       saveCode(code); 
       onTest(code, language, testInput);
     }
-  }, [code, onTest, saveCode, language, testInput]);
+  }, [code, onTest, saveCode, language, testInput, showTestingControls]);
 
   const handleSubmit = useCallback(() => {
     if (code && onSubmit) {
@@ -575,26 +596,30 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
           </div>
 
           <div className="test-section">
-            <div className="test-input">
-              <label htmlFor="test-input">Test Input (optional):</label>
-              <textarea
-                id="test-input"
-                value={testInput}
-                onChange={(e) => setTestInput(e.target.value)}
-                placeholder="Enter test input here..."
-                rows={3}
-                disabled={isLoading}
-              />
-            </div>
+            {showTestingControls && (
+              <div className="test-input">
+                <label htmlFor="test-input">Test Input (optional):</label>
+                <textarea
+                  id="test-input"
+                  value={testInput}
+                  onChange={(e) => setTestInput(e.target.value)}
+                  placeholder="Enter test input here..."
+                  rows={3}
+                  disabled={isLoading}
+                />
+              </div>
+            )}
 
             <div className="editor-actions">
-              <button
-                className="test-btn"
-                onClick={handleTest}
-                disabled={isLoading || isLoadingSignature || !code.trim()}
-              >
-                {isLoading ? 'Testing...' : 'Test Code'}
-              </button>
+              {showTestingControls && (
+                <button
+                  className="test-btn"
+                  onClick={handleTest}
+                  disabled={isLoading || isLoadingSignature || !code.trim()}
+                >
+                  {isLoading ? 'Testing...' : 'Test Code'}
+                </button>
+              )}
               
               <button
                 className="submit-btn"
@@ -606,7 +631,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
             </div>
           </div>
 
-          {testResult && (
+          {showTestingControls && testResult && (
             <div className={`test-result ${testResult.success ? 'success' : 'error'}`}>
               <div className="result-header">
                 <span className="result-status">
@@ -618,14 +643,14 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
                   {testResult.executionTime}ms
                 </span>
               </div>
-              
+
               {testResult.output && (
                 <div className="result-section">
                   <strong>Output:</strong>
                   <pre className="result-content">{testResult.output}</pre>
                 </div>
               )}
-              
+
               {testResult.error && (
                 <div className="result-section">
                   <strong>Error:</strong>
@@ -634,24 +659,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
               )}
             </div>
           )}
-
-          <div className="editor-help">
-            <div className="help-item">
-              <strong style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <MdLightbulb /> Code Editor:
-              </strong> Write your solution function - I/O is handled automatically
-            </div>
-            <div className="help-item">
-              <strong style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <MdSave /> Auto-save:
-              </strong> Your code is automatically saved as you type
-            </div>
-            <div className="help-item">
-              <strong style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <MdPlayArrow /> Testing:
-              </strong> Use the test button to run your code with custom input
-            </div>
-          </div>
         </div>
       </>
     );

@@ -46,7 +46,7 @@ router.get('/contest/:contestCode', async (req, res, next) => {
   try {
     const { contestCode } = req.params;
 
-    const contest = await Contest.findByRegistrationCode(contestCode);
+    const contest = await Contest.findByRegistrationCode(contestCode, { includeInactive: true });
     if (!contest) {
       return res.notFound('Contest not found');
     }
@@ -118,7 +118,7 @@ router.get('/contest/:contestCode/status', authenticateTeam, async (req, res, ne
     const { contestCode } = req.params;
     const team = req.team;
 
-    const contest = await Contest.findByRegistrationCode(contestCode);
+    const contest = await Contest.findByRegistrationCode(contestCode, { includeInactive: true });
     if (!contest) {
       return res.notFound('Contest not found');
     }
@@ -181,7 +181,7 @@ router.post('/contest/:contestCode/ping', authenticateTeam, async (req, res, nex
 
     await Contest.updateTeamActivity(team.id);
 
-    const contest = await Contest.findByRegistrationCode(contestCode);
+    const contest = await Contest.findByRegistrationCode(contestCode, { includeInactive: true });
     const status = Contest.getContestStatus(contest);
 
     res.success({

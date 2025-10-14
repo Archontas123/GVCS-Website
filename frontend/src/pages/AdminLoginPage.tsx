@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../hooks/useAdminAuth';
-import '../styles/theme.css';
 
 const AdminLoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login, loading } = useAdminAuth();
-  
+
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -35,10 +34,10 @@ const AdminLoginPage: React.FC = () => {
 
     try {
       await login(formData.username.trim(), formData.password);
-      // Use replace to prevent going back to login page
       navigate('/admin/dashboard', { replace: true });
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      const errorMessage = err.message || 'Login failed. Please check your credentials.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -46,103 +45,111 @@ const AdminLoginPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex-center full-height">
-        <div className="spinner spinner-lg"></div>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        backgroundColor: '#CECDE2',
+      }}>
+        <div
+          style={{
+            width: '40px',
+            height: '40px',
+            border: '4px solid transparent',
+            borderTop: '4px solid #212529',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+          }}
+        />
       </div>
     );
   }
 
   return (
-    <div
-      className="flex-center p-4"
-      style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
-        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-      }}
-    >
-      <div 
-        className="card" 
-        style={{ 
-          maxWidth: '420px', 
-          width: '100%', 
-          margin: '0 16px',
-          backgroundColor: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '16px',
-          boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)',
+    <>
+      <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
+      <div
+        style={{
+          fontFamily: "'Press Start 2P', cursive",
+          backgroundColor: '#CECDE2',
+          backgroundImage: `
+            linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px)
+          `,
+          backgroundSize: '30px 30px',
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+          position: 'relative',
         }}
       >
-        <div className="card-content" style={{ padding: '48px 40px' }}>
-          <div className="text-center mb-5">
-            <h1 
-              className="mb-2" 
-              style={{ 
-                fontWeight: 700, 
-                fontSize: '2.4rem',
-                color: '#1d4ed8',
-                letterSpacing: '-0.02em',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              }}
-            >
-              Hack The Valley
-            </h1>
-            
-            <h2 
-              className="mb-3" 
-              style={{ 
-                fontWeight: 500, 
-                fontSize: '1.1rem',
-                color: '#475569',
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              }}
-            >
-              Administrator Portal
-            </h2>
-            
-            <div 
-              style={{
-                width: '80px',
-                height: '4px',
-                background: 'linear-gradient(90deg, #1d4ed8 0%, #2563eb 100%)',
-                margin: '0 auto',
-                borderRadius: '4px',
-                boxShadow: '0 2px 8px rgba(29, 78, 216, 0.3)',
-              }}
-            ></div>
-          </div>
+        <div style={{
+          position: 'relative',
+          zIndex: 10,
+          textAlign: 'center',
+          maxWidth: '600px',
+          width: '100%',
+        }}>
+          <h1 style={{
+            fontSize: 'clamp(1.5rem, 4vw, 3rem)',
+            fontWeight: 'bold',
+            color: 'white',
+            marginBottom: '16px',
+            letterSpacing: '0.05em',
+            textShadow: '4px 4px 0px #212529',
+          }}>
+            Hack The Valley
+          </h1>
+
+          <h2 style={{
+            fontSize: 'clamp(0.8rem, 2vw, 1rem)',
+            fontWeight: 'bold',
+            color: '#FFD700',
+            marginBottom: '48px',
+            letterSpacing: '0.05em',
+            textShadow: '2px 2px 0px #212529',
+          }}>
+            Admin Portal
+          </h2>
 
           {error && (
-            <div 
-              style={{ 
+            <div
+              data-testid="error-message"
+              style={{
                 padding: '16px 20px',
                 backgroundColor: '#fef2f2',
-                border: '1px solid #fecaca',
-                borderRadius: '8px',
+                border: '4px solid #dc2626',
                 marginBottom: '24px',
                 color: '#dc2626',
-                fontSize: '0.9rem',
-                fontWeight: 500,
+                fontSize: '0.7rem',
+                lineHeight: '1.6',
+                textAlign: 'left',
               }}
             >
-              <strong>Authentication Failed:</strong> {error}
+              {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} style={{ marginBottom: '24px' }}>
             <div style={{ marginBottom: '24px' }}>
-              <label 
-                style={{ 
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontWeight: 600, 
-                  color: '#374151',
-                  fontSize: '0.9rem',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                }}
-              >
+              <label style={{
+                display: 'block',
+                marginBottom: '12px',
+                color: '#212529',
+                fontSize: '0.75rem',
+                textAlign: 'left',
+              }}>
                 Username
               </label>
               <input
@@ -153,43 +160,28 @@ const AdminLoginPage: React.FC = () => {
                 required
                 disabled={isLoading}
                 autoFocus
-                placeholder="Enter your username"
+                placeholder="Admin"
                 style={{
                   width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '12px',
+                  padding: '16px',
+                  border: '4px solid #212529',
                   fontSize: '1rem',
-                  padding: '16px 18px',
-                  transition: 'all 0.2s ease',
-                  backgroundColor: '#ffffff',
-                  color: '#1f2937',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#1d4ed8';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(29, 78, 216, 0.1)';
-                  e.target.style.outline = 'none';
-                  e.target.style.backgroundColor = '#dbeafe';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#e5e7eb';
-                  e.target.style.boxShadow = 'none';
-                  e.target.style.backgroundColor = '#ffffff';
+                  fontWeight: 'bold',
+                  fontFamily: "'Press Start 2P', cursive",
+                  backgroundColor: isLoading ? '#e5e7eb' : '#ffffff',
+                  boxShadow: '4px 4px 0px #212529',
                 }}
               />
             </div>
-            
-            <div style={{ marginBottom: '32px' }}>
-              <label 
-                style={{ 
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontWeight: 600, 
-                  color: '#374151',
-                  fontSize: '0.9rem',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                }}
-              >
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '12px',
+                color: '#212529',
+                fontSize: '0.75rem',
+                textAlign: 'left',
+              }}>
                 Password
               </label>
               <input
@@ -199,28 +191,16 @@ const AdminLoginPage: React.FC = () => {
                 onChange={handleChange}
                 required
                 disabled={isLoading}
-                placeholder="Enter your password"
+                placeholder="Password"
                 style={{
                   width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '12px',
+                  padding: '16px',
+                  border: '4px solid #212529',
                   fontSize: '1rem',
-                  padding: '16px 18px',
-                  transition: 'all 0.2s ease',
-                  backgroundColor: '#ffffff',
-                  color: '#1f2937',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#1d4ed8';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(29, 78, 216, 0.1)';
-                  e.target.style.outline = 'none';
-                  e.target.style.backgroundColor = '#dbeafe';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#e5e7eb';
-                  e.target.style.boxShadow = 'none';
-                  e.target.style.backgroundColor = '#ffffff';
+                  fontWeight: 'bold',
+                  fontFamily: "'Press Start 2P', cursive",
+                  backgroundColor: isLoading ? '#e5e7eb' : '#ffffff',
+                  boxShadow: '4px 4px 0px #212529',
                 }}
               />
             </div>
@@ -229,95 +209,96 @@ const AdminLoginPage: React.FC = () => {
               type="submit"
               disabled={isLoading || !formData.username.trim() || !formData.password.trim()}
               style={{
-                width: '100%',
-                background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '20px 24px',
-                fontSize: '1rem',
-                fontWeight: 600,
                 position: 'relative',
-                transition: 'all 0.2s ease',
-                cursor: isLoading || !formData.username.trim() || !formData.password.trim() ? 'not-allowed' : 'pointer',
-                opacity: isLoading || !formData.username.trim() || !formData.password.trim() ? 0.6 : 1,
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                boxShadow: '0 8px 25px rgba(29, 78, 216, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15)',
+                border: '4px solid #212529',
+                backgroundColor: (isLoading || !formData.username.trim() || !formData.password.trim()) ? '#6b7280' : '#2D58A6',
+                color: 'white',
+                transition: 'all 0.15s ease-in-out',
+                boxShadow: '6px 6px 0px #212529',
+                textShadow: '2px 2px 0px #212529',
+                fontSize: '1.2rem',
+                padding: '24px 48px',
+                cursor: (isLoading || !formData.username.trim() || !formData.password.trim()) ? 'not-allowed' : 'pointer',
+                width: '100%',
+                fontFamily: "'Press Start 2P', cursive",
               }}
               onMouseEnter={(e) => {
                 if (!isLoading && formData.username.trim() && formData.password.trim()) {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%)';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 12px 35px rgba(29, 78, 216, 0.35), 0 8px 20px rgba(37, 99, 235, 0.25)';
+                  e.currentTarget.style.transform = 'translate(2px, 2px)';
+                  e.currentTarget.style.boxShadow = '4px 4px 0px #212529';
+                  e.currentTarget.style.backgroundColor = '#3B6BBD';
+                  e.currentTarget.style.filter = 'brightness(1.1)';
                 }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 8px 25px rgba(29, 78, 216, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15)';
+                if (!isLoading && formData.username.trim() && formData.password.trim()) {
+                  e.currentTarget.style.transform = 'translate(0, 0)';
+                  e.currentTarget.style.boxShadow = '6px 6px 0px #212529';
+                  e.currentTarget.style.backgroundColor = '#2D58A6';
+                  e.currentTarget.style.filter = 'brightness(1)';
+                }
+              }}
+              onMouseDown={(e) => {
+                if (!isLoading && formData.username.trim() && formData.password.trim()) {
+                  e.currentTarget.style.transform = 'translate(6px, 6px)';
+                  e.currentTarget.style.boxShadow = '0px 0px 0px #212529';
+                }
+              }}
+              onMouseUp={(e) => {
+                if (!isLoading && formData.username.trim() && formData.password.trim()) {
+                  e.currentTarget.style.transform = 'translate(2px, 2px)';
+                  e.currentTarget.style.boxShadow = '4px 4px 0px #212529';
+                }
               }}
             >
               {isLoading && (
                 <div
                   style={{
-                    position: 'absolute',
-                    left: '50%',
-                    marginLeft: '-10px',
                     width: '20px',
                     height: '20px',
-                    border: '2px solid rgba(255, 255, 255, 0.3)',
-                    borderTop: '2px solid white',
+                    border: '3px solid transparent',
+                    borderTop: '3px solid #ffffff',
                     borderRadius: '50%',
                     animation: 'spin 1s linear infinite',
+                    display: 'inline-block',
+                    marginRight: '12px',
                   }}
-                ></div>
+                />
               )}
-              <span style={{ opacity: isLoading ? 0 : 1 }}>
-                {isLoading ? 'Signing In...' : 'Sign In'}
-              </span>
+              {isLoading ? 'Loading...' : 'Sign In'}
             </button>
           </form>
 
-          <div style={{ textAlign: 'center', marginTop: '32px' }}>
-            <div 
-              style={{
-                height: '1px',
-                background: 'linear-gradient(90deg, transparent, #e5e7eb, transparent)',
-                margin: '32px 0 24px',
-              }}
-            ></div>
-            <p style={{ fontSize: '0.9rem', color: '#6b7280', margin: 0 }}>
-              Not an administrator?{' '}
+          <div style={{ marginTop: '32px' }}>
+            <p style={{
+              fontSize: '0.6rem',
+              color: '#212529',
+              marginBottom: '16px',
+              lineHeight: '1.6',
+            }}>
+              Not an admin?{' '}
               <button
                 type="button"
                 onClick={() => navigate('/')}
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#1d4ed8',
+                  color: '#2D58A6',
                   padding: '0',
-                  fontWeight: 600,
-                  textDecoration: 'none',
+                  fontSize: '0.6rem',
+                  fontWeight: 'bold',
                   cursor: 'pointer',
-                  fontSize: '0.9rem',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.textDecoration = 'underline';
-                  e.currentTarget.style.color = '#1e40af';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.textDecoration = 'none';
-                  e.currentTarget.style.color = '#1d4ed8';
+                  textDecoration: 'underline',
+                  fontFamily: "'Press Start 2P', cursive",
                 }}
               >
-                Return to Team Portal
+                Team Portal
               </button>
             </p>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

@@ -1,6 +1,7 @@
 const socketIo = require('socket.io');
 const jwt = require('jsonwebtoken');
 const { db } = require('../utils/db');
+const Contest = require('../controllers/contestController');
 
 /**
  * WebSocket service for managing real-time communication in programming contests
@@ -356,15 +357,9 @@ class WebSocketService {
         .select('id', 'problem_letter', 'title')
         .orderBy('problem_letter');
 
-      const now = new Date();
-      const startTime = new Date(contest.start_time);
-      const endTime = new Date(startTime.getTime() + contest.duration * 60 * 1000);
-      
-      const contestStatus = now < startTime ? 'not_started' : 
-                           now > endTime ? 'ended' : 'running';
-      
-      const timeRemaining = contestStatus === 'running' ? 
-        Math.max(0, Math.floor((endTime - now) / 1000)) : 0;
+      const statusSnapshot = Contest.getContestStatus(contest);
+      const contestStatus = statusSnapshot.status;
+      const timeRemaining = statusSnapshot.time_remaining_seconds ?? 0;
 
       const teamProblemStatus = await this.getTeamProblemStatusMatrix(contestId, problems);
 
@@ -378,6 +373,7 @@ class WebSocketService {
           id: contest.id,
           name: contest.contest_name,
           status: contestStatus,
+          manual_control: statusSnapshot.manual_control ?? true,
           timeRemaining: timeRemaining
         },
         problems: problems.map(p => ({
@@ -418,9 +414,9 @@ class WebSocketService {
           'p.id as problem_id',
           'p.problem_letter',
           's.status',
-          's.submission_time'
+          's.submitted_at'
         )
-        .orderBy('s.submission_time');
+        .orderBy('s.submitted_at');
 
       // Process submissions to build status matrix
       for (const submission of submissions) {
@@ -445,11 +441,11 @@ class WebSocketService {
         // Only update if not already solved
         if (problemStatus.status !== 'accepted') {
           problemStatus.attempts++;
-          problemStatus.lastAttempt = submission.submission_time;
+          problemStatus.lastAttempt = submission.submitted_at;
 
           if (submission.status === 'accepted') {
             problemStatus.status = 'accepted';
-            problemStatus.solveTime = submission.submission_time;
+            problemStatus.solveTime = submission.submitted_at;
           } else if (['wrong_answer', 'time_limit_exceeded', 'runtime_error', 'memory_limit_exceeded'].includes(submission.status)) {
             problemStatus.status = 'attempted';
           } else if (submission.status === 'compilation_error') {

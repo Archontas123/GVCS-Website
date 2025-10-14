@@ -5,6 +5,22 @@
  */
 exports.up = function(knex) {
   return knex.schema
+    // Create admin_users table first
+    .createTable('admin_users', function(table) {
+      table.increments('id').primary();
+      table.string('username').unique().notNullable();
+      table.string('email').unique().notNullable();
+      table.string('password_hash').notNullable();
+      table.enum('role', ['super_admin', 'admin', 'judge']).defaultTo('admin');
+      table.boolean('is_active').defaultTo(true);
+      table.timestamp('last_login');
+      table.timestamp('created_at').defaultTo(knex.fn.now());
+      table.timestamp('updated_at').defaultTo(knex.fn.now());
+
+      table.index(['username']);
+      table.index(['role']);
+    })
+
     // Create contests table
     .createTable('contests', function(table) {
       table.increments('id').primary();
@@ -19,6 +35,7 @@ exports.up = function(knex) {
       table.boolean('is_registration_open').defaultTo(true);
       table.boolean('is_frozen').defaultTo(false);
       table.enum('scoring_type', ['icpc']).defaultTo('icpc');
+      table.integer('created_by').references('id').inTable('admin_users').onDelete('SET NULL');
       table.timestamp('created_at').defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.fn.now());
       
@@ -30,7 +47,7 @@ exports.up = function(knex) {
     .createTable('problems', function(table) {
       table.increments('id').primary();
       table.integer('contest_id').references('id').inTable('contests').onDelete('CASCADE');
-      table.string('problemLetter', 1).notNullable();
+      table.string('problem_letter', 1).notNullable();
       table.string('title').notNullable();
       table.text('description').notNullable();
       table.text('input_format');
@@ -39,8 +56,8 @@ exports.up = function(knex) {
       table.text('sample_input');
       table.text('sample_output');
       table.text('explanation');
-      table.integer('timeLimit').defaultTo(1000); // milliseconds
-      table.integer('memoryLimit').defaultTo(256); // MB
+      table.integer('time_limit').defaultTo(1000); // milliseconds
+      table.integer('memory_limit').defaultTo(256); // MB
       table.enum('difficulty', ['easy', 'medium', 'hard']).defaultTo('medium');
       table.integer('points_value').defaultTo(1);
       table.integer('max_points').defaultTo(100);
@@ -49,12 +66,12 @@ exports.up = function(knex) {
       table.text('function_signature');
       table.timestamp('created_at').defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.fn.now());
-      
-      table.unique(['contest_id', 'problemLetter']);
+
+      table.unique(['contest_id', 'problem_letter']);
       table.index(['contest_id']);
       table.index(['difficulty']);
     })
-    
+
     // Create teams table
     .createTable('teams', function(table) {
       table.increments('id').primary();
@@ -192,23 +209,7 @@ exports.up = function(knex) {
       table.index(['is_public']);
       table.index(['is_answered']);
     })
-    
-    // Create admin_users table
-    .createTable('admin_users', function(table) {
-      table.increments('id').primary();
-      table.string('username').unique().notNullable();
-      table.string('email').unique().notNullable();
-      table.string('password_hash').notNullable();
-      table.enum('role', ['super_admin', 'admin', 'judge']).defaultTo('admin');
-      table.boolean('is_active').defaultTo(true);
-      table.timestamp('last_login');
-      table.timestamp('created_at').defaultTo(knex.fn.now());
-      table.timestamp('updated_at').defaultTo(knex.fn.now());
-      
-      table.index(['username']);
-      table.index(['role']);
-    })
-    
+
     // Create team_problem_code table
     .createTable('team_problem_code', function(table) {
       table.increments('id').primary();
@@ -231,7 +232,6 @@ exports.up = function(knex) {
 exports.down = function(knex) {
   return knex.schema
     .dropTableIfExists('team_problem_code')
-    .dropTableIfExists('admin_users')
     .dropTableIfExists('clarifications')
     .dropTableIfExists('partial_scores')
     .dropTableIfExists('submission_test_results')
@@ -239,5 +239,6 @@ exports.down = function(knex) {
     .dropTableIfExists('test_cases')
     .dropTableIfExists('teams')
     .dropTableIfExists('problems')
-    .dropTableIfExists('contests');
+    .dropTableIfExists('contests')
+    .dropTableIfExists('admin_users');
 };

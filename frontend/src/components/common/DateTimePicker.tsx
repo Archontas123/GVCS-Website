@@ -1,9 +1,9 @@
 import React from 'react';
 
 interface DateTimePickerProps {
-  value: string;
+  value: string | null | undefined;
   onChange: (value: string) => void;
-  min?: string;
+  min?: string | null | undefined;
   disabled?: boolean;
 }
 
@@ -13,9 +13,21 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
   min,
   disabled = false
 }) => {
-  const formatDateTimeLocal = (isoString: string): string => {
-    const date = new Date(isoString);
-    return date.toISOString().slice(0, 16);
+  const formatDateTimeLocal = (isoString: string | null | undefined): string => {
+    // Handle null/undefined/empty values for manual control contests
+    if (!isoString) {
+      return '';
+    }
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+      return date.toISOString().slice(0, 16);
+    } catch (error) {
+      console.warn('Invalid date format:', isoString);
+      return '';
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,6 +35,9 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
     if (localDateTime) {
       const isoString = new Date(localDateTime).toISOString();
       onChange(isoString);
+    } else {
+      // Allow clearing the date for manual control contests
+      onChange('');
     }
   };
 

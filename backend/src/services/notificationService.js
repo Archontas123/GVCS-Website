@@ -79,6 +79,16 @@ class NotificationService {
   }
 
   /**
+   * Notify about contest unfreeze
+   */
+  notifyContestUnfreeze(contestId, contestData) {
+    this.notifyContestUpdate(contestId, 'contest_unfrozen', {
+      contest_name: contestData.contest_name,
+      unfrozen_at: contestData.unfrozen_at
+    });
+  }
+
+  /**
    * Notify about contest end
    */
   notifyContestEnd(contestId, contestData) {

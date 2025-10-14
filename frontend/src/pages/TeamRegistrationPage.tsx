@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import apiService from '../services/api';
+import { RegisterFormData } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { createContestSlug } from '../utils/contestUtils';
-import '../styles/theme.css';
 
 interface TeamRegistrationData {
   schoolName: string;
+  member1FirstName: string;
   member1LastName: string;
+  member2FirstName: string;
   member2LastName: string;
+  member3FirstName: string;
   member3LastName: string;
   password: string;
   confirmPassword: string;
@@ -30,8 +33,11 @@ const TeamRegistrationPage: React.FC = () => {
 
   const [formData, setFormData] = useState<TeamRegistrationData>({
     schoolName: '',
+    member1FirstName: '',
     member1LastName: '',
+    member2FirstName: '',
     member2LastName: '',
+    member3FirstName: '',
     member3LastName: '',
     password: '',
     confirmPassword: '',
@@ -54,11 +60,17 @@ const TeamRegistrationPage: React.FC = () => {
 
   const generateTeamName = () => {
     const { schoolName, member1LastName, member2LastName, member3LastName } = formData;
-    
-    if (!schoolName || !member1LastName) return '';
-    
-    const members = [member1LastName, member2LastName, member3LastName].filter(name => name.trim());
-    return `${schoolName}_${members.join(',')}`;
+    const trimmedSchoolName = schoolName.trim();
+    const primaryLastName = member1LastName.trim();
+
+    if (!trimmedSchoolName || !primaryLastName) return '';
+
+    const sanitizedSchoolName = trimmedSchoolName.replace(/\s+/g, '');
+    const lastNames = [member1LastName, member2LastName, member3LastName]
+      .filter(name => name.trim())
+      .map(name => name.trim());
+
+    return `${sanitizedSchoolName}_${lastNames.join(',')}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,8 +81,8 @@ const TeamRegistrationPage: React.FC = () => {
       return;
     }
     
-    if (!formData.member1LastName.trim()) {
-      setError('At least one team member is required');
+    if (!formData.member1FirstName.trim() || !formData.member1LastName.trim()) {
+      setError('At least one team member with first and last name is required');
       return;
     }
 
@@ -89,19 +101,23 @@ const TeamRegistrationPage: React.FC = () => {
       return;
     }
 
-    const nameRegex = /^[a-zA-Z]+$/;
-    const names = [formData.member1LastName, formData.member2LastName, formData.member3LastName]
-      .filter(name => name.trim());
-    
-    for (const name of names) {
-      if (!nameRegex.test(name.trim())) {
+    const memberNameRegex = /^[a-zA-Z]+$/;
+    const schoolNameRegex = /^[a-zA-Z\s]+$/;
+    const allNames = [
+      formData.member1FirstName, formData.member1LastName,
+      formData.member2FirstName, formData.member2LastName,
+      formData.member3FirstName, formData.member3LastName
+    ].filter(name => name.trim());
+
+    for (const name of allNames) {
+      if (!memberNameRegex.test(name.trim())) {
         setError('Member names must contain only letters');
         return;
       }
     }
 
-    if (!nameRegex.test(formData.schoolName.trim())) {
-      setError('School name must contain only letters');
+    if (!schoolNameRegex.test(formData.schoolName.trim())) {
+      setError('School name must contain only letters and spaces');
       return;
     }
 
@@ -115,20 +131,34 @@ const TeamRegistrationPage: React.FC = () => {
     setError(null);
 
     try {
+      // Build members array with first and last names
+      const members: RegisterFormData['members'] = [];
+      if (formData.member1FirstName.trim() && formData.member1LastName.trim()) {
+        members.push({ firstName: formData.member1FirstName.trim(), lastName: formData.member1LastName.trim() });
+      }
+      if (formData.member2FirstName.trim() && formData.member2LastName.trim()) {
+        members.push({ firstName: formData.member2FirstName.trim(), lastName: formData.member2LastName.trim() });
+      }
+      if (formData.member3FirstName.trim() && formData.member3LastName.trim()) {
+        members.push({ firstName: formData.member3FirstName.trim(), lastName: formData.member3LastName.trim() });
+      }
+
       const response = await apiService.registerTeam({
         teamName,
         contestCode,
         password: formData.password,
-        schoolName: formData.schoolName,
-        memberNames: [formData.member1LastName, formData.member2LastName, formData.member3LastName]
-          .filter(name => name.trim())
+        schoolName: formData.schoolName.trim(),
+        members
       });
       
       if (response.success && response.data) {
+        const contestSlug = createContestSlug(response.data.contestName);
         const team = {
           id: response.data.teamId,
           teamName: response.data.teamName,
           contestCode: response.data.contestCode,
+          contestName: response.data.contestName,
+          contestSlug,
           sessionToken: '', 
           registeredAt: response.data.registeredAt,
           lastActivity: new Date().toISOString(),
@@ -139,7 +169,6 @@ const TeamRegistrationPage: React.FC = () => {
         setSuccess('Team registered successfully! Redirecting to contest...');
         
         setTimeout(() => {
-          const contestSlug = createContestSlug(response.data.contestName);
           navigate(`/contest/${contestSlug}`);
         }, 1500);
         
@@ -170,472 +199,464 @@ const TeamRegistrationPage: React.FC = () => {
   const previewTeamName = generateTeamName();
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
-        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-        padding: '32px 16px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <div 
+    <>
+      <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
+      <div
         style={{
-          backgroundColor: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '16px',
-          boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)',
-          maxWidth: '600px',
-          width: '100%',
-          padding: '48px 40px',
+          fontFamily: "'Press Start 2P', cursive",
+          backgroundColor: '#CECDE2',
+          backgroundImage: `
+            linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px)
+          `,
+          backgroundSize: '30px 30px',
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+          overflow: 'hidden',
+          position: 'relative',
         }}
       >
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div
-            style={{
-              width: '80px',
-              height: '80px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 24px',
-              boxShadow: '0 8px 25px rgba(29, 78, 216, 0.25)',
-              fontSize: '2rem',
-            }}
-          >
-            Team
-          </div>
-          
-          <h1 style={{ 
-            fontWeight: 700, 
-            fontSize: '2rem',
-            color: '#1f2937',
-            marginBottom: '8px',
-            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 10,
+            maxWidth: '600px',
+            width: '100%',
+          }}
+        >
+          <h1 style={{
+            fontSize: 'clamp(1.2rem, 3vw, 2rem)',
+            fontWeight: 'bold',
+            color: 'white',
+            marginBottom: '32px',
+            letterSpacing: '0.05em',
+            textShadow: '4px 4px 0px #212529',
+            textAlign: 'center',
           }}>
             Team Registration
           </h1>
-          
-          <p style={{ 
-            color: '#6b7280',
-            fontSize: '1rem',
-            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-            marginBottom: '8px'
-          }}>
-            Register your team for {contestName || 'the contest'}
-          </p>
 
           <div style={{
-            padding: '8px 16px',
-            backgroundColor: '#eff6ff',
-            border: '1px solid #bfdbfe',
-            borderRadius: '8px',
-            fontSize: '0.85rem',
-            color: '#1d4ed8',
-            fontWeight: 600,
-            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-          }}>
-            Contest Code: {contestCode}
-          </div>
-        </div>
-
-        {previewTeamName && (
-          <div style={{
-            padding: '12px 16px',
-            backgroundColor: '#f0fdf4',
-            border: '1px solid #bbf7d0',
-            borderRadius: '8px',
+            padding: '12px 20px',
+            backgroundColor: '#2D58A6',
+            border: '4px solid #212529',
+            boxShadow: '4px 4px 0px #212529',
             marginBottom: '24px',
-            fontSize: '0.9rem',
-            color: '#166534',
-            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            fontSize: '0.7rem',
+            color: 'white',
+            textShadow: '2px 2px 0px #212529',
+            textAlign: 'center',
           }}>
-            <strong>Your team name will be:</strong> {previewTeamName}
+            Contest: {contestName || 'the contest'}
+            <br />
+            Code: {contestCode}
           </div>
-        )}
 
-        {error && (
-          <div style={{
-            padding: '16px 20px',
-            backgroundColor: '#fef2f2',
-            border: '1px solid #fecaca',
-            borderRadius: '12px',
-            marginBottom: '24px',
-            color: '#dc2626',
-            fontSize: '0.9rem',
-            fontWeight: 500,
-            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-          }}>
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div style={{
-            padding: '16px 20px',
-            backgroundColor: '#ecfdf5',
-            border: '1px solid #a7f3d0',
-            borderRadius: '12px',
-            marginBottom: '24px',
-            color: '#065f46',
-            fontSize: '0.9rem',
-            fontWeight: 500,
-            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-          }}>
-            {success}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{
-              display: 'block',
-              marginBottom: '8px',
-              fontWeight: 500,
-              color: '#374151',
-              fontSize: '0.9rem',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+          {previewTeamName && (
+            <div style={{
+              padding: '12px 16px',
+              backgroundColor: '#D4F1D4',
+              border: '4px solid #212529',
+              boxShadow: '4px 4px 0px #212529',
+              marginBottom: '24px',
+              fontSize: '0.65rem',
+              color: '#212529',
+              lineHeight: '1.6',
             }}>
-              School Name *
-            </label>
-            <input
-              type="text"
-              name="schoolName"
-              value={formData.schoolName}
-              onChange={handleChange}
-              required
-              disabled={isLoading}
-              placeholder="e.g., MIT, Stanford, Harvard"
+              Team name: {previewTeamName}
+            </div>
+          )}
+
+          {error && (
+            <div
+              data-testid="error-message"
               style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: '2px solid #e5e7eb',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                transition: 'border-color 0.2s ease',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                backgroundColor: isLoading ? '#f9fafb' : '#ffffff',
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#1d4ed8';
-                e.target.style.boxShadow = '0 0 0 3px rgba(29, 78, 216, 0.1)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#e5e7eb';
-                e.target.style.boxShadow = 'none';
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{
-              fontWeight: 600,
-              color: '#374151',
-              fontSize: '1rem',
-              marginBottom: '16px',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-            }}>
-              Team Members (Last Names Only) *
-            </h3>
-
-            <div style={{ display: 'grid', gap: '12px' }}>
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '4px',
-                  fontWeight: 500,
-                  color: '#374151',
-                  fontSize: '0.85rem',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                }}>
-                  Member 1 Last Name *
-                </label>
-                <input
-                  type="text"
-                  name="member1LastName"
-                  value={formData.member1LastName}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                  placeholder="e.g., Smith"
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '0.95rem',
-                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                    backgroundColor: isLoading ? '#f9fafb' : '#ffffff',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#1d4ed8';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(29, 78, 216, 0.1)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#e5e7eb';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '4px',
-                  fontWeight: 500,
-                  color: '#374151',
-                  fontSize: '0.85rem',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                }}>
-                  Member 2 Last Name (Optional)
-                </label>
-                <input
-                  type="text"
-                  name="member2LastName"
-                  value={formData.member2LastName}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  placeholder="e.g., Johnson"
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '0.95rem',
-                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                    backgroundColor: isLoading ? '#f9fafb' : '#ffffff',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#1d4ed8';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(29, 78, 216, 0.1)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#e5e7eb';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '4px',
-                  fontWeight: 500,
-                  color: '#374151',
-                  fontSize: '0.85rem',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                }}>
-                  Member 3 Last Name (Optional)
-                </label>
-                <input
-                  type="text"
-                  name="member3LastName"
-                  value={formData.member3LastName}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  placeholder="e.g., Brown"
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '0.95rem',
-                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                    backgroundColor: isLoading ? '#f9fafb' : '#ffffff',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#1d4ed8';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(29, 78, 216, 0.1)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#e5e7eb';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
+                padding: '16px 20px',
+                backgroundColor: '#fef2f2',
+                border: '4px solid #dc2626',
+                marginBottom: '24px',
+                color: '#dc2626',
+                fontSize: '0.7rem',
+                lineHeight: '1.6',
+              }}>
+              {error}
             </div>
-          </div>
+          )}
 
-          <div style={{ marginBottom: '24px' }}>
-            <h3 style={{
-              fontWeight: 600,
-              color: '#374151',
-              fontSize: '1rem',
-              marginBottom: '16px',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-            }}>
-              Team Password *
-            </h3>
-
-            <div style={{ display: 'grid', gap: '12px' }}>
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '4px',
-                  fontWeight: 500,
-                  color: '#374151',
-                  fontSize: '0.85rem',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                }}>
-                  Password
-                </label>
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                  placeholder="Enter a secure password"
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '0.95rem',
-                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                    backgroundColor: isLoading ? '#f9fafb' : '#ffffff',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#1d4ed8';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(29, 78, 216, 0.1)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#e5e7eb';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '4px',
-                  fontWeight: 500,
-                  color: '#374151',
-                  fontSize: '0.85rem',
-                  fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                }}>
-                  Confirm Password
-                </label>
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                  placeholder="Re-enter your password"
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '0.95rem',
-                    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                    backgroundColor: isLoading ? '#f9fafb' : '#ffffff',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#1d4ed8';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(29, 78, 216, 0.1)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#e5e7eb';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
+          {success && (
+            <div
+              data-testid="success-message"
+              style={{
+                padding: '16px 20px',
+                backgroundColor: '#D4F1D4',
+                border: '4px solid #166534',
+                marginBottom: '24px',
+                color: '#166534',
+                fontSize: '0.7rem',
+                lineHeight: '1.6',
+              }}>
+              {success}
             </div>
-          </div>
+          )}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            style={{
-              width: '100%',
-              background: isLoading 
-                ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)' 
-                : 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '16px 24px',
-              fontSize: '1rem',
-              fontWeight: 600,
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s ease',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              boxShadow: isLoading 
-                ? 'none' 
-                : '0 8px 25px rgba(29, 78, 216, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15)',
-              marginTop: '8px',
-              position: 'relative',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-            onMouseEnter={(e) => {
-              if (!isLoading) {
-                e.currentTarget.style.background = 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = '0 12px 35px rgba(29, 78, 216, 0.35), 0 8px 20px rgba(37, 99, 235, 0.25)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isLoading) {
-                e.currentTarget.style.background = 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 8px 25px rgba(29, 78, 216, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15)';
-              }
-            }}
-          >
-            {isLoading && (
-              <div
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '12px',
+                color: '#212529',
+                fontSize: '0.75rem',
+                textAlign: 'left',
+              }}>
+                School Name *
+              </label>
+              <input
+                type="text"
+                name="schoolName"
+                value={formData.schoolName}
+                onChange={handleChange}
+                required
+                disabled={isLoading}
                 style={{
-                  width: '20px',
-                  height: '20px',
-                  border: '2px solid transparent',
-                  borderTop: '2px solid #ffffff',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite',
-                  marginRight: '8px',
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '4px solid #212529',
+                  fontSize: '0.9rem',
+                  fontFamily: "'Press Start 2P', cursive",
+                  backgroundColor: isLoading ? '#e5e7eb' : '#ffffff',
+                  boxShadow: '4px 4px 0px #212529',
                 }}
-              ></div>
-            )}
-            {isLoading ? 'Registering Team...' : 'Register Team'}
-          </button>
-        </form>
+              />
+            </div>
 
-=        <div style={{ textAlign: 'center', marginTop: '32px' }}>          
-          <button
-            type="button"
-            onClick={() => navigate('/join-contest')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#6b7280',
-              padding: '0',
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#374151';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = '#6b7280';
-            }}
-          >
-            ← Back to Contest Code
-          </button>
+            <div style={{ marginBottom: '20px' }}>
+              <h3 style={{
+                color: '#212529',
+                fontSize: '0.8rem',
+                marginBottom: '16px',
+                textAlign: 'left',
+              }}>
+                Team Members *
+              </h3>
+
+              <div style={{ display: 'grid', gap: '16px' }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    color: '#212529',
+                    fontSize: '0.7rem',
+                    textAlign: 'left',
+                  }}>
+                    Member 1 *
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <input
+                      type="text"
+                      name="member1FirstName"
+                      placeholder="First Name"
+                      value={formData.member1FirstName}
+                      onChange={handleChange}
+                      required
+                      disabled={isLoading}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        border: '4px solid #212529',
+                        fontSize: '0.85rem',
+                        fontFamily: "'Press Start 2P', cursive",
+                        backgroundColor: isLoading ? '#e5e7eb' : '#ffffff',
+                        boxShadow: '4px 4px 0px #212529',
+                      }}
+                    />
+                    <input
+                      type="text"
+                      name="member1LastName"
+                      placeholder="Last Name"
+                      value={formData.member1LastName}
+                      onChange={handleChange}
+                      required
+                      disabled={isLoading}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        border: '4px solid #212529',
+                        fontSize: '0.85rem',
+                        fontFamily: "'Press Start 2P', cursive",
+                        backgroundColor: isLoading ? '#e5e7eb' : '#ffffff',
+                        boxShadow: '4px 4px 0px #212529',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    color: '#212529',
+                    fontSize: '0.7rem',
+                    textAlign: 'left',
+                  }}>
+                    Member 2 (Optional)
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <input
+                      type="text"
+                      name="member2FirstName"
+                      placeholder="First Name"
+                      value={formData.member2FirstName}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        border: '4px solid #212529',
+                        fontSize: '0.85rem',
+                        fontFamily: "'Press Start 2P', cursive",
+                        backgroundColor: isLoading ? '#e5e7eb' : '#ffffff',
+                        boxShadow: '4px 4px 0px #212529',
+                      }}
+                    />
+                    <input
+                      type="text"
+                      name="member2LastName"
+                      placeholder="Last Name"
+                      value={formData.member2LastName}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        border: '4px solid #212529',
+                        fontSize: '0.85rem',
+                        fontFamily: "'Press Start 2P', cursive",
+                        backgroundColor: isLoading ? '#e5e7eb' : '#ffffff',
+                        boxShadow: '4px 4px 0px #212529',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    color: '#212529',
+                    fontSize: '0.7rem',
+                    textAlign: 'left',
+                  }}>
+                    Member 3 (Optional)
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <input
+                      type="text"
+                      name="member3FirstName"
+                      placeholder="First Name"
+                      value={formData.member3FirstName}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        border: '4px solid #212529',
+                        fontSize: '0.85rem',
+                        fontFamily: "'Press Start 2P', cursive",
+                        backgroundColor: isLoading ? '#e5e7eb' : '#ffffff',
+                        boxShadow: '4px 4px 0px #212529',
+                      }}
+                    />
+                    <input
+                      type="text"
+                      name="member3LastName"
+                      placeholder="Last Name"
+                      value={formData.member3LastName}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        border: '4px solid #212529',
+                        fontSize: '0.85rem',
+                        fontFamily: "'Press Start 2P', cursive",
+                        backgroundColor: isLoading ? '#e5e7eb' : '#ffffff',
+                        boxShadow: '4px 4px 0px #212529',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{
+                color: '#212529',
+                fontSize: '0.8rem',
+                marginBottom: '16px',
+                textAlign: 'left',
+              }}>
+                Team Password *
+              </h3>
+
+              <div style={{ display: 'grid', gap: '12px' }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    color: '#212529',
+                    fontSize: '0.7rem',
+                    textAlign: 'left',
+                  }}>
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                    disabled={isLoading}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      border: '4px solid #212529',
+                      fontSize: '0.85rem',
+                      fontFamily: "'Press Start 2P', cursive",
+                      backgroundColor: isLoading ? '#e5e7eb' : '#ffffff',
+                      boxShadow: '4px 4px 0px #212529',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    color: '#212529',
+                    fontSize: '0.7rem',
+                    textAlign: 'left',
+                  }}>
+                    Confirm Password
+                  </label>
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    required
+                    disabled={isLoading}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      border: '4px solid #212529',
+                      fontSize: '0.85rem',
+                      fontFamily: "'Press Start 2P', cursive",
+                      backgroundColor: isLoading ? '#e5e7eb' : '#ffffff',
+                      boxShadow: '4px 4px 0px #212529',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              style={{
+                position: 'relative',
+                border: '4px solid #212529',
+                backgroundColor: isLoading ? '#6b7280' : '#2D58A6',
+                color: 'white',
+                transition: 'all 0.15s ease-in-out',
+                boxShadow: '6px 6px 0px #212529',
+                textShadow: '2px 2px 0px #212529',
+                fontSize: '1rem',
+                padding: '20px 40px',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                width: '100%',
+                fontFamily: "'Press Start 2P', cursive",
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onMouseEnter={(e) => {
+                if (!isLoading) {
+                  e.currentTarget.style.transform = 'translate(2px, 2px)';
+                  e.currentTarget.style.boxShadow = '4px 4px 0px #212529';
+                  e.currentTarget.style.backgroundColor = '#3B6BBD';
+                  e.currentTarget.style.filter = 'brightness(1.1)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isLoading) {
+                  e.currentTarget.style.transform = 'translate(0, 0)';
+                  e.currentTarget.style.boxShadow = '6px 6px 0px #212529';
+                  e.currentTarget.style.backgroundColor = '#2D58A6';
+                  e.currentTarget.style.filter = 'brightness(1)';
+                }
+              }}
+              onMouseDown={(e) => {
+                if (!isLoading) {
+                  e.currentTarget.style.transform = 'translate(6px, 6px)';
+                  e.currentTarget.style.boxShadow = '0px 0px 0px #212529';
+                }
+              }}
+              onMouseUp={(e) => {
+                if (!isLoading) {
+                  e.currentTarget.style.transform = 'translate(2px, 2px)';
+                  e.currentTarget.style.boxShadow = '4px 4px 0px #212529';
+                }
+              }}
+            >
+              {isLoading && (
+                <div
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    border: '3px solid transparent',
+                    borderTop: '3px solid #ffffff',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    display: 'inline-block',
+                    marginRight: '12px',
+                  }}
+                />
+              )}
+              {isLoading ? 'Loading...' : 'Register Team'}
+            </button>
+          </form>
+
+          <div style={{ textAlign: 'center', marginTop: '32px' }}>
+            <button
+              type="button"
+              onClick={() => navigate('/join-contest')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#212529',
+                padding: '0',
+                fontSize: '0.6rem',
+                cursor: 'pointer',
+                fontFamily: "'Press Start 2P', cursive",
+              }}
+            >
+              ← Back to Contest Code
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

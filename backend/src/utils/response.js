@@ -199,9 +199,34 @@ function responseHelpers(req, res, next) {
   next();
 }
 
+/**
+ * Standardized success response handler for Express routes
+ * @param {Object} res - Express response object
+ * @param {Object} data - Response data
+ * @param {string} message - Success message
+ * @param {number} statusCode - HTTP status code
+ */
+function handleResponse(res, data, message = 'Success', statusCode = 200) {
+  res.status(statusCode).json(successResponse(data, message));
+}
+
+/**
+ * Standardized error response handler for Express routes
+ * @param {Object} res - Express response object
+ * @param {string} message - Error message
+ * @param {number} statusCode - HTTP status code
+ * @param {Array} errors - Specific error details
+ * @param {string} type - Error type
+ */
+function handleError(res, message = 'An error occurred', statusCode = 500, errors = null, type = 'error') {
+  res.status(statusCode).json(errorResponse(message, errors, type));
+}
+
 module.exports = {
   successResponse,
   errorResponse,
   paginatedResponse,
-  responseHelpers
+  responseHelpers,
+  handleResponse,
+  handleError
 };

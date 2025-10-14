@@ -322,6 +322,11 @@ class WebSocketService {
     // Submission events
     this.socket.on('submissionUpdate', (data) => this.emitEvent('submissionUpdate', data));
     this.socket.on('submissionJudged', (data) => this.emitEvent('submissionJudged', data));
+    // Listen for actual backend events
+    this.socket.on('submission_result', (data) => this.emitEvent('submissionUpdate', data));
+    this.socket.on('team_submission_result', (data) => this.emitEvent('submissionUpdate', data));
+    this.socket.on('verdict_update', (data) => this.emitEvent('submissionUpdate', data));
+    this.socket.on('submission_status', (data) => this.emitEvent('submissionUpdate', data));
 
     this.socket.on('firstSolve', (data) => this.emitEvent('firstSolve', data));
 

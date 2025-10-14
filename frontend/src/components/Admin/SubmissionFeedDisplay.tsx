@@ -63,19 +63,19 @@ const SubmissionFeedDisplay: React.FC = () => {
       const [submissionsResponse, statsResponse, analyticsResponse] = await Promise.all([
         fetch('/api/admin/submissions/live?limit=50', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+            'Authorization': `Bearer ${localStorage.getItem('programming_contest_admin_token')}`,
             'Content-Type': 'application/json'
           }
         }),
         fetch('/api/admin/submissions/stats', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+            'Authorization': `Bearer ${localStorage.getItem('programming_contest_admin_token')}`,
             'Content-Type': 'application/json'
           }
         }),
         fetch('/api/admin/submissions/analytics', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+            'Authorization': `Bearer ${localStorage.getItem('programming_contest_admin_token')}`,
             'Content-Type': 'application/json'
           }
         })

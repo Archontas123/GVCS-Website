@@ -87,11 +87,16 @@ class ContestScheduler {
   async checkAndUpdateContests() {
     try {
       const now = new Date();
-      
+
+      // Query ALL non-manual contests (both active and inactive) to handle:
+      // 1. Starting contests (is_active = false, start_time reached)
+      // 2. Freezing contests (is_active = true, freeze time reached)
+      // 3. Ending contests (is_active = true, end time reached)
       const contests = await db('contests')
         .select('*')
-        .where('is_active', true)
+        .where('manual_control', false)
         .where('start_time', '<=', new Date(now.getTime() + 5 * 60 * 1000))
+        .whereNull('ended_at')  // Don't process already ended contests
         .orderBy('start_time');
 
       for (const contest of contests) {
@@ -113,6 +118,10 @@ class ContestScheduler {
    */
   async processContestTiming(contest, now = new Date()) {
     try {
+      if (!contest.start_time || contest.manual_control) {
+        return;
+      }
+
       const contestStatus = Contest.getContestStatus(contest);
       const startTime = new Date(contest.start_time);
       const endTime = new Date(startTime.getTime() + contest.duration * 60 * 1000);
@@ -155,9 +164,12 @@ class ContestScheduler {
         return;
       }
 
+      // Activate the contest when auto-starting
       await db('contests')
         .where('id', contest.id)
         .update({
+          is_active: true,
+          is_frozen: false
         });
 
       await notificationService.broadcastToContest(contest.id, {

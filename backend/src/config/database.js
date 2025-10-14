@@ -13,13 +13,13 @@
  * - Separate test database configuration to prevent data conflicts
  * 
  * @module src/config/database
- * @requires dotenv
+ * @requires ./env
  * @requires path
  * @author Programming Contest Platform Team
  * @version 1.5.0
  */
 
-require('dotenv').config();
+require('./env');
 const path = require('path');
 
 /**
@@ -37,9 +37,9 @@ const path = require('path');
 const defaultConnection = {
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'programming_contest_db',
-  user: process.env.DB_USER || 'contest_user',
-  password: process.env.DB_PASSWORD || 'contest_password'
+  database: process.env.DB_NAME || 'hackathon_db',
+  user: process.env.DB_USER || 'hackathon_user',
+  password: process.env.DB_PASSWORD || 'hackathon_password'
 };
 
 module.exports = {

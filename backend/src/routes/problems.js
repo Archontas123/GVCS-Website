@@ -66,29 +66,36 @@ const { handleResponse, handleError } = require('../utils/response');
  *   }
  * }
  */
-router.get('/problems/:problemId/signature/:language', authenticateTeam, async (req, res) => {
-  try {
-    const { problemId, language } = req.params;
-    
-    // Validate language
-    if (!['cpp', 'java', 'python'].includes(language)) {
-      return handleError(res, 'Invalid language', 400);
+router.get(
+  [
+    '/:problemId/signature/:language',
+    '/problems/:problemId/signature/:language'
+  ],
+  authenticateTeam,
+  async (req, res) => {
+    try {
+      const { problemId, language } = req.params;
+      
+      // Validate language
+      if (!['cpp', 'java', 'python'].includes(language)) {
+        return handleError(res, 'Invalid language', 400);
+      }
+      
+      // Get function signature
+      const signature = await codeTemplateService.getFunctionSignature(problemId, language);
+      
+      handleResponse(res, {
+        language,
+        signature,
+        message: 'Function signature retrieved successfully'
+      });
+      
+    } catch (error) {
+      console.error('Error getting function signature:', error);
+      handleError(res, 'Failed to get function signature');
     }
-    
-    // Get function signature
-    const signature = await codeTemplateService.getFunctionSignature(problemId, language);
-    
-    handleResponse(res, {
-      language,
-      signature,
-      message: 'Function signature retrieved successfully'
-    });
-    
-  } catch (error) {
-    console.error('Error getting function signature:', error);
-    handleError(res, 'Failed to get function signature');
   }
-});
+);
 
 /**
  * @route GET /api/problems/problems/:problemId/code/:language
@@ -137,32 +144,39 @@ router.get('/problems/:problemId/signature/:language', authenticateTeam, async (
  *   }
  * }
  */
-router.get('/problems/:problemId/code/:language', authenticateTeam, async (req, res) => {
-  try {
-    const { problemId, language } = req.params;
-    const teamId = req.team.id;
-    
-    // Validate language
-    if (!['cpp', 'java', 'python'].includes(language)) {
-      return handleError(res, 'Invalid language', 400);
+router.get(
+  [
+    '/:problemId/code/:language',
+    '/problems/:problemId/code/:language'
+  ],
+  authenticateTeam,
+  async (req, res) => {
+    try {
+      const { problemId, language } = req.params;
+      const teamId = req.team.id;
+      
+      // Validate language
+      if (!['cpp', 'java', 'python'].includes(language)) {
+        return handleError(res, 'Invalid language', 400);
+      }
+      
+      // Get user's implementation or default
+      const code = await codeTemplateService.getUserImplementation(teamId, problemId, language);
+      
+      handleResponse(res, {
+        problemId: parseInt(problemId),
+        teamId,
+        language,
+        code,
+        message: 'User code retrieved successfully'
+      });
+      
+    } catch (error) {
+      console.error('Error getting user code:', error);
+      handleError(res, 'Failed to get user code');
     }
-    
-    // Get user's implementation or default
-    const code = await codeTemplateService.getUserImplementation(teamId, problemId, language);
-    
-    handleResponse(res, {
-      problemId: parseInt(problemId),
-      teamId,
-      language,
-      code,
-      message: 'User code retrieved successfully'
-    });
-    
-  } catch (error) {
-    console.error('Error getting user code:', error);
-    handleError(res, 'Failed to get user code');
   }
-});
+);
 
 /**
  * @route POST /api/problems/problems/:problemId/code/:language
@@ -221,41 +235,48 @@ router.get('/problems/:problemId/code/:language', authenticateTeam, async (req, 
  *   }
  * }
  */
-router.post('/problems/:problemId/code/:language', authenticateTeam, async (req, res) => {
-  try {
-    const { problemId, language } = req.params;
-    const { code } = req.body;
-    const teamId = req.team.id;
-    
-    // Validate language
-    if (!['cpp', 'java', 'python'].includes(language)) {
-      return handleError(res, 'Invalid language', 400);
+router.post(
+  [
+    '/:problemId/code/:language',
+    '/problems/:problemId/code/:language'
+  ],
+  authenticateTeam,
+  async (req, res) => {
+    try {
+      const { problemId, language } = req.params;
+      const { code } = req.body;
+      const teamId = req.team.id;
+      
+      // Validate language
+      if (!['cpp', 'java', 'python'].includes(language)) {
+        return handleError(res, 'Invalid language', 400);
+      }
+      
+      // Validate code
+      if (!code || code.trim().length === 0) {
+        return handleError(res, 'Code cannot be empty', 400);
+      }
+      
+      if (code.length > 50000) { // 50KB limit
+        return handleError(res, 'Code too large (max 50KB)', 400);
+      }
+      
+      // Save user's implementation
+      await codeTemplateService.saveUserImplementation(teamId, problemId, language, code);
+      
+      handleResponse(res, {
+        problemId: parseInt(problemId),
+        teamId,
+        language,
+        message: 'Code saved successfully'
+      });
+      
+    } catch (error) {
+      console.error('Error saving user code:', error);
+      handleError(res, 'Failed to save code');
     }
-    
-    // Validate code
-    if (!code || code.trim().length === 0) {
-      return handleError(res, 'Code cannot be empty', 400);
-    }
-    
-    if (code.length > 50000) { // 50KB limit
-      return handleError(res, 'Code too large (max 50KB)', 400);
-    }
-    
-    // Save user's implementation
-    await codeTemplateService.saveUserImplementation(teamId, problemId, language, code);
-    
-    handleResponse(res, {
-      problemId: parseInt(problemId),
-      teamId,
-      language,
-      message: 'Code saved successfully'
-    });
-    
-  } catch (error) {
-    console.error('Error saving user code:', error);
-    handleError(res, 'Failed to save code');
   }
-});
+);
 
 /**
  * @route POST /api/problems/problems/:problemId/test/:language
@@ -326,59 +347,66 @@ router.post('/problems/:problemId/code/:language', authenticateTeam, async (req,
  *   }
  * }
  */
-router.post('/problems/:problemId/test/:language', authenticateTeam, async (req, res) => {
-  try {
-    const { problemId, language } = req.params;
-    const { code, input } = req.body;
-    const teamId = req.team.id;
-    
-    // Validate language
-    if (!['cpp', 'java', 'python'].includes(language)) {
-      return handleError(res, 'Invalid language', 400);
-    }
-    
-    // Validate code
-    if (!code || code.trim().length === 0) {
-      return handleError(res, 'Code cannot be empty', 400);
-    }
-    
-    // Execute code
-    const multiLangExecutor = require('../services/multiLangExecutor');
-    
-    const result = await multiLangExecutor.executeLeetCodeStyle(
-      problemId,
-      code,
-      language,
-      input || '',
-      {
-        timeLimit: 5000, // 5 seconds
-        memoryLimit: 256 // 256 MB
+router.post(
+  [
+    '/:problemId/test/:language',
+    '/problems/:problemId/test/:language'
+  ],
+  authenticateTeam,
+  async (req, res) => {
+    try {
+      const { problemId, language } = req.params;
+      const { code, input } = req.body;
+      const teamId = req.team.id;
+      
+      // Validate language
+      if (!['cpp', 'java', 'python'].includes(language)) {
+        return handleError(res, 'Invalid language', 400);
       }
-    );
-    
-    // Save code if execution was successful (auto-save on test)
-    if (result.success) {
-      await codeTemplateService.saveUserImplementation(teamId, problemId, language, code);
+      
+      // Validate code
+      if (!code || code.trim().length === 0) {
+        return handleError(res, 'Code cannot be empty', 400);
+      }
+      
+      // Execute code
+      const multiLangExecutor = require('../services/multiLangExecutor');
+      
+      const result = await multiLangExecutor.executeLeetCodeStyle(
+        problemId,
+        code,
+        language,
+        input || '',
+        {
+          timeLimit: 5000, // 5 seconds
+          memoryLimit: 256 // 256 MB
+        }
+      );
+      
+      // Save code if execution was successful (auto-save on test)
+      if (result.success) {
+        await codeTemplateService.saveUserImplementation(teamId, problemId, language, code);
+      }
+      
+      handleResponse(res, {
+        problemId: parseInt(problemId),
+        language,
+        execution: {
+          success: result.success,
+          output: result.output,
+          error: result.error,
+          executionTime: result.executionTime,
+          memoryUsed: result.memoryUsed
+        },
+        message: 'Code tested successfully'
+      });
+      
+    } catch (error) {
+      console.error('Error testing code:', error);
+      handleError(res, 'Failed to test code');
     }
-    
-    handleResponse(res, {
-      problemId: parseInt(problemId),
-      language,
-      execution: {
-        success: result.success,
-        output: result.output,
-        error: result.error,
-        executionTime: result.executionTime,
-        memoryUsed: result.memoryUsed
-      },
-      message: 'Code tested successfully'
-    });
-    
-  } catch (error) {
-    console.error('Error testing code:', error);
-    handleError(res, 'Failed to test code');
   }
-});
+);
 
 
 /**

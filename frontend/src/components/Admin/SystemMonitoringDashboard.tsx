@@ -115,7 +115,7 @@ const SystemMonitoringDashboard: React.FC = () => {
     try {
       const response = await fetch('/api/admin/system/metrics', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('programming_contest_admin_token')}`,
           'Content-Type': 'application/json'
         }
       });
@@ -131,7 +131,7 @@ const SystemMonitoringDashboard: React.FC = () => {
 
       const statusResponse = await fetch('/api/admin/system/status', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('programming_contest_admin_token')}`,
           'Content-Type': 'application/json'
         }
       });
@@ -176,7 +176,7 @@ const SystemMonitoringDashboard: React.FC = () => {
     try {
       const response = await fetch('/api/admin/system/logs?limit=50', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('hackathon_admin_token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('programming_contest_admin_token')}`,
           'Content-Type': 'application/json'
         }
       });

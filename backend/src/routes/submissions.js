@@ -161,19 +161,19 @@ router.post('/submit', authenticateTeam, async (req, res) => {
         const submission = await db('submissions').insert({
             team_id: teamId,
             problem_id: problemId,
+            contest_id: problem.contest_id,
             language: language,
-            code: code,
+            source_code: code,
             status: 'pending',
-            submission_time: now,
-            created_at: now
+            submitted_at: now
         }).returning('*');
 
         submissionId = submission[0].id || submission[0];
-        
+
         // Get team recent submissions for fair prioritization
         const teamRecentSubmissions = await db('submissions')
             .where('team_id', teamId)
-            .where('submission_time', '>', new Date(now.getTime() - 10 * 60 * 1000)) // Last 10 minutes
+            .where('submitted_at', '>', new Date(now.getTime() - 10 * 60 * 1000)) // Last 10 minutes
             .count('* as count')
             .first();
 
@@ -194,9 +194,9 @@ router.post('/submit', authenticateTeam, async (req, res) => {
 
         // Queue submission for processing
         const job = await judgeQueueService.queueSubmission(submissionData);
-        
+
         console.log(`Submission ${submissionId} from team ${teamId} queued as job ${job.id}`);
-        
+
         res.json({
             success: true,
             data: {
@@ -350,7 +350,7 @@ router.get('/:id/status', authenticateTeam, async (req, res) => {
                 language: submission.language,
                 status: submission.status,
                 result: submission.result,
-                submissionTime: submission.submission_time,
+                submissionTime: submission.submitted_at,
                 judgedAt: submission.judged_at,
                 executionTime: submission.execution_time,
                 memoryUsed: submission.memory_used,
@@ -439,38 +439,95 @@ router.get('/:id/status', authenticateTeam, async (req, res) => {
  */
 router.get('/team/:teamId', authenticateTeam, async (req, res) => {
     try {
+        console.log('🔍 [Backend /team/:teamId] Route called');
         const teamId = parseInt(req.params.teamId);
         const requestingTeamId = req.team.id;
-        
+
+        console.log('🔍 [Backend /team/:teamId] teamId:', teamId);
+        console.log('🔍 [Backend /team/:teamId] requestingTeamId:', requestingTeamId);
+        console.log('🔍 [Backend /team/:teamId] query params:', req.query);
+
         // Teams can only see their own submissions
         if (teamId !== requestingTeamId) {
+            console.log('❌ [Backend /team/:teamId] Access denied - team mismatch');
             return res.status(403).json({
                 success: false,
                 error: 'Access denied'
             });
         }
-        
+
         const page = parseInt(req.query.page) || 1;
         const limit = Math.min(parseInt(req.query.limit) || 50, 100);
         const offset = (page - 1) * limit;
+        const contestFilter = req.query.contestId ? parseInt(req.query.contestId) : null;
+
+        console.log('🔍 [Backend /team/:teamId] page:', page, 'limit:', limit, 'offset:', offset);
+        console.log('🔍 [Backend /team/:teamId] contestFilter:', contestFilter);
         
-        const submissions = await db('submissions')
+        const submissionsQuery = db('submissions')
             .select('submissions.*', 'problems.problem_letter', 'problems.title')
             .join('problems', 'submissions.problem_id', 'problems.id')
-            .where('submissions.team_id', teamId)
-            .orderBy('submissions.submission_time', 'desc')
+            .where('submissions.team_id', teamId);
+
+        const countQuery = db('submissions')
+            .where('team_id', teamId);
+
+        if (contestFilter && !Number.isNaN(contestFilter)) {
+            submissionsQuery.where('submissions.contest_id', contestFilter);
+            countQuery.where('contest_id', contestFilter);
+        }
+
+        console.log('🔍 [Backend /team/:teamId] Executing submissions query...');
+        const submissions = await submissionsQuery
+            .orderBy('submissions.submitted_at', 'desc')
             .limit(limit)
             .offset(offset);
-            
-        const totalCount = await db('submissions')
-            .where('team_id', teamId)
+
+        console.log('✅ [Backend /team/:teamId] Query returned', submissions.length, 'submissions');
+        if (submissions.length > 0) {
+            console.log('📝 [Backend /team/:teamId] First submission:', {
+                id: submissions[0].id,
+                team_id: submissions[0].team_id,
+                problem_id: submissions[0].problem_id,
+                contest_id: submissions[0].contest_id,
+                status: submissions[0].status,
+                submitted_at: submissions[0].submitted_at
+            });
+        }
+
+        console.log('🔍 [Backend /team/:teamId] Executing count query...');
+        const totalCount = await countQuery
             .count('* as count')
             .first();
-        
+
+        console.log('✅ [Backend /team/:teamId] Total count:', totalCount.count);
+
+        const mappedSubmissions = submissions.map(s => ({
+            id: s.id,
+            team_id: s.team_id,
+            problem_id: s.problem_id,
+            contest_id: s.contest_id,
+            problemLetter: s.problem_letter,
+            problemTitle: s.title,
+            language: s.language,
+            status: s.status,
+            submitted_at: s.submitted_at,
+            judged_at: s.judged_at,
+            execution_time: s.execution_time,
+            memory_used: s.memory_used,
+            test_cases_passed: s.test_cases_passed,
+            total_test_cases: s.total_test_cases,
+            points_earned: s.points_earned,
+            judge_output: s.judge_output ? (typeof s.judge_output === 'string' ? JSON.parse(s.judge_output) : s.judge_output) : null,
+            source_code: s.source_code
+        }));
+
+        console.log('📦 [Backend /team/:teamId] Sending response with', mappedSubmissions.length, 'mapped submissions');
+
         res.json({
             success: true,
             data: {
-                submissions: submissions,
+                submissions: mappedSubmissions,
                 pagination: {
                     page: page,
                     limit: limit,
@@ -479,8 +536,11 @@ router.get('/team/:teamId', authenticateTeam, async (req, res) => {
                 }
             }
         });
+
+        console.log('✅ [Backend /team/:teamId] Response sent successfully');
     } catch (error) {
-        console.error('Error getting team submissions:', error);
+        console.error('❌ [Backend /team/:teamId] Error getting team submissions:', error);
+        console.error('❌ [Backend /team/:teamId] Error stack:', error.stack);
         res.status(500).json({
             success: false,
             error: 'Failed to get submissions',

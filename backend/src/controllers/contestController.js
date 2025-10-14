@@ -24,6 +24,8 @@ class Contest {
     this.freeze_time = data.freeze_time;
     this.created_by = data.created_by;
     this.is_active = data.is_active;
+    this.manual_control = data.manual_control ?? true;
+    this.is_registration_open = data.is_registration_open;
     this.is_frozen = data.is_frozen;
     this.frozen_at = data.frozen_at;
     this.ended_at = data.ended_at;
@@ -61,9 +63,10 @@ class Contest {
    * @param {Object} data - The contest data to validate
    * @param {string} data.contest_name - Contest name (3-255 chars)
    * @param {string} [data.description] - Contest description (max 5000 chars)
-   * @param {Date} data.start_time - Contest start time (min 5 minutes from now)
-   * @param {number} data.duration - Contest duration in minutes (15-1440)
+   * @param {Date} [data.start_time] - Contest start time for scheduled contests (min 5 minutes from now)
+   * @param {number} [data.duration] - Contest duration in minutes (15-1440)
    * @param {number} [data.freeze_time] - Leaderboard freeze time in minutes
+   * @param {boolean} [data.manual_control] - Flag to bypass scheduling and control contest manually
    * @param {boolean} [isUpdate=false] - Whether this is an update operation
    * @throws {ValidationError} When validation fails
    */
@@ -79,67 +82,81 @@ class Contest {
     if (data.description && data.description.length > 5000) {
       errors.push('Description must not exceed 5000 characters');
     }
-    
-    // Start time validation
-    if (!isUpdate && !data.start_time) {
-      errors.push('Start time is required');
-    } else if (data.start_time) {
+
+    // Default to manual control - scheduled contests are opt-in
+    const manualControl = data.manual_control !== undefined
+      ? Boolean(data.manual_control)
+      : true;
+    const hasDuration = data.duration !== undefined && data.duration !== null;
+
+    // Start time validation: required only for scheduled contests
+    if (!manualControl) {
+      if (!isUpdate && !data.start_time) {
+        errors.push('Start time is required for scheduled contests');
+      }
+    }
+
+    if (data.start_time) {
       const startTime = new Date(data.start_time);
       if (isNaN(startTime.getTime())) {
         errors.push('Invalid start time format');
-      } else {
+      } else if (!manualControl) {
         const now = new Date();
         const minStartTime = new Date(now.getTime() + 5 * 60 * 1000); // At least 5 minutes from now
-        
+
         if (!isUpdate && startTime < minStartTime) {
           errors.push('Contest start time must be at least 5 minutes from now');
         }
-        
+
         const maxStartTime = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); // Within 1 year
         if (startTime > maxStartTime) {
           errors.push('Contest start time cannot be more than 1 year in the future');
         }
       }
     }
-    
+
     // Duration validation with flexible ranges
-    if (!isUpdate && !data.duration) {
-      errors.push('Duration is required');
-    } else if (data.duration !== undefined) {
-      if (typeof data.duration !== 'number' || data.duration < 15) {
+    if (!manualControl && !isUpdate && !hasDuration) {
+      errors.push('Duration is required for scheduled contests');
+    }
+
+    if (hasDuration) {
+      if (typeof data.duration !== 'number' || Number.isNaN(data.duration)) {
+        errors.push('Duration must be a number of minutes');
+      } else if (data.duration < 15) {
         errors.push('Duration must be at least 15 minutes');
       } else if (data.duration > 1440) { // 24 hours
         errors.push('Duration must not exceed 24 hours (1440 minutes)');
       } else {
-            const standardDurations = [60, 90, 120, 180, 240, 300]; // Common contest lengths
+        const standardDurations = [60, 90, 120, 180, 240, 300]; // Common contest lengths
         if (!standardDurations.includes(data.duration) && data.duration < 480) {
           console.warn(`Non-standard contest duration: ${data.duration} minutes. Recommended: ${standardDurations.join(', ')} minutes`);
         }
       }
     }
-    
+
     // Freeze time validation
     if (data.freeze_time !== undefined) {
-      if (typeof data.freeze_time !== 'number' || data.freeze_time < 0) {
+      if (typeof data.freeze_time !== 'number' || Number.isNaN(data.freeze_time) || data.freeze_time < 0) {
         errors.push('Freeze time must be 0 or positive');
-      } else if (data.duration && data.freeze_time > data.duration) {
+      } else if (hasDuration && data.freeze_time > data.duration) {
         errors.push('Freeze time must not exceed contest duration');
       } else if (data.freeze_time > 180) {
         errors.push('Freeze time should not exceed 3 hours (180 minutes)');
       }
-      
-      if (data.duration && data.freeze_time > data.duration * 0.5) {
+
+      if (hasDuration && data.freeze_time > data.duration * 0.5) {
         console.warn(`Long freeze time (${data.freeze_time} min) for contest duration (${data.duration} min)`);
       }
     }
 
-    if (data.start_time && data.duration) {
+    if (!manualControl && data.start_time && hasDuration) {
       const startTime = new Date(data.start_time);
       const endTime = new Date(startTime.getTime() + data.duration * 60 * 1000);
-      
+
       const startHour = startTime.getHours();
       const endHour = endTime.getHours();
-      
+
       if (startHour < 6 && startHour > 2) {
         console.warn(`Contest starts at ${startHour}:00 - early morning start might be inconvenient`);
       }
@@ -230,15 +247,30 @@ class Contest {
       throw new DatabaseError('Failed to generate unique registration code');
     }
 
+    // All contests default to manual control
+    // Admins must manually start and end contests via the API
+    const manualControl = contestData.manual_control !== undefined
+      ? Boolean(contestData.manual_control)
+      : true;
+
+    const hasDuration = contestData.duration !== undefined && contestData.duration !== null;
+    const startTime = contestData.start_time ? new Date(contestData.start_time) : null;
+    const endTime = (!manualControl && startTime && hasDuration)
+      ? new Date(startTime.getTime() + contestData.duration * 60 * 1000)
+      : null;
+    const normalizedDuration = hasDuration ? contestData.duration : null;
+
     const [result] = await db('contests').insert({
       contest_name: contestData.contest_name.trim(),
       description: contestData.description ? contestData.description.trim() : null,
       registration_code: registrationCode,
-      start_time: new Date(contestData.start_time),
-      duration: contestData.duration,
-      freeze_time: contestData.freeze_time || 60,
+      start_time: startTime,
+      end_time: endTime,
+      duration: normalizedDuration,
+      freeze_time: contestData.freeze_time ?? 0,
       created_by: adminId,
-      is_active: contestData.is_active !== undefined ? contestData.is_active : true,
+      is_active: false,
+      manual_control: manualControl
     }).returning('id');
 
     const createdContest = await this.findById(result.id);
@@ -277,12 +309,21 @@ class Contest {
    * @throws {NotFoundError} When contest is not found
    * @throws {DatabaseError} When database operation fails
    */
-  static async findByRegistrationCode(registrationCode) {
+  static async findByRegistrationCode(registrationCode, options = {}) {
+    const { includeInactive = false } = options;
+
     try {
-      const contest = await db('contests')
+      const normalizedCode = (registrationCode || '').toString().toUpperCase();
+
+      const query = db('contests')
         .select('*')
-        .where('registration_code', registrationCode.toUpperCase())
-        .first();
+        .where('registration_code', normalizedCode);
+
+      if (!includeInactive) {
+        query.andWhere('is_active', true);
+      }
+
+      const contest = await query.first();
 
       if (!contest) {
         throw new NotFoundError('Contest not found');
@@ -291,7 +332,7 @@ class Contest {
       return new Contest(contest);
     } catch (error) {
       if (error instanceof NotFoundError) throw error;
-      throw new DatabaseError('Failed to fetch contest', error);
+      throw new DatabaseError('Failed to fetch contest by registration code', error);
     }
   }
 
@@ -357,17 +398,16 @@ class Contest {
    * @throws {DatabaseError} When database operation fails
    */
   static async update(contestId, updateData, adminId) {
-    // Validate that contest exists and admin has permission
+    // Validate that contest exists
     const existingContest = await this.findById(contestId);
-    
-    if (existingContest.created_by !== adminId) {
-      throw new AuthenticationError('Not authorized to update this contest');
-    }
 
     const now = new Date();
-    const startTime = new Date(existingContest.start_time);
-    const endTime = new Date(startTime.getTime() + existingContest.duration * 60 * 1000);
-    const isRunning = now >= startTime && now <= endTime;
+    const startTime = existingContest.start_time ? new Date(existingContest.start_time) : null;
+    const existingDuration = existingContest.duration ?? null;
+    const endTime = (startTime && existingDuration !== null && existingDuration !== undefined)
+      ? new Date(startTime.getTime() + existingDuration * 60 * 1000)
+      : null;
+    const isRunning = Boolean(existingContest.is_active);
 
     if (isRunning) {
       const allowedFields = ['description', 'freeze_time'];
@@ -379,9 +419,41 @@ class Contest {
       }
     }
 
+    const nextManualControl = updateData.manual_control !== undefined
+      ? Boolean(updateData.manual_control)
+      : existingContest.manual_control;
+
+    const contestHasStarted = existingContest.is_active || (startTime ? now >= startTime : false);
+
+    if (contestHasStarted && !existingContest.ended_at) {
+      const restrictedFieldsAfterStart = ['start_time', 'manual_control'];
+      const attemptedRestricted = Object.keys(updateData).filter(field => restrictedFieldsAfterStart.includes(field));
+      if (attemptedRestricted.length > 0) {
+        throw new ValidationError(`Cannot update ${attemptedRestricted.join(', ')} after contest has started`);
+      }
+    }
+
     // Validate update data
-    if (updateData.contest_name || updateData.start_time || updateData.duration) {
-      this.validateContestData({ ...existingContest, ...updateData }, true);
+    if (updateData.contest_name || updateData.start_time !== undefined || updateData.duration !== undefined || updateData.manual_control !== undefined) {
+      this.validateContestData({ ...existingContest, ...updateData, manual_control: nextManualControl }, true);
+    }
+
+    // Auto-calculate end_time if start_time or duration changes for scheduled contests
+    if (!nextManualControl && (updateData.start_time || updateData.duration !== undefined)) {
+      const baseStart = updateData.start_time
+        ? new Date(updateData.start_time)
+        : (existingContest.start_time ? new Date(existingContest.start_time) : null);
+      const baseDuration = updateData.duration !== undefined ? updateData.duration : existingContest.duration;
+
+      if (baseStart && baseDuration !== undefined && baseDuration !== null) {
+        updateData.end_time = new Date(baseStart.getTime() + baseDuration * 60 * 1000);
+      }
+    } else if (nextManualControl && (updateData.start_time !== undefined || updateData.duration !== undefined || updateData.manual_control !== undefined)) {
+      updateData.end_time = null;
+
+      if (updateData.manual_control === true && updateData.start_time === undefined && !contestHasStarted) {
+        updateData.start_time = null;
+      }
     }
 
     try {
@@ -429,8 +501,13 @@ class Contest {
       throw new AuthenticationError('Not authorized to delete this contest');
     }
 
-    const teamsCount = await db('team_contests')
-      .where('contest_id', contestId)
+    // Get contest registration code to check for teams
+    const contest = await db('contests')
+      .where('id', contestId)
+      .first('registration_code');
+
+    const teamsCount = await db('teams')
+      .where('contest_code', contest.registration_code)
       .count('* as count')
       .first();
 
@@ -456,9 +533,17 @@ class Contest {
    */
   static getContestStatus(contest) {
     const now = new Date();
-    const startTime = new Date(contest.start_time);
-    const endTime = new Date(startTime.getTime() + contest.duration * 60 * 1000);
-    const freezeTime = new Date(endTime.getTime() - contest.freeze_time * 60 * 1000);
+    const manualControl = contest.manual_control ?? true;
+    const startTime = contest.start_time ? new Date(contest.start_time) : null;
+    const storedEndTime = contest.end_time ? new Date(contest.end_time) : null;
+    const hasDuration = contest.duration !== undefined && contest.duration !== null;
+    const calculatedEndTime = (startTime && hasDuration)
+      ? new Date(startTime.getTime() + contest.duration * 60 * 1000)
+      : null;
+    const effectiveEndTime = storedEndTime || calculatedEndTime;
+    const freezeTime = (effectiveEndTime && contest.freeze_time !== undefined && contest.freeze_time !== null)
+      ? new Date(effectiveEndTime.getTime() - contest.freeze_time * 60 * 1000)
+      : null;
 
     let status = 'not_started';
     let timeRemaining = null;
@@ -467,33 +552,61 @@ class Contest {
     let timeElapsed = null;
     let progress = 0;
 
-    if (now < startTime) {
-      status = 'not_started';
-      timeUntilStart = Math.floor((startTime - now) / 1000);
-    } else if (now >= startTime && now < endTime) {
-      status = 'running';
-      timeRemaining = Math.floor((endTime - now) / 1000);
-      timeElapsed = Math.floor((now - startTime) / 1000);
-      progress = Math.min(100, Math.max(0, (timeElapsed / (contest.duration * 60)) * 100));
-      
-      if (now < freezeTime && !contest.is_frozen) {
-        timeUntilFreeze = Math.floor((freezeTime - now) / 1000);
-      }
-      
-      if (contest.is_frozen) {
-        status = 'frozen';
+    if (manualControl) {
+      if (contest.is_active) {
+        status = contest.is_frozen ? 'frozen' : 'running';
+        if (startTime) {
+          timeElapsed = Math.max(0, Math.floor((now.getTime() - startTime.getTime()) / 1000));
+        }
+        if (hasDuration && timeElapsed !== null) {
+          progress = Math.min(100, Math.max(0, (timeElapsed / (contest.duration * 60)) * 100));
+        }
+      } else if (contest.ended_at || effectiveEndTime) {
+        status = 'ended';
+        const finishTime = contest.ended_at ? new Date(contest.ended_at) : effectiveEndTime;
+        if (startTime && finishTime) {
+          timeElapsed = Math.max(0, Math.floor((finishTime.getTime() - startTime.getTime()) / 1000));
+        }
+        progress = 100;
+      } else {
+        status = 'pending_manual';
+        if (startTime && now < startTime) {
+          timeUntilStart = Math.floor((startTime.getTime() - now.getTime()) / 1000);
+        }
       }
     } else {
-      status = 'ended';
-      timeElapsed = contest.duration * 60; // Full duration
-      progress = 100;
+      if (!startTime || now < startTime) {
+        status = 'not_started';
+        if (startTime) {
+          timeUntilStart = Math.floor((startTime.getTime() - now.getTime()) / 1000);
+        }
+      } else if (effectiveEndTime && now < effectiveEndTime) {
+        status = contest.is_frozen ? 'frozen' : 'running';
+        timeRemaining = Math.floor((effectiveEndTime.getTime() - now.getTime()) / 1000);
+        timeElapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+        if (hasDuration) {
+          progress = Math.min(100, Math.max(0, (timeElapsed / (contest.duration * 60)) * 100));
+        }
+        if (freezeTime && !contest.is_frozen && now < freezeTime) {
+          timeUntilFreeze = Math.floor((freezeTime.getTime() - now.getTime()) / 1000);
+        }
+      } else {
+        status = 'ended';
+        if (hasDuration) {
+          timeElapsed = contest.duration * 60;
+        } else if (startTime && effectiveEndTime) {
+          timeElapsed = Math.floor((effectiveEndTime.getTime() - startTime.getTime()) / 1000);
+        }
+        progress = 100;
+      }
     }
 
     return {
       status,
-      start_time: startTime.toISOString(),
-      end_time: endTime.toISOString(),
-      freeze_time: freezeTime.toISOString(),
+      manual_control: manualControl,
+      start_time: startTime ? startTime.toISOString() : null,
+      end_time: effectiveEndTime ? effectiveEndTime.toISOString() : null,
+      freeze_time: freezeTime ? freezeTime.toISOString() : null,
       time_remaining_seconds: timeRemaining,
       time_until_start_seconds: timeUntilStart,
       time_until_freeze_seconds: timeUntilFreeze,
@@ -517,8 +630,14 @@ class Contest {
    */
   static async getStatistics(contestId) {
     try {
+      // First get the contest registration_code to query teams properly
+      const contest = await db('contests').where('id', contestId).select('registration_code').first();
+      if (!contest) {
+        throw new DatabaseError('Contest not found');
+      }
+
       const [teamsCount, problemsCount, submissionsCount] = await Promise.all([
-        db('team_contests').where('contest_id', contestId).count('* as count').first(),
+        db('teams').where('contest_code', contest.registration_code).count('* as count').first(),
         db('problems').where('contest_id', contestId).count('* as count').first(),
         db('submissions')
           .join('problems', 'submissions.problem_id', 'problems.id')
@@ -544,6 +663,12 @@ class Contest {
     const contest = await this.findById(contestId);
     const errors = [];
 
+    if (contest.is_active) {
+      errors.push('Contest is already running');
+    }
+
+    // Note: Contest end state is determined by is_active flag, not ended_at field
+
     // Check if contest has problems
     const problemsCount = await db('problems').where('contest_id', contestId).count('* as count').first();
     if (parseInt(problemsCount.count) === 0) {
@@ -558,17 +683,11 @@ class Contest {
       .count('problems.id as count')
       .first();
 
-    if (parseInt(problemsWithoutTestCases.count) > 0) {
+    if (parseInt(problemsWithoutTestCases?.count) > 0) {
       errors.push('All problems must have at least one test case');
     }
 
-    const now = new Date();
-    const startTime = new Date(contest.start_time);
-    const endTime = new Date(startTime.getTime() + contest.duration * 60 * 1000);
-
-    if (now >= endTime) {
-      errors.push('Contest end time has already passed');
-    }
+    // Removed the end time validation - force start should always work if problems are configured
 
     return {
       canStart: errors.length === 0,
@@ -577,14 +696,13 @@ class Contest {
   }
 
   /**
-   * Start contest
+   * Start contest (force start) - any admin can start any contest
    */
   static async startContest(contestId, adminId) {
     const contest = await this.findById(contestId);
-    
-    if (contest.created_by !== adminId) {
-      throw new AuthenticationError('Not authorized to start this contest');
-    }
+
+    // Allow any admin to start any contest
+    // Authorization is already checked by verifyAdminToken middleware
 
     const validation = await this.canStartContest(contestId);
     if (!validation.canStart) {
@@ -592,47 +710,63 @@ class Contest {
     }
 
     const now = new Date();
-    const startTime = new Date(contest.start_time);
-    
-    if (now >= startTime) {
-      throw new ConflictError('Contest has already started');
-    }
+    const manualControl = contest.manual_control ?? true;
+    const hasDuration = contest.duration !== undefined && contest.duration !== null;
+    const newEndTime = (!manualControl && hasDuration)
+      ? new Date(now.getTime() + contest.duration * 60 * 1000)
+      : null;
 
     try {
+      console.log(`[START CONTEST] Starting contest ${contestId} with data:`, {
+        now: now.toISOString(),
+        newEndTime: newEndTime ? newEndTime.toISOString() : null,
+        manualControl
+      });
+
+      // Force start: set start_time to now and recalculate end_time
       await db('contests')
         .where('id', contestId)
-        .update({ start_time: now });
+        .update({
+          start_time: now,
+          end_time: newEndTime,
+          is_active: true,
+          is_frozen: false,
+          manual_control: manualControl
+        });
+
+      console.log(`[START CONTEST] Database update successful for contest ${contestId}`);
 
       const updatedContest = await this.findById(contestId);
-      
-      notificationService.notifyContestStart(contestId, updatedContest);
+      console.log(`[START CONTEST] Retrieved updated contest ${contestId}`);
+
+      // Send notifications (don't let notification errors crash the request)
+      try {
+        notificationService.notifyContestStart(contestId, updatedContest);
+        console.log(`[START CONTEST] Notification sent successfully for contest ${contestId}`);
+      } catch (notifError) {
+        console.warn('[START CONTEST] Failed to send contest start notification:', notifError);
+      }
 
       return updatedContest;
     } catch (error) {
+      console.error('[START CONTEST] Error starting contest:', {
+        contestId,
+        errorMessage: error.message,
+        errorStack: error.stack,
+        errorType: error.constructor.name
+      });
       throw new DatabaseError('Failed to start contest', error);
     }
   }
 
   /**
-   * Freeze contest leaderboard
+   * Freeze contest leaderboard - any admin can freeze any contest
    */
   static async freezeContest(contestId, adminId) {
     const contest = await this.findById(contestId);
-    
-    if (contest.created_by !== adminId) {
-      throw new AuthenticationError('Not authorized to freeze this contest');
-    }
 
-    const now = new Date();
-    const startTime = new Date(contest.start_time);
-    const endTime = new Date(startTime.getTime() + contest.duration * 60 * 1000);
-
-    if (now < startTime) {
-      throw new ConflictError('Contest has not started yet');
-    }
-
-    if (now >= endTime) {
-      throw new ConflictError('Contest has already ended');
+    if (!contest.is_active) {
+      throw new ConflictError('Contest is not currently running');
     }
 
     if (contest.is_frozen) {
@@ -642,13 +776,12 @@ class Contest {
     try {
       await db('contests')
         .where('id', contestId)
-        .update({ 
-          is_frozen: true,
-          frozen_at: now
+        .update({
+          is_frozen: true
         });
 
       const updatedContest = await this.findById(contestId);
-      
+
       notificationService.notifyContestFreeze(contestId, updatedContest);
 
       return updatedContest;
@@ -658,65 +791,72 @@ class Contest {
   }
 
   /**
-   * End contest
+   * Unfreeze contest leaderboard - any admin can unfreeze any contest
    */
-  static async endContest(contestId, adminId) {
+  static async unfreezeContest(contestId, adminId) {
     const contest = await this.findById(contestId);
-    
-    if (contest.created_by !== adminId) {
-      throw new AuthenticationError('Not authorized to end this contest');
+
+    if (!contest.is_active) {
+      throw new ConflictError('Contest is not currently running');
     }
 
-    const now = new Date();
-    const startTime = new Date(contest.start_time);
-    const endTime = new Date(startTime.getTime() + contest.duration * 60 * 1000);
-
-    if (now >= endTime) {
-      throw new ConflictError('Contest has already ended');
+    if (!contest.is_frozen) {
+      throw new ConflictError('Contest leaderboard is not currently frozen');
     }
-
-    if (now < startTime) {
-      throw new ConflictError('Contest has not started yet');
-    }
-
-    const actualDuration = Math.floor((now - startTime) / (60 * 1000));
 
     try {
       await db('contests')
         .where('id', contestId)
-        .update({ 
-          duration: actualDuration
+        .update({
+          is_frozen: false
         });
 
       const updatedContest = await this.findById(contestId);
-      
+
+      notificationService.notifyContestUnfreeze(contestId, updatedContest);
+
+      return updatedContest;
+    } catch (error) {
+      throw new DatabaseError('Failed to unfreeze contest', error);
+    }
+  }
+
+  /**
+   * End contest - any admin can end any contest
+   */
+  static async endContest(contestId, adminId) {
+    const contest = await this.findById(contestId);
+
+    if (!contest.is_active) {
+      throw new ConflictError('Contest is not currently active');
+    }
+
+    if (!contest.start_time) {
+      throw new ConflictError('Contest has not started yet');
+    }
+
+    const now = new Date();
+    const startTime = new Date(contest.start_time);
+    const actualDuration = Math.max(0, Math.floor((now.getTime() - startTime.getTime()) / (60 * 1000)));
+
+    try {
+      await db('contests')
+        .where('id', contestId)
+        .update({
+          duration: actualDuration,
+          is_active: false,
+          is_registration_open: false,
+          end_time: now,
+          is_frozen: false
+        });
+
+      const updatedContest = await this.findById(contestId);
+
       notificationService.notifyContestEnd(contestId, updatedContest);
 
       return updatedContest;
     } catch (error) {
       throw new DatabaseError('Failed to end contest', error);
-    }
-  }
-
-  /**
-   * Find contest by registration code - Phase 2.4
-   */
-  static async findByRegistrationCode(registrationCode) {
-    try {
-      const contest = await db('contests')
-        .select('*')
-        .where('registration_code', registrationCode)
-        .where('is_active', true)
-        .first();
-
-      if (!contest) {
-        throw new NotFoundError('Contest not found');
-      }
-
-      return new Contest(contest);
-    } catch (error) {
-      if (error instanceof NotFoundError) throw error;
-      throw new DatabaseError('Failed to fetch contest by registration code', error);
     }
   }
 
@@ -782,92 +922,6 @@ class Contest {
     }
   }
 
-  /**
-   * Freeze contest leaderboard - Phase 3.4
-   */
-  static async freezeContest(req, res) {
-    try {
-      const contestId = parseInt(req.params.id);
-      const adminId = req.user.id;
-      
-      const freezeService = require('../services/freezeService');
-      const updatedContest = await freezeService.freezeLeaderboard(contestId, adminId);
-      
-      res.json({
-        success: true,
-        message: 'Contest leaderboard frozen successfully',
-        data: updatedContest
-      });
-    } catch (error) {
-      console.error('Error freezing contest:', error);
-      
-      if (error.message.includes('not found')) {
-        return res.status(404).json({
-          success: false,
-          error: 'Contest not found'
-        });
-      }
-      
-      if (error.message.includes('already frozen')) {
-        return res.status(409).json({
-          success: false,
-          error: 'Contest is already frozen'
-        });
-      }
-      
-      if (error.message.includes('already ended')) {
-        return res.status(400).json({
-          success: false,
-          error: 'Cannot freeze contest that has already ended'
-        });
-      }
-      
-      res.status(500).json({
-        success: false,
-        error: 'Failed to freeze contest'
-      });
-    }
-  }
-
-  /**
-   * Unfreeze contest leaderboard - Phase 3.4
-   */
-  static async unfreezeContest(req, res) {
-    try {
-      const contestId = parseInt(req.params.id);
-      const adminId = req.user.id;
-      
-      const freezeService = require('../services/freezeService');
-      const updatedContest = await freezeService.unfreezeLeaderboard(contestId, adminId);
-      
-      res.json({
-        success: true,
-        message: 'Contest leaderboard unfrozen successfully',
-        data: updatedContest
-      });
-    } catch (error) {
-      console.error('Error unfreezing contest:', error);
-      
-      if (error.message.includes('not found')) {
-        return res.status(404).json({
-          success: false,
-          error: 'Contest not found'
-        });
-      }
-      
-      if (error.message.includes('not currently frozen')) {
-        return res.status(400).json({
-          success: false,
-          error: 'Contest is not currently frozen'
-        });
-      }
-      
-      res.status(500).json({
-        success: false,
-        error: 'Failed to unfreeze contest'
-      });
-    }
-  }
 }
 
 module.exports = Contest;

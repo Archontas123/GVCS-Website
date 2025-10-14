@@ -211,9 +211,18 @@ class PartialScoringService {
    */
   async getContestScores(contestId) {
     try {
+      // Get contest registration code first
+      const contest = await db('contests')
+        .where('id', contestId)
+        .first('registration_code');
+
+      if (!contest) {
+        throw new Error(`Contest ${contestId} not found`);
+      }
+
+      // Get teams using contest_code instead of team_contests join
       const teams = await db('teams as t')
-        .join('team_contests as tc', 't.id', 'tc.team_id')
-        .where('tc.contest_id', contestId)
+        .where('t.contest_code', contest.registration_code)
         .select('t.*');
 
       const problems = await db('problems')
@@ -228,62 +237,81 @@ class PartialScoringService {
           teamName: team.team_name,
           totalPoints: 0,
           maxPoints: 0,
-          problems: {}
+          problemsSolved: 0,
+          lastSubmissionTime: null,
+          problems: []
         };
 
         for (const problem of problems) {
-          // Get best submission for this team-problem combination
+          // Get all submissions for this team-problem combination
+          const submissions = await db('submissions as s')
+            .where('s.team_id', team.id)
+            .where('s.problem_id', problem.id)
+            .orderBy('s.submitted_at', 'asc');
+
+          // Get best submission
           const bestSubmission = await db('submissions as s')
             .where('s.team_id', team.id)
             .where('s.problem_id', problem.id)
             .orderBy('s.total_points', 'desc')
-            .orderBy('s.submission_time', 'asc')
+            .orderBy('s.submitted_at', 'asc')
             .first();
 
-          if (bestSubmission) {
-            teamScore.totalPoints += bestSubmission.total_points || 0;
-            teamScore.problems[problem.problem_letter] = {
-              points: bestSubmission.total_points || 0,
-              maxPoints: bestSubmission.max_points || 0,
-              percentage: bestSubmission.max_points > 0 
-                ? ((bestSubmission.total_points / bestSubmission.max_points) * 100).toFixed(2)
-                : 0,
-              status: bestSubmission.status,
-              submissionTime: bestSubmission.submission_time
-            };
-          } else {
-            teamScore.problems[problem.problem_letter] = {
-              points: 0,
-              maxPoints: problem.max_points || 0,
-              percentage: 0,
-              status: 'not_attempted',
-              submissionTime: null
-            };
+          const attempts = submissions.length;
+          const pointsEarned = bestSubmission ? (bestSubmission.total_points || 0) : 0;
+          const totalPoints = problem.max_points || 100;
+          const solved = bestSubmission && bestSubmission.status === 'accepted';
+
+          if (solved) {
+            teamScore.problemsSolved++;
           }
 
-          teamScore.maxPoints += problem.max_points || 0;
+          teamScore.totalPoints += pointsEarned;
+          teamScore.maxPoints += totalPoints;
+
+          if (bestSubmission && bestSubmission.submitted_at) {
+            if (!teamScore.lastSubmissionTime || new Date(bestSubmission.submitted_at) > new Date(teamScore.lastSubmissionTime)) {
+              teamScore.lastSubmissionTime = bestSubmission.submitted_at;
+            }
+          }
+
+          teamScore.problems.push({
+            problemLetter: problem.problem_letter,
+            solved: solved,
+            attempts: attempts,
+            solveTime: null,
+            firstToSolve: false,
+            pointsEarned: pointsEarned,
+            totalPoints: totalPoints
+          });
         }
 
         scores.push(teamScore);
       }
 
-      // Sort by total points (descending), then by earliest submission time
+      // Sort by problems solved (desc), then total points (desc), then earliest submission time
       scores.sort((a, b) => {
+        if (b.problemsSolved !== a.problemsSolved) {
+          return b.problemsSolved - a.problemsSolved;
+        }
         if (b.totalPoints !== a.totalPoints) {
           return b.totalPoints - a.totalPoints;
         }
-        // For tie-breaking, use earliest last submission time
-        const aLastSubmission = Math.min(...Object.values(a.problems)
-          .filter(p => p.submissionTime)
-          .map(p => new Date(p.submissionTime).getTime()));
-        const bLastSubmission = Math.min(...Object.values(b.problems)
-          .filter(p => p.submissionTime)
-          .map(p => new Date(p.submissionTime).getTime()));
-        
-        return aLastSubmission - bLastSubmission;
+        if (a.lastSubmissionTime && b.lastSubmissionTime) {
+          return new Date(a.lastSubmissionTime) - new Date(b.lastSubmissionTime);
+        }
+        return 0;
       });
 
-      return scores;
+      // Add ranks and return in expected format
+      return scores.map((score, index) => ({
+        rank: index + 1,
+        teamName: score.teamName,
+        problemsSolved: score.problemsSolved,
+        totalPoints: score.totalPoints,
+        problems: score.problems,
+        lastSubmissionTime: score.lastSubmissionTime
+      }));
     } catch (error) {
       console.error('Error getting contest scores:', error);
       throw error;

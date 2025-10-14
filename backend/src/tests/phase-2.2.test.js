@@ -3,7 +3,7 @@
  */
 
 const request = require('supertest');
-const app = require('../server');
+const { app } = require('../server');
 const { db } = require('../utils/db');
 
 describe('Phase 2.2 - Problem Management', () => {
@@ -24,7 +24,7 @@ describe('Phase 2.2 - Problem Management', () => {
       .post('/api/admin/login')
       .send({
         username: 'admin',
-        password: 'password123'
+        password: 'AdminPass123!'
       });
 
     adminToken = loginResponse.body.data.token;
@@ -240,9 +240,27 @@ describe('Phase 2.2 - Problem Management', () => {
     test('should create bulk test cases from array', async () => {
       const testCasesData = {
         test_cases: [
-          { input: '1 1', expected_output: '2', is_sample: false },
-          { input: '100 200', expected_output: '300', is_sample: false },
-          { input: '0 0', expected_output: '0', is_sample: false }
+          {
+            test_case_name: 'Basic addition 1',
+            input_parameters: { a: 1, b: 1 },
+            expected_return: 2,
+            parameter_types: [{ name: 'a', type: 'int' }, { name: 'b', type: 'int' }],
+            is_sample: false
+          },
+          {
+            test_case_name: 'Large numbers',
+            input_parameters: { a: 100, b: 200 },
+            expected_return: 300,
+            parameter_types: [{ name: 'a', type: 'int' }, { name: 'b', type: 'int' }],
+            is_sample: false
+          },
+          {
+            test_case_name: 'Zero addition',
+            input_parameters: { a: 0, b: 0 },
+            expected_return: 0,
+            parameter_types: [{ name: 'a', type: 'int' }, { name: 'b', type: 'int' }],
+            is_sample: false
+          }
         ]
       };
 
@@ -258,10 +276,10 @@ describe('Phase 2.2 - Problem Management', () => {
     });
 
     test('should create bulk test cases from CSV', async () => {
-      const csvData = `input,expected_output,is_sample
-5 10,15,false
-7 8,15,false
--1 1,0,false`;
+      const csvData = `test_case_name,input_parameters,expected_return,parameter_types,is_sample
+Addition Test 1,"{""a"": 5, ""b"": 10}",15,"[{""name"": ""a"", ""type"": ""int""}, {""name"": ""b"", ""type"": ""int""}]",false
+Addition Test 2,"{""a"": 7, ""b"": 8}",15,"[{""name"": ""a"", ""type"": ""int""}, {""name"": ""b"", ""type"": ""int""}]",false
+Subtraction Test,"{""a"": -1, ""b"": 1}",0,"[{""name"": ""a"", ""type"": ""int""}, {""name"": ""b"", ""type"": ""int""}]",false`;
 
       const response = await request(app)
         .post(`/api/admin/problems/${problemId}/testcases/bulk`)

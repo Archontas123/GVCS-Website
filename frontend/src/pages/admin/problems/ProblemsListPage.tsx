@@ -1,6 +1,6 @@
 /**
  * Hack The Valley - Manage Problems
- * Problem management interface using custom styles to match contests section
+ * Problem management interface with retro styling
  */
 
 import React, { useState, useEffect } from 'react';
@@ -8,7 +8,6 @@ import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { useAdminAuth } from '../../../hooks/useAdminAuth';
 import apiService from '../../../services/api';
-import Breadcrumb from '../../../components/common/Breadcrumb';
 
 interface Problem {
   id: number;
@@ -29,11 +28,6 @@ const ProblemsListPage: React.FC = () => {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const breadcrumbItems = [
-    { label: 'Administration', href: '/admin' },
-    { label: 'Manage Problems', href: '/admin/problems' }
-  ];
 
   useEffect(() => {
     fetchProblems();
@@ -86,54 +80,59 @@ const ProblemsListPage: React.FC = () => {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: '400px',
+        minHeight: '300px',
         textAlign: 'center',
-        padding: '48px 40px',
+        padding: '48px 24px',
       }}
     >
-      <div style={{ fontSize: '64px', marginBottom: '16px', color: '#6b7280' }}>Problems</div>
       <p
         style={{
-          fontSize: '1.1rem',
-          color: '#6b7280',
+          fontSize: '0.9rem',
+          color: '#212529',
           marginBottom: '32px',
-          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-          fontWeight: 500,
+          fontFamily: "'Press Start 2P', cursive",
+          lineHeight: '1.6',
         }}
       >
-        You have not created any {type}.
+        No {type} created yet
       </p>
       <button
         onClick={onCreate}
         style={{
-          background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+          position: 'relative',
+          border: '4px solid #212529',
+          backgroundColor: '#2D58A6',
           color: 'white',
-          border: 'none',
-          borderRadius: '12px',
-          padding: '16px 24px',
+          transition: 'all 0.15s ease-in-out',
+          boxShadow: '6px 6px 0px #212529',
+          textShadow: '2px 2px 0px #212529',
           fontSize: '1rem',
-          fontWeight: 600,
+          padding: '20px 32px',
           cursor: 'pointer',
-          transition: 'all 0.2s ease',
-          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-          boxShadow: '0 8px 25px rgba(29, 78, 216, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
+          fontFamily: "'Press Start 2P', cursive",
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%)';
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 12px 35px rgba(29, 78, 216, 0.35), 0 8px 20px rgba(37, 99, 235, 0.25)';
+          e.currentTarget.style.transform = 'translate(2px, 2px)';
+          e.currentTarget.style.boxShadow = '4px 4px 0px #212529';
+          e.currentTarget.style.backgroundColor = '#3B6BBD';
+          e.currentTarget.style.filter = 'brightness(1.1)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)';
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 8px 25px rgba(29, 78, 216, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15)';
+          e.currentTarget.style.transform = 'translate(0, 0)';
+          e.currentTarget.style.boxShadow = '6px 6px 0px #212529';
+          e.currentTarget.style.backgroundColor = '#2D58A6';
+          e.currentTarget.style.filter = 'brightness(1)';
+        }}
+        onMouseDown={(e) => {
+          e.currentTarget.style.transform = 'translate(6px, 6px)';
+          e.currentTarget.style.boxShadow = '0px 0px 0px #212529';
+        }}
+        onMouseUp={(e) => {
+          e.currentTarget.style.transform = 'translate(2px, 2px)';
+          e.currentTarget.style.boxShadow = '4px 4px 0px #212529';
         }}
       >
-        <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>+</span>
-        Create {type === 'problems' ? 'Problem' : 'Problem'}
+        + Create Problem
       </button>
     </div>
   );
@@ -141,6 +140,7 @@ const ProblemsListPage: React.FC = () => {
   if (loading) {
     return (
       <>
+        <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
         <style>
           {`
             @keyframes spin {
@@ -152,7 +152,7 @@ const ProblemsListPage: React.FC = () => {
         <div
           style={{
             minHeight: '100vh',
-            background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
+            backgroundColor: '#CECDE2',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
@@ -162,12 +162,12 @@ const ProblemsListPage: React.FC = () => {
             style={{
               width: '40px',
               height: '40px',
-              border: '4px solid #e5e7eb',
-              borderTop: '4px solid #1d4ed8',
+              border: '4px solid transparent',
+              borderTop: '4px solid #212529',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
             }}
-          ></div>
+          />
         </div>
       </>
     );
@@ -175,439 +175,422 @@ const ProblemsListPage: React.FC = () => {
 
   if (error) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
-          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-          padding: '32px 16px',
-        }}
-      >
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div 
-            style={{ 
-              padding: '16px 20px',
-              backgroundColor: '#fef2f2',
-              border: '1px solid #fecaca',
-              borderRadius: '12px',
-              color: '#dc2626',
-              fontSize: '0.9rem',
-              fontWeight: 500,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <span><strong>Error:</strong> {error}</span>
+      <>
+        <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+        <div
+          style={{
+            fontFamily: "'Press Start 2P', cursive",
+            backgroundColor: '#CECDE2',
+            backgroundImage: `
+              linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px)
+            `,
+            backgroundSize: '30px 30px',
+            minHeight: '100vh',
+            padding: '32px 16px',
+          }}
+        >
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <div
+              style={{
+                padding: '16px 20px',
+                backgroundColor: '#fef2f2',
+                border: '4px solid #dc2626',
+                color: '#dc2626',
+                fontSize: '0.7rem',
+                lineHeight: '1.6',
+                marginBottom: '16px',
+              }}
+            >
+              Error: {error}
+            </div>
             <button
               onClick={fetchProblems}
               style={{
-                background: 'none',
-                border: 'none',
-                color: '#dc2626',
-                fontWeight: 600,
+                position: 'relative',
+                border: '4px solid #212529',
+                backgroundColor: '#2D58A6',
+                color: 'white',
+                transition: 'all 0.15s ease-in-out',
+                boxShadow: '6px 6px 0px #212529',
+                textShadow: '2px 2px 0px #212529',
+                fontSize: '1rem',
+                padding: '16px 24px',
                 cursor: 'pointer',
-                fontSize: '0.9rem',
-                textDecoration: 'underline',
+                fontFamily: "'Press Start 2P', cursive",
               }}
             >
               Retry
             </button>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
-        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-        padding: '32px 16px',
-      }}
-    >
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        {/* Breadcrumb */}
-        <Breadcrumb items={breadcrumbItems} />
+    <>
+      <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+      <div
+        style={{
+          fontFamily: "'Press Start 2P', cursive",
+          backgroundColor: '#CECDE2',
+          backgroundImage: `
+            linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px)
+          `,
+          backgroundSize: '30px 30px',
+          minHeight: '100vh',
+          padding: '32px 16px',
+        }}
+      >
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          {/* Header */}
+          <div style={{ marginBottom: '32px', textAlign: 'center' }}>
+            <h1 style={{
+              fontSize: 'clamp(1.5rem, 4vw, 3rem)',
+              fontWeight: 'bold',
+              color: 'white',
+              marginBottom: '16px',
+              letterSpacing: '0.05em',
+              textShadow: '4px 4px 0px #212529',
+            }}>
+              Hack The Valley
+            </h1>
 
-        {/* Header */}
-        <div style={{ marginBottom: '32px', textAlign: 'center' }}>
-          <h1 
-            style={{ 
-              fontWeight: 700, 
-              fontSize: '2.4rem',
-              color: '#1d4ed8',
-              letterSpacing: '-0.02em',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+            <h2 style={{
+              fontSize: 'clamp(0.8rem, 2vw, 1rem)',
+              fontWeight: 'bold',
+              color: '#FFD700',
               marginBottom: '16px',
-            }}
-          >
-            Hack The Valley
-          </h1>
-          
-          <h2 
-            style={{ 
-              fontWeight: 500, 
-              fontSize: '1.1rem',
-              color: '#475569',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              marginBottom: '16px',
-            }}
-          >
-            Manage Problems
-          </h2>
-          
-          <div 
+              letterSpacing: '0.05em',
+              textShadow: '2px 2px 0px #212529',
+            }}>
+              Manage Problems
+            </h2>
+          </div>
+
+          {/* Navigation Tabs */}
+          <div
             style={{
-              width: '80px',
-              height: '4px',
-              background: 'linear-gradient(90deg, #1d4ed8 0%, #2563eb 100%)',
-              margin: '0 auto',
-              borderRadius: '4px',
-              boxShadow: '0 2px 8px rgba(29, 78, 216, 0.3)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '24px',
+              flexWrap: 'wrap',
+              gap: '16px',
             }}
-          ></div>
-        </div>
+          >
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => navigate('/admin/dashboard')}
+                style={{
+                  border: '4px solid #212529',
+                  backgroundColor: '#ffffff',
+                  color: '#212529',
+                  boxShadow: '4px 4px 0px #212529',
+                  fontSize: '0.75rem',
+                  padding: '12px 16px',
+                  cursor: 'pointer',
+                  fontFamily: "'Press Start 2P', cursive",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#e5e7eb';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#ffffff';
+                }}
+              >
+                ← Back
+              </button>
+              <button
+                onClick={handleManageContests}
+                style={{
+                  border: '4px solid #212529',
+                  backgroundColor: '#ffffff',
+                  color: '#212529',
+                  boxShadow: '4px 4px 0px #212529',
+                  fontSize: '0.75rem',
+                  padding: '12px 16px',
+                  cursor: 'pointer',
+                  fontFamily: "'Press Start 2P', cursive",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#e5e7eb';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#ffffff';
+                }}
+              >
+                Contests
+              </button>
+              <button
+                onClick={() => navigate('/admin/problems')}
+                style={{
+                  border: '4px solid #212529',
+                  backgroundColor: '#2D58A6',
+                  color: 'white',
+                  boxShadow: '4px 4px 0px #212529',
+                  textShadow: '2px 2px 0px #212529',
+                  fontSize: '0.75rem',
+                  padding: '12px 16px',
+                  cursor: 'pointer',
+                  fontFamily: "'Press Start 2P', cursive",
+                }}
+              >
+                Problems
+              </button>
+            </div>
 
-        {/* Navigation Tabs */}
-        <div 
-          style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            marginBottom: '24px',
-            flexWrap: 'wrap',
-            gap: '16px',
-          }}
-        >
-          <div style={{ display: 'flex', gap: '8px' }}>
             <button
-              onClick={handleManageContests}
+              onClick={handleCreateProblem}
               style={{
-                background: '#ffffff',
-                color: '#374151',
-                border: '2px solid #e5e7eb',
-                borderRadius: '12px',
+                border: '4px solid #212529',
+                backgroundColor: '#2D58A6',
+                color: 'white',
+                transition: 'all 0.15s ease-in-out',
+                boxShadow: '6px 6px 0px #212529',
+                textShadow: '2px 2px 0px #212529',
+                fontSize: '0.75rem',
                 padding: '12px 20px',
-                fontSize: '1rem',
-                fontWeight: 600,
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
+                fontFamily: "'Press Start 2P', cursive",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#f8f9fa';
-                e.currentTarget.style.color = '#374151';
+                e.currentTarget.style.transform = 'translate(2px, 2px)';
+                e.currentTarget.style.boxShadow = '4px 4px 0px #212529';
+                e.currentTarget.style.backgroundColor = '#3B6BBD';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#ffffff';
-                e.currentTarget.style.color = '#374151';
+                e.currentTarget.style.transform = 'translate(0, 0)';
+                e.currentTarget.style.boxShadow = '6px 6px 0px #212529';
+                e.currentTarget.style.backgroundColor = '#2D58A6';
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.transform = 'translate(6px, 6px)';
+                e.currentTarget.style.boxShadow = '0px 0px 0px #212529';
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.transform = 'translate(2px, 2px)';
+                e.currentTarget.style.boxShadow = '4px 4px 0px #212529';
               }}
             >
-              Manage Contests
-            </button>
-            <button
-              onClick={() => navigate('/admin/problems')}
-              style={{
-                background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '12px 20px',
-                fontSize: '1rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                boxShadow: '0 4px 12px rgba(29, 78, 216, 0.25)',
-              }}
-            >
-              Manage Problems
+              + New Problem
             </button>
           </div>
 
-          <button
-            onClick={handleCreateProblem}
+          {/* Main Content */}
+          <div
             style={{
-              background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '12px 20px',
-              fontSize: '1rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              boxShadow: '0 4px 12px rgba(29, 78, 216, 0.25)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%)';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 8px 20px rgba(29, 78, 216, 0.35)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)';
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(29, 78, 216, 0.25)';
+              backgroundColor: '#ffffff',
+              border: '4px solid #212529',
+              boxShadow: '8px 8px 0px #212529',
+              minHeight: '400px',
             }}
           >
-            <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>+</span>
-            Create Problem
-          </button>
-        </div>
-
-        {/* Main Content */}
-        <div
-          style={{
-            backgroundColor: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '16px',
-            boxShadow: '0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(29, 78, 216, 0.08)',
-            minHeight: '500px',
-          }}
-        >
-          {problems.length === 0 ? (
-            <EmptyState type="problems" onCreate={handleCreateProblem} />
-          ) : (
-            <div style={{ padding: '48px 40px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {problems.map((problem) => (
-                  <div
-                    key={problem.id}
-                    onClick={() => navigate(`/admin/problems/${problem.id}`)}
-                    style={{
-                      padding: '24px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '12px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      backgroundColor: '#ffffff',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = '#1d4ed8';
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(29, 78, 216, 0.1)';
-                      e.currentTarget.style.backgroundColor = '#f8fafc';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = '#e5e7eb';
-                      e.currentTarget.style.boxShadow = 'none';
-                      e.currentTarget.style.backgroundColor = '#ffffff';
-                    }}
-                  >
-                    <div>
-                      {/* Problem Header */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                        <h3 style={{ 
-                          fontSize: '1.2rem', 
-                          fontWeight: 600, 
-                          marginBottom: '0',
-                          color: '#1f2937',
-                          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                        }}>
-                          {problem.title}
-                        </h3>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <span
-                            style={{
-                              backgroundColor: getDifficultyColor(problem.difficulty) + '20',
-                              color: getDifficultyColor(problem.difficulty),
-                              padding: '6px 12px',
-                              borderRadius: '8px',
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
-                              textTransform: 'capitalize',
-                              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                            }}
-                          >
-                            {getDifficultyText(problem.difficulty)}
-                          </span>
-                          <span
-                            style={{
-                              backgroundColor: '#f3f4f6',
-                              color: '#374151',
-                              padding: '6px 12px',
-                              borderRadius: '8px',
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
-                              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                            }}
-                          >
-                            {problem.points_value} pts
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Description */}
-                      <div
-                        style={{
-                          color: '#6b7280',
-                          fontSize: '1rem',
-                          marginBottom: '16px',
-                          lineHeight: '1.5',
-                          maxHeight: '80px',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <ReactMarkdown
-                          components={{
-                            p: ({ children }) => <p style={{ margin: '0 0 8px 0' }}>{children}</p>,
-                            strong: ({ children }) => <strong style={{ fontWeight: 600 }}>{children}</strong>,
-                            em: ({ children }) => <em>{children}</em>,
-                          }}
-                        >
-                          {problem.description || 'No description provided'}
-                        </ReactMarkdown>
-                      </div>
-
-                      {/* Problem Stats */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Time Limit:</span>
-                          <span style={{ color: '#6b7280', fontSize: '0.875rem', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                            {problem.time_limit}ms
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Memory Limit:</span>
-                          <span style={{ color: '#6b7280', fontSize: '0.875rem', fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
-                            {problem.memory_limit}MB
-                          </span>
-                        </div>
-                        {problem.contest_name && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Contest:</span>
-                            <span style={{ 
-                              color: '#1d4ed8', 
-                              fontSize: '0.875rem', 
-                              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                              fontWeight: 600,
-                            }}>
-                              {problem.contest_name}
+            {problems.length === 0 ? (
+              <EmptyState type="problems" onCreate={handleCreateProblem} />
+            ) : (
+              <div style={{ padding: '32px 24px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {problems.map((problem) => (
+                    <div
+                      key={problem.id}
+                      onClick={() => navigate(`/admin/problems/${problem.id}`)}
+                      style={{
+                        padding: '20px',
+                        border: '4px solid #212529',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        backgroundColor: '#ffffff',
+                        boxShadow: '4px 4px 0px #212529',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f0f9ff';
+                        e.currentTarget.style.transform = 'translate(-2px, -2px)';
+                        e.currentTarget.style.boxShadow = '6px 6px 0px #212529';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#ffffff';
+                        e.currentTarget.style.transform = 'translate(0, 0)';
+                        e.currentTarget.style.boxShadow = '4px 4px 0px #212529';
+                      }}
+                    >
+                      <div>
+                        {/* Problem Header */}
+                        <div style={{ marginBottom: '16px' }}>
+                          <h3 style={{
+                            fontSize: '1rem',
+                            fontWeight: 'bold',
+                            marginBottom: '8px',
+                            color: '#212529',
+                            fontFamily: "'Press Start 2P', cursive",
+                          }}>
+                            {problem.title}
+                          </h3>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            <span
+                              style={{
+                                backgroundColor: getDifficultyColor(problem.difficulty) + '40',
+                                color: getDifficultyColor(problem.difficulty),
+                                padding: '4px 8px',
+                                fontSize: '0.6rem',
+                                fontWeight: 'bold',
+                                border: '2px solid ' + getDifficultyColor(problem.difficulty),
+                                fontFamily: "'Press Start 2P', cursive",
+                                display: 'inline-block',
+                              }}
+                            >
+                              {getDifficultyText(problem.difficulty)}
+                            </span>
+                            <span
+                              style={{
+                                backgroundColor: '#f3f4f640',
+                                color: '#374151',
+                                padding: '4px 8px',
+                                fontSize: '0.6rem',
+                                fontWeight: 'bold',
+                                border: '2px solid #374151',
+                                fontFamily: "'Press Start 2P', cursive",
+                                display: 'inline-block',
+                              }}
+                            >
+                              {problem.points_value} pts
                             </span>
                           </div>
-                        )}
+                        </div>
+
+                        {/* Description */}
+                        <div
+                          style={{
+                            color: '#374151',
+                            fontSize: '0.7rem',
+                            marginBottom: '16px',
+                            lineHeight: '1.6',
+                            maxHeight: '80px',
+                            overflow: 'hidden',
+                            fontFamily: "'Press Start 2P', cursive",
+                          }}
+                        >
+                          <ReactMarkdown
+                            components={{
+                              p: ({ children }) => <p style={{ margin: '0 0 8px 0' }}>{children}</p>,
+                              strong: ({ children }) => <strong style={{ fontWeight: 'bold' }}>{children}</strong>,
+                              em: ({ children }) => <em>{children}</em>,
+                            }}
+                          >
+                            {problem.description || 'No description'}
+                          </ReactMarkdown>
+                        </div>
+
+                        {/* Problem Stats */}
+                        <div style={{ fontSize: '0.65rem', color: '#6b7280', lineHeight: '1.8', marginBottom: '16px' }}>
+                          <div>Time: {problem.time_limit}ms</div>
+                          <div>Memory: {problem.memory_limit}MB</div>
+                          {problem.contest_name && (
+                            <div>
+                              Contest:{' '}
+                              <span style={{
+                                color: '#2D58A6',
+                                fontWeight: 'bold',
+                                backgroundColor: '#e0e7ff',
+                                padding: '2px 4px',
+                              }}>
+                                {problem.contest_name}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/admin/problems/${problem.id}`);
+                          }}
+                          style={{
+                            border: '3px solid #212529',
+                            backgroundColor: '#ffffff',
+                            color: '#212529',
+                            boxShadow: '3px 3px 0px #212529',
+                            padding: '8px 12px',
+                            fontSize: '0.65rem',
+                            cursor: 'pointer',
+                            fontFamily: "'Press Start 2P', cursive",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#e5e7eb';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#ffffff';
+                          }}
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/admin/problems/${problem.id}`);
+                          }}
+                          style={{
+                            border: '3px solid #212529',
+                            backgroundColor: '#2D58A6',
+                            color: 'white',
+                            boxShadow: '3px 3px 0px #212529',
+                            textShadow: '1px 1px 0px #212529',
+                            padding: '8px 12px',
+                            fontSize: '0.65rem',
+                            cursor: 'pointer',
+                            fontFamily: "'Press Start 2P', cursive",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#3B6BBD';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#2D58A6';
+                          }}
+                        >
+                          Edit
+                        </button>
                       </div>
                     </div>
-
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '16px', justifyContent: 'flex-end' }}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/admin/problems/${problem.id}`);
-                        }}
-                        style={{
-                          background: '#ffffff',
-                          color: '#1d4ed8',
-                          border: '2px solid #1d4ed8',
-                          borderRadius: '8px',
-                          padding: '8px 16px',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = '#1d4ed8';
-                          e.currentTarget.style.color = '#ffffff';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = '#ffffff';
-                          e.currentTarget.style.color = '#1d4ed8';
-                        }}
-                      >
-                        View
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/admin/problems/${problem.id}`);
-                        }}
-                        style={{
-                          background: '#1d4ed8',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '8px',
-                          padding: '8px 12px',
-                          fontSize: '0.875rem',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                        }}
-                        title="Edit Problem"
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = '#1e40af';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = '#1d4ed8';
-                        }}
-                      >
-                        Edit
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* Footer */}
-        <div style={{ textAlign: 'center', marginTop: '48px' }}>
-          <div 
-            style={{
-              height: '1px',
-              background: 'linear-gradient(90deg, transparent, #e5e7eb, transparent)',
-              margin: '32px auto 24px',
-              maxWidth: '400px',
-            }}
-          ></div>
-          <p style={{ fontSize: '0.9rem', color: '#6b7280', margin: 0 }}>
-            Need to return to team portal?{' '}
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#1d4ed8',
-                padding: '0',
-                fontWeight: 600,
-                textDecoration: 'none',
-                cursor: 'pointer',
-                fontSize: '0.9rem',
-                fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.textDecoration = 'underline';
-                e.currentTarget.style.color = '#1e40af';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.textDecoration = 'none';
-                e.currentTarget.style.color = '#1d4ed8';
-              }}
-            >
-              Click here
-            </button>
-          </p>
+          {/* Footer */}
+          <div style={{ textAlign: 'center', marginTop: '48px' }}>
+            <p style={{
+              fontSize: '0.6rem',
+              color: '#212529',
+              lineHeight: '1.6',
+            }}>
+              Return to{' '}
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#2D58A6',
+                  padding: '0',
+                  fontSize: '0.6rem',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  fontFamily: "'Press Start 2P', cursive",
+                }}
+              >
+                Team Portal
+              </button>
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

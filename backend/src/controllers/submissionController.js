@@ -17,14 +17,26 @@ class SubmissionController {
    */
   async createSubmission(teamId, problemId, language, code) {
     try {
+      const problem = await db('problems')
+        .select('contest_id')
+        .where('id', problemId)
+        .first();
+
+      if (!problem) {
+        throw new Error(`Problem ${problemId} not found`);
+      }
+
+      const submittedAt = new Date();
+
       const [submission] = await db('submissions')
         .insert({
           team_id: teamId,
           problem_id: problemId,
+          contest_id: problem.contest_id,
           language: language,
-          code: code,
+          source_code: code,
           status: 'pending',
-          submission_time: new Date()
+          submitted_at: submittedAt
         })
         .returning('*');
 
@@ -91,17 +103,19 @@ class SubmissionController {
    */
   async getTeamSubmissions(teamId, contestId, limit = 50) {
     try {
+      console.log('🔍 [SubmissionController.getTeamSubmissions] Called with:', { teamId, contestId, limit });
+
       const submissions = await db('submissions as s')
         .join('problems as p', 'p.id', 's.problem_id')
         .where('s.team_id', teamId)
         .where('p.contest_id', contestId)
-        .orderBy('s.submission_time', 'desc')
+        .orderBy('s.submitted_at', 'desc')
         .limit(limit)
         .select(
           's.id',
           's.language',
           's.status',
-          's.submission_time',
+          's.submitted_at',
           's.execution_time',
           's.memory_used',
           's.judged_at',
@@ -109,9 +123,15 @@ class SubmissionController {
           'p.title as problem_title'
         );
 
+      console.log('✅ [SubmissionController.getTeamSubmissions] Retrieved', submissions.length, 'submissions');
+      if (submissions.length > 0) {
+        console.log('📝 [SubmissionController.getTeamSubmissions] First submission:', submissions[0]);
+      }
+
       return submissions;
     } catch (error) {
-      console.error('Error getting team submissions:', error);
+      console.error('❌ [SubmissionController.getTeamSubmissions] Error:', error);
+      console.error('❌ [SubmissionController.getTeamSubmissions] Error stack:', error.stack);
       throw error;
     }
   }
@@ -128,13 +148,13 @@ class SubmissionController {
       const submissions = await db('submissions as s')
         .join('teams as t', 't.id', 's.team_id')
         .where('s.problem_id', problemId)
-        .orderBy('s.submission_time', 'desc')
+        .orderBy('s.submitted_at', 'desc')
         .limit(limit)
         .select(
           's.id',
           's.language',
           's.status',
-          's.submission_time',
+          's.submitted_at',
           's.execution_time',
           's.memory_used',
           's.judged_at',
@@ -179,13 +199,13 @@ class SubmissionController {
         .join('problems as p', 'p.id', 's.problem_id')
         .join('teams as t', 't.id', 's.team_id')
         .where('p.contest_id', contestId)
-        .orderBy('s.submission_time', 'desc')
+        .orderBy('s.submitted_at', 'desc')
         .limit(20)
         .select(
           's.id',
           's.status',
           's.language',
-          's.submission_time',
+          's.submitted_at',
           't.team_name',
           'p.problem_letter'
         );
@@ -224,22 +244,22 @@ class SubmissionController {
       const submissions = await db('submissions')
         .where('team_id', teamId)
         .where('problem_id', problemId)
-        .orderBy('submission_time', 'asc')
+        .orderBy('submitted_at', 'asc')
         .select(
           'id',
           'language',
           'status',
-          'submission_time',
+          'submitted_at',
           'execution_time',
           'memory_used',
           'judged_at'
         );
 
       const acceptedSubmissions = submissions.filter(s => s.status === 'accepted');
-      const wrongAttempts = submissions.filter(s => 
-        s.status !== 'accepted' && 
+      const wrongAttempts = submissions.filter(s =>
+        s.status !== 'accepted' &&
         s.status !== 'compilation_error' &&
-        (!acceptedSubmissions.length || new Date(s.submission_time) < new Date(acceptedSubmissions[0].submission_time))
+        (!acceptedSubmissions.length || new Date(s.submitted_at) < new Date(acceptedSubmissions[0].submitted_at))
       ).length;
 
       return {
@@ -247,7 +267,7 @@ class SubmissionController {
         total_attempts: submissions.length,
         wrong_attempts: wrongAttempts,
         is_solved: acceptedSubmissions.length > 0,
-        first_solve_time: acceptedSubmissions.length > 0 ? acceptedSubmissions[0].submission_time : null
+        first_solve_time: acceptedSubmissions.length > 0 ? acceptedSubmissions[0].submitted_at : null
       };
     } catch (error) {
       console.error('Error getting team problem submissions:', error);
@@ -289,7 +309,9 @@ class SubmissionController {
           'c.id as contest_id',
           'c.start_time',
           'c.duration',
-          'c.is_active'
+          'c.is_active',
+          'c.manual_control',
+          'c.ended_at'
         );
 
       if (!contest) {
@@ -300,14 +322,29 @@ class SubmissionController {
         return { canSubmit: false, reason: 'Contest is not active' };
       }
 
+      if (!contest.start_time) {
+        return { canSubmit: false, reason: 'Contest has not started yet' };
+      }
+
       const now = new Date();
       const startTime = new Date(contest.start_time);
+      if (Number.isNaN(startTime.getTime())) {
+        return { canSubmit: false, reason: 'Contest schedule is invalid' };
+      }
+
       if (now < startTime) {
         return { canSubmit: false, reason: 'Contest has not started yet' };
       }
 
-      const endTime = new Date(startTime.getTime() + contest.duration * 60 * 1000);
-      if (now > endTime) {
+      if (!contest.manual_control) {
+        const hasDuration = contest.duration !== null && contest.duration !== undefined;
+        if (hasDuration) {
+          const endTime = new Date(startTime.getTime() + contest.duration * 60 * 1000);
+          if (now > endTime) {
+            return { canSubmit: false, reason: 'Contest has ended' };
+          }
+        }
+      } else if (contest.ended_at) {
         return { canSubmit: false, reason: 'Contest has ended' };
       }
 
