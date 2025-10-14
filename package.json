@@ -60,6 +60,16 @@
     "concurrently": "^7.6.0",
     "typescript": "^5.9.2"
   },
+  "overrides": {
+    "schema-utils@2.7.0": {
+      "ajv": "6.12.6",
+      "ajv-keywords": "3.5.2"
+    },
+    "schema-utils@2.7.1": {
+      "ajv": "6.12.6",
+      "ajv-keywords": "3.5.2"
+    }
+  },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
