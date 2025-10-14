@@ -9,16 +9,18 @@ WORKDIR /app
 # Copy package files
 COPY frontend/package*.json ./
 
-# Copy patch script
+# Copy patch scripts
 COPY patch-fork-ts-checker.js ./
+COPY fix-ajv-dependencies.js ./
 
-# Install dependencies
+# Install dependencies with forced ajv resolution
 RUN rm -f package-lock.json && \
     npm install --legacy-peer-deps && \
     npm cache clean --force
 
-# Apply patch to fix schema-utils compatibility issue
-RUN node patch-fork-ts-checker.js
+# Apply patches to fix compatibility issues
+RUN node fix-ajv-dependencies.js && \
+    node patch-fork-ts-checker.js
 
 # Copy source code (excluding patch script)
 COPY frontend/ ./

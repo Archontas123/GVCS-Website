@@ -51,17 +51,8 @@
   "overrides": {
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "schema-utils@2.7.0": {
-      "ajv": "6.12.6",
-      "ajv-keywords": "3.5.2"
-    },
-    "schema-utils@2.7.1": {
-      "ajv": "6.12.6",
-      "ajv-keywords": "3.5.2"
-    },
-    "fork-ts-checker-webpack-plugin": {
-      "schema-utils": "2.7.0"
-    }
+    "ajv": "6.12.6",
+    "ajv-keywords": "3.5.2"
   },
   "eslintConfig": {
     "extends": [
