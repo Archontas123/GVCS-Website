@@ -155,6 +155,14 @@ setup_ssl() {
             -keyout ${DEPLOY_DIR}/nginx/ssl/private.key \
             -out ${DEPLOY_DIR}/nginx/ssl/cert.pem \
             -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
+
+        # Set permissions so nginx container can read the certificates
+        chmod 644 ${DEPLOY_DIR}/nginx/ssl/cert.pem
+        chmod 644 ${DEPLOY_DIR}/nginx/ssl/private.key
+    else
+        # Ensure existing certificates have correct permissions
+        chmod 644 ${DEPLOY_DIR}/nginx/ssl/cert.pem
+        chmod 644 ${DEPLOY_DIR}/nginx/ssl/private.key
     fi
 }
 

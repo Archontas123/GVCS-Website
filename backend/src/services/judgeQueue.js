@@ -48,12 +48,22 @@ class JudgeQueueService {
    */
   async initialize() {
     try {
-      // Initialize Redis client
+      // Initialize Redis client with v4 configuration format
       const redisConfig = {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: process.env.REDIS_PORT || 6379,
+        socket: {
+          host: process.env.REDIS_HOST || 'localhost',
+          port: parseInt(process.env.REDIS_PORT) || 6379
+        },
         password: process.env.REDIS_PASSWORD || undefined,
-        db: process.env.REDIS_DB || 0
+        database: parseInt(process.env.REDIS_DB) || 0
+      };
+
+      // Configuration for Bull (uses old format)
+      const bullRedisConfig = {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT) || 6379,
+        password: process.env.REDIS_PASSWORD || undefined,
+        db: parseInt(process.env.REDIS_DB) || 0
       };
 
       this.redisClient = redis.createClient(redisConfig);
@@ -70,7 +80,7 @@ class JudgeQueueService {
 
       // Create Bull queue with persistence and monitoring
       this.judgeQueue = new Queue('judge submissions', {
-        redis: redisConfig,
+        redis: bullRedisConfig,
         defaultJobOptions: {
           removeOnComplete: 100, // Keep last 100 completed jobs
           removeOnFail: 50, // Keep last 50 failed jobs
