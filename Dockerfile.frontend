@@ -38,7 +38,11 @@ ENV TSC_COMPILE_ON_ERROR=true
 ENV DISABLE_ESLINT_PLUGIN=true
 
 # Build the application
-RUN npm run build
+RUN npm run build && \
+    echo "Build completed. Checking build directory..." && \
+    ls -la /app/build && \
+    echo "Checking if index.html exists..." && \
+    test -f /app/build/index.html || (echo "ERROR: build/index.html not found!" && exit 1)
 
 # Production stage
 FROM nginx:1.25-alpine AS production
