@@ -1,20 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find:*)",
-      "Bash(sed:*)",
-      "Bash(npm install:*)",
-      "Bash(npx playwright:*)",
-      "Bash(node:*)",
-      "Bash(netstat:*)",
-      "Bash(if [ ! -f \".github/workflows/ci.yml\" ])",
-      "Bash(then echo \"File does not exist\")",
-      "Bash(fi)",
-      "Bash(openssl rand:*)",
-      "Bash(npm ls:*)",
-      "Bash(timeout 600 docker build --no-cache -f Dockerfile.frontend -t csclub-frontend:test .)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": [],
