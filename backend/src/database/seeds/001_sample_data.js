@@ -13,29 +13,21 @@ exports.seed = async function(knex) {
   await knex('contests').del();
   await knex('admin_users').del();
 
-  // Generate proper password hashes
+  // Generate admin password hash using the .env ADMIN_PASSWORD
   const adminPasswordHash = await bcrypt.hash('AdminPass123!', 12);
-  const superAdminPasswordHash = await bcrypt.hash('AdminPass123!', 12);
 
-  // Insert admin users (matching ADMIN_TEST_DATA from tests)
+  // Insert admin user
   await knex('admin_users').insert([
     {
       id: 1,
-      username: 'superadmin',
-      email: 'superadmin@school.edu',
-      password_hash: superAdminPasswordHash,
-      role: 'super_admin'
-    },
-    {
-      id: 2,
       username: 'admin',
-      email: 'admin@school.edu',
+      email: 'admin@csclub.com',
       password_hash: adminPasswordHash,
-      role: 'admin'
+      role: 'super_admin'
     }
   ]);
 
-  // Insert test contests (for team registration testing)
+  // Insert two contests
   const contestDate = new Date();
   contestDate.setDate(contestDate.getDate() + 7); // Next week
   const endDate = new Date(contestDate);
@@ -43,9 +35,10 @@ exports.seed = async function(knex) {
 
   await knex('contests').insert([
     {
-      contest_name: 'CS Club Spring Programming Contest 2024',
-      description: 'Spring programming contest for E2E testing',
-      registration_code: 'SPRING24',
+      id: 1,
+      contest_name: 'Beginner Qual',
+      description: 'Qualification round for beginner programmers',
+      registration_code: 'BEGINQUAL',
       start_time: contestDate.toISOString(),
       end_time: endDate.toISOString(),
       duration: 180, // 3 hours
@@ -54,82 +47,26 @@ exports.seed = async function(knex) {
       is_registration_open: true,
       is_frozen: false,
       scoring_type: 'icpc',
-      created_by: 1 // Created by superadmin
+      created_by: 1
     },
     {
-      contest_name: 'Test Contest for E2E',
-      description: 'Contest specifically for E2E testing',
-      registration_code: 'TESTCODE',
+      id: 2,
+      contest_name: 'Advanced Qual',
+      description: 'Qualification round for advanced programmers',
+      registration_code: 'ADVQUAL',
       start_time: contestDate.toISOString(),
       end_time: endDate.toISOString(),
-      duration: 120, // 2 hours
-      freeze_time: 30,
+      duration: 180, // 3 hours
+      freeze_time: 60, // 1 hour before end
       is_active: false,
       is_registration_open: true,
       is_frozen: false,
       scoring_type: 'icpc',
-      created_by: 1 // Created by superadmin
-    },
-    {
-      contest_name: 'Registration Test Contest',
-      description: 'Contest for testing team registration workflow',
-      registration_code: 'REGTEST1',
-      start_time: contestDate.toISOString(),
-      end_time: endDate.toISOString(),
-      duration: 180,
-      freeze_time: 60,
-      is_active: false,
-      is_registration_open: true,
-      is_frozen: false,
-      scoring_type: 'icpc',
-      created_by: 2 // Created by admin
-    }
-  ]);
-
-  // Insert test teams for E2E testing
-  const teamPasswordHash = await bcrypt.hash('SecurePass123!', 12);
-
-  await knex('teams').insert([
-    {
-      team_name: 'MIT_Smith',
-      contest_code: 'SPRING24',
-      password_hash: teamPasswordHash,
-      school_name: 'MIT',
-      email: 'mit_smith@school.edu',
-      member_names: JSON.stringify(['John Smith', 'Jane Doe', 'Bob Johnson']),
-      session_token: null,
-      registered_at: knex.fn.now(),
-      last_activity: knex.fn.now(),
-      is_active: true
-    },
-    {
-      team_name: 'Stanford_Brown',
-      contest_code: 'SPRING24',
-      password_hash: await bcrypt.hash('StrongPassword456!', 12),
-      school_name: 'Stanford',
-      email: 'stanford_brown@school.edu',
-      member_names: JSON.stringify(['Alice Brown', 'Charlie Prince', 'David Wilson']),
-      session_token: null,
-      registered_at: knex.fn.now(),
-      last_activity: knex.fn.now(),
-      is_active: true
-    },
-    {
-      team_name: 'Harvard_Adams',
-      contest_code: 'SPRING24',
-      password_hash: await bcrypt.hash('MyPassword789!', 12),
-      school_name: 'Harvard',
-      email: 'harvard_adams@school.edu',
-      member_names: JSON.stringify(['Emma Adams', 'Michael Wilson']),
-      session_token: null,
-      registered_at: knex.fn.now(),
-      last_activity: knex.fn.now(),
-      is_active: true
+      created_by: 1
     }
   ]);
 
   console.log('✓ Sample data seeded successfully');
-  console.log('✓ Admin users: superadmin/admin (password: AdminPass123!)');
-  console.log('✓ Test contests: SPRING24, TESTCODE, REGTEST1');
-  console.log('✓ Test teams: MIT_Smith, Stanford_Brown, Harvard_Adams (passwords from test data)');
+  console.log('✓ Admin user: admin (password: AdminPass123!)');
+  console.log('✓ Contests: Beginner Qual (BEGINQUAL), Advanced Qual (ADVQUAL)');
 };

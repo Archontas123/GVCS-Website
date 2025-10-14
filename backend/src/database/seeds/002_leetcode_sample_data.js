@@ -1,163 +1,79 @@
 /**
- * Seed file for LeetCode-style sample problems and test cases
+ * Seed file for Palindrome Number problem (LeetCode #9)
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
 exports.seed = async function(knex) {
-  // Get the first contest for demo problems
-  const contest = await knex('contests').first('id');
-  if (!contest) {
-    console.log('No contests found, skipping LeetCode-style seed data');
+  // Get both contests
+  const beginnerContest = await knex('contests').where('contest_name', 'Beginner Qual').first();
+  const advancedContest = await knex('contests').where('contest_name', 'Advanced Qual').first();
+
+  if (!beginnerContest || !advancedContest) {
+    console.log('Contests not found, skipping problem seed data');
     return;
   }
 
-  // Check if LeetCode-style problem already exists
-  const existingProblem = await knex('problems')
-    .where('contest_id', contest.id)
-    .where('problem_letter', 'Z')
-    .first();
-
-  if (existingProblem) {
-    console.log('LeetCode-style Two Sum problem already exists, updating with new fields...');
-
-    // Update the existing problem with LeetCode-style fields
-    await knex('problems')
-      .where('id', existingProblem.id)
-      .update({
-        uses_leetcode_style: true,
-        function_name: 'twoSum',
-        function_parameters: JSON.stringify([
-          { name: 'nums', type: 'int[]', description: 'Array of integers' },
-          { name: 'target', type: 'int', description: 'Target sum' }
-        ]),
-        return_type: 'int[]',
-        parameter_descriptions: 'nums: Array of integers to search in\ntarget: The target sum to find',
-
-        function_signature_cpp: `vector<int> twoSum(vector<int>& nums, int target) {
-    // Your solution here
-    return {};
-}`,
-        function_signature_java: `public int[] twoSum(int[] nums, int target) {
-    // Your solution here
-    return new int[]{};
-}`,
-        function_signature_python: `def twoSum(self, nums, target):
-    # Your solution here
-    return []`,
-        function_signature_javascript: `function twoSum(nums, target) {
-    // Your solution here
-    return [];
-}`
-      });
-
-    // Delete existing test cases and insert new parameter-based ones
-    await knex('test_cases').where('problem_id', existingProblem.id).del();
-
-    const testCases = [
-      {
-        problem_id: existingProblem.id,
-        is_sample: true,
-        input_parameters: JSON.stringify({
-          nums: [2, 7, 11, 15],
-          target: 9
-        }),
-        expected_return: JSON.stringify([0, 1]),
-        parameter_types: JSON.stringify([
-          { name: 'nums', type: 'array<int>' },
-          { name: 'target', type: 'int' }
-        ]),
-        test_case_name: 'Example 1',
-        explanation: 'Basic case: nums[0] + nums[1] = 2 + 7 = 9 = target',
-        converted_to_params: true
-      },
-      {
-        problem_id: existingProblem.id,
-        is_sample: true,
-        input_parameters: JSON.stringify({
-          nums: [3, 2, 4],
-          target: 6
-        }),
-        expected_return: JSON.stringify([1, 2]),
-        parameter_types: JSON.stringify([
-          { name: 'nums', type: 'array<int>' },
-          { name: 'target', type: 'int' }
-        ]),
-        test_case_name: 'Example 2',
-        explanation: 'nums[1] + nums[2] = 2 + 4 = 6 = target',
-        converted_to_params: true
-      }
-    ];
-
-    await knex('test_cases').insert(testCases);
-    console.log('✅ Updated existing problem with LeetCode-style fields and test cases');
-    return;
-  }
-
-  // Sample LeetCode-style problem: Two Sum
-  const twoSumProblem = {
-    contest_id: contest.id,
-    problem_letter: 'Z', // Use Z to avoid conflicts
-    title: 'Two Sum',
-    description: `Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
-
-You may assume that each input would have exactly one solution, and you may not use the same element twice.
-
-You can return the answer in any order.
+  // Palindrome Number problem for both contests
+  const palindromeProblem = {
+    problem_letter: 'A',
+    title: 'Palindrome Number',
+    description: `Given an integer \`x\`, return \`true\` if \`x\` is a palindrome, and \`false\` otherwise.
 
 **Example 1:**
-Input: nums = [2,7,11,15], target = 9
-Output: [0,1]
-Explanation: Because nums[0] + nums[1] == 9, we return [0, 1].
+Input: x = 121
+Output: true
+Explanation: 121 reads as 121 from left to right and from right to left.
 
 **Example 2:**
-Input: nums = [3,2,4], target = 6
-Output: [1,2]
+Input: x = -121
+Output: false
+Explanation: From left to right, it reads -121. From right to left, it becomes 121-. Therefore it is not a palindrome.
 
 **Example 3:**
-Input: nums = [3,3], target = 6
-Output: [0,1]`,
-    input_format: 'Function parameters: nums (array of integers), target (integer)',
-    output_format: 'Array of two integers representing indices',
-    constraints: `- 2 <= nums.length <= 10^4
-- -10^9 <= nums[i] <= 10^9
-- -10^9 <= target <= 10^9
-- Only one valid answer exists.`,
+Input: x = 10
+Output: false
+Explanation: Reads 01 from right to left. Therefore it is not a palindrome.
+
+**Constraints:**
+- -2³¹ <= x <= 2³¹ - 1
+
+**Follow up:** Could you solve it without converting the integer to a string?`,
+    input_format: 'Function parameter: x (integer)',
+    output_format: 'Boolean value (true/false)',
+    constraints: `-2³¹ <= x <= 2³¹ - 1`,
     time_limit: 1000,
     memory_limit: 256,
     difficulty: 'easy',
     max_points: 100,
     uses_leetcode_style: true,
-    function_name: 'twoSum',
+    function_name: 'isPalindrome',
     function_parameters: JSON.stringify([
-      { name: 'nums', type: 'int[]', description: 'Array of integers' },
-      { name: 'target', type: 'int', description: 'Target sum' }
+      { name: 'x', type: 'int', description: 'Integer to check' }
     ]),
-    return_type: 'int[]',
-    parameter_descriptions: 'nums: Array of integers to search in\ntarget: The target sum to find',
+    return_type: 'bool',
+    parameter_descriptions: 'x: The integer to check if it is a palindrome',
 
     // Function signatures for each language
-    function_signature_cpp: `vector<int> twoSum(vector<int>& nums, int target) {
+    function_signature_cpp: `bool isPalindrome(int x) {
     // Your solution here
-    return {};
+    return false;
 }`,
-    function_signature_java: `public int[] twoSum(int[] nums, int target) {
+    function_signature_java: `public boolean isPalindrome(int x) {
     // Your solution here
-    return new int[]{};
+    return false;
 }`,
-    function_signature_python: `def twoSum(self, nums, target):
+    function_signature_python: `def isPalindrome(self, x):
     # Your solution here
-    return []`,
-    function_signature_javascript: `function twoSum(nums, target) {
+    return False`,
+    function_signature_javascript: `function isPalindrome(x) {
     // Your solution here
-    return [];
+    return false;
 }`,
 
     // I/O wrappers for each language
     io_wrapper_cpp: `#include <iostream>
-#include <vector>
 #include <string>
 #include <sstream>
-#include <algorithm>
 using namespace std;
 
 {USER_FUNCTION}
@@ -166,32 +82,15 @@ int main() {
     string line;
     getline(cin, line);
 
-    // Parse JSON-like input: {"nums": [2,7,11,15], "target": 9}
-    // Simple parsing for demo - in production use proper JSON library
-    size_t numsStart = line.find("[");
-    size_t numsEnd = line.find("]");
-    string numsStr = line.substr(numsStart + 1, numsEnd - numsStart - 1);
+    // Parse JSON-like input: {"x": 121}
+    size_t xPos = line.find("\\"x\\":");
+    string xStr = line.substr(xPos + 4);
+    xStr = xStr.substr(0, xStr.find("}"));
+    int x = stoi(xStr);
 
-    vector<int> nums;
-    stringstream ss(numsStr);
-    string token;
-    while (getline(ss, token, ',')) {
-        nums.push_back(stoi(token));
-    }
+    bool result = isPalindrome(x);
 
-    size_t targetPos = line.find("\"target\":");
-    string targetStr = line.substr(targetPos + 9);
-    targetStr = targetStr.substr(0, targetStr.find("}"));
-    int target = stoi(targetStr);
-
-    vector<int> result = twoSum(nums, target);
-
-    cout << "[";
-    for (int i = 0; i < result.size(); i++) {
-        cout << result[i];
-        if (i < result.size() - 1) cout << ",";
-    }
-    cout << "]" << endl;
+    cout << (result ? "true" : "false") << endl;
 
     return 0;
 }`,
@@ -210,12 +109,10 @@ public class Solution {
         Gson gson = new Gson();
         Map<String, Object> data = gson.fromJson(input, Map.class);
 
-        List<Double> numsList = (List<Double>) data.get("nums");
-        int[] nums = numsList.stream().mapToInt(Double::intValue).toArray();
-        int target = ((Double) data.get("target")).intValue();
+        int x = ((Double) data.get("x")).intValue();
 
         Solution sol = new Solution();
-        int[] result = sol.twoSum(nums, target);
+        boolean result = sol.isPalindrome(x);
 
         System.out.println(gson.toJson(result));
     }
@@ -229,11 +126,10 @@ import sys
 if __name__ == "__main__":
     input_data = json.loads(input())
 
-    nums = input_data["nums"]
-    target = input_data["target"]
+    x = input_data["x"]
 
     sol = Solution()
-    result = sol.twoSum(nums, target)
+    result = sol.isPalindrome(x)
 
     print(json.dumps(result))`,
 
@@ -243,101 +139,167 @@ if __name__ == "__main__":
 const input = require('fs').readFileSync(0, 'utf8').trim();
 const data = JSON.parse(input);
 
-const result = twoSum(data.nums, data.target);
+const result = isPalindrome(data.x);
 console.log(JSON.stringify(result));`,
 
     // Default solutions for each language
-    default_solution_cpp: `vector<int> twoSum(vector<int>& nums, int target) {
+    default_solution_cpp: `bool isPalindrome(int x) {
     // Your solution here
-    return {};
+    return false;
 }`,
-    default_solution_java: `public int[] twoSum(int[] nums, int target) {
+    default_solution_java: `public boolean isPalindrome(int x) {
     // Your solution here
-    return new int[]{};
+    return false;
 }`,
-    default_solution_python: `def twoSum(self, nums, target):
+    default_solution_python: `def isPalindrome(self, x):
     # Your solution here
-    return []`,
-    default_solution_javascript: `function twoSum(nums, target) {
+    return False`,
+    default_solution_javascript: `function isPalindrome(x) {
     // Your solution here
-    return [];
+    return false;
 }`
   };
 
-  // Insert the problem
-  const [problemResult] = await knex('problems').insert(twoSumProblem).returning('id');
-  const problemId = problemResult.id;
+  // Insert problem for Beginner Qual
+  const beginnerProblem = { ...palindromeProblem, contest_id: beginnerContest.id };
+  const [beginnerProblemResult] = await knex('problems').insert(beginnerProblem).returning('id');
+  const beginnerProblemId = beginnerProblemResult.id;
 
-  // Sample test cases for Two Sum problem
-  const testCases = [
+  // Insert problem for Advanced Qual
+  const advancedProblem = { ...palindromeProblem, contest_id: advancedContest.id };
+  const [advancedProblemResult] = await knex('problems').insert(advancedProblem).returning('id');
+  const advancedProblemId = advancedProblemResult.id;
+
+  // Test cases for Palindrome Number problem
+  const createTestCases = (problemId) => [
+    // Sample test cases (3)
     {
       problem_id: problemId,
       is_sample: true,
-      input_parameters: JSON.stringify({
-        nums: [2, 7, 11, 15],
-        target: 9
-      }),
-      expected_return: JSON.stringify([0, 1]),
-      parameter_types: JSON.stringify([
-        { name: 'nums', type: 'array<int>' },
-        { name: 'target', type: 'int' }
-      ]),
+      input_parameters: JSON.stringify({ x: 121 }),
+      expected_return: JSON.stringify(true),
+      parameter_types: JSON.stringify([{ name: 'x', type: 'int' }]),
       test_case_name: 'Example 1',
-      explanation: 'Basic case: nums[0] + nums[1] = 2 + 7 = 9 = target',
+      explanation: '121 reads the same forwards and backwards',
       converted_to_params: true
     },
     {
       problem_id: problemId,
       is_sample: true,
-      input_parameters: JSON.stringify({
-        nums: [3, 2, 4],
-        target: 6
-      }),
-      expected_return: JSON.stringify([1, 2]),
-      parameter_types: JSON.stringify([
-        { name: 'nums', type: 'array<int>' },
-        { name: 'target', type: 'int' }
-      ]),
+      input_parameters: JSON.stringify({ x: -121 }),
+      expected_return: JSON.stringify(false),
+      parameter_types: JSON.stringify([{ name: 'x', type: 'int' }]),
       test_case_name: 'Example 2',
-      explanation: 'nums[1] + nums[2] = 2 + 4 = 6 = target',
+      explanation: 'Negative numbers are not palindromes',
       converted_to_params: true
     },
     {
       problem_id: problemId,
       is_sample: true,
-      input_parameters: JSON.stringify({
-        nums: [3, 3],
-        target: 6
-      }),
-      expected_return: JSON.stringify([0, 1]),
-      parameter_types: JSON.stringify([
-        { name: 'nums', type: 'array<int>' },
-        { name: 'target', type: 'int' }
-      ]),
+      input_parameters: JSON.stringify({ x: 10 }),
+      expected_return: JSON.stringify(false),
+      parameter_types: JSON.stringify([{ name: 'x', type: 'int' }]),
       test_case_name: 'Example 3',
-      explanation: 'Duplicate values: nums[0] + nums[1] = 3 + 3 = 6 = target',
+      explanation: '10 reversed is 01, which is not the same',
+      converted_to_params: true
+    },
+    // Hidden test cases (9)
+    {
+      problem_id: problemId,
+      is_sample: false,
+      input_parameters: JSON.stringify({ x: 0 }),
+      expected_return: JSON.stringify(true),
+      parameter_types: JSON.stringify([{ name: 'x', type: 'int' }]),
+      test_case_name: 'Hidden Test 1',
+      explanation: 'Zero is a palindrome',
       converted_to_params: true
     },
     {
       problem_id: problemId,
       is_sample: false,
-      input_parameters: JSON.stringify({
-        nums: [1, 2, 3, 4, 5],
-        target: 8
-      }),
-      expected_return: JSON.stringify([2, 4]),
-      parameter_types: JSON.stringify([
-        { name: 'nums', type: 'array<int>' },
-        { name: 'target', type: 'int' }
-      ]),
-      test_case_name: 'Hidden Test 1',
-      explanation: 'nums[2] + nums[4] = 3 + 5 = 8 = target',
+      input_parameters: JSON.stringify({ x: 1 }),
+      expected_return: JSON.stringify(true),
+      parameter_types: JSON.stringify([{ name: 'x', type: 'int' }]),
+      test_case_name: 'Hidden Test 2',
+      explanation: 'Single digit is a palindrome',
+      converted_to_params: true
+    },
+    {
+      problem_id: problemId,
+      is_sample: false,
+      input_parameters: JSON.stringify({ x: 12321 }),
+      expected_return: JSON.stringify(true),
+      parameter_types: JSON.stringify([{ name: 'x', type: 'int' }]),
+      test_case_name: 'Hidden Test 3',
+      explanation: 'Odd length palindrome',
+      converted_to_params: true
+    },
+    {
+      problem_id: problemId,
+      is_sample: false,
+      input_parameters: JSON.stringify({ x: 1221 }),
+      expected_return: JSON.stringify(true),
+      parameter_types: JSON.stringify([{ name: 'x', type: 'int' }]),
+      test_case_name: 'Hidden Test 4',
+      explanation: 'Even length palindrome',
+      converted_to_params: true
+    },
+    {
+      problem_id: problemId,
+      is_sample: false,
+      input_parameters: JSON.stringify({ x: 123 }),
+      expected_return: JSON.stringify(false),
+      parameter_types: JSON.stringify([{ name: 'x', type: 'int' }]),
+      test_case_name: 'Hidden Test 5',
+      explanation: 'Not a palindrome',
+      converted_to_params: true
+    },
+    {
+      problem_id: problemId,
+      is_sample: false,
+      input_parameters: JSON.stringify({ x: 9009 }),
+      expected_return: JSON.stringify(true),
+      parameter_types: JSON.stringify([{ name: 'x', type: 'int' }]),
+      test_case_name: 'Hidden Test 6',
+      explanation: 'Palindrome with zeros in middle',
+      converted_to_params: true
+    },
+    {
+      problem_id: problemId,
+      is_sample: false,
+      input_parameters: JSON.stringify({ x: -1 }),
+      expected_return: JSON.stringify(false),
+      parameter_types: JSON.stringify([{ name: 'x', type: 'int' }]),
+      test_case_name: 'Hidden Test 7',
+      explanation: 'Negative single digit',
+      converted_to_params: true
+    },
+    {
+      problem_id: problemId,
+      is_sample: false,
+      input_parameters: JSON.stringify({ x: 1000021 }),
+      expected_return: JSON.stringify(false),
+      parameter_types: JSON.stringify([{ name: 'x', type: 'int' }]),
+      test_case_name: 'Hidden Test 8',
+      explanation: 'Large number that is not a palindrome',
+      converted_to_params: true
+    },
+    {
+      problem_id: problemId,
+      is_sample: false,
+      input_parameters: JSON.stringify({ x: 1234321 }),
+      expected_return: JSON.stringify(true),
+      parameter_types: JSON.stringify([{ name: 'x', type: 'int' }]),
+      test_case_name: 'Hidden Test 9',
+      explanation: 'Larger palindrome',
       converted_to_params: true
     }
   ];
 
-  // Insert test cases
-  await knex('test_cases').insert(testCases);
+  // Insert test cases for both problems
+  await knex('test_cases').insert(createTestCases(beginnerProblemId));
+  await knex('test_cases').insert(createTestCases(advancedProblemId));
 
-  console.log('✅ LeetCode-style sample data inserted successfully');
+  console.log('✅ Palindrome Number problem inserted for both contests');
+  console.log('✅ Each problem has 3 sample test cases and 9 hidden test cases');
 };
