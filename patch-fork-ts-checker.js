@@ -37,28 +37,33 @@ try {
   let replaced = content;
   let patchCount = 0;
 
-  // Pattern 1: Direct call to schema_utils_1.default() - line 31 from error
-  // This pattern matches: schema_utils_1.default(schema, options, config);
+  // Pattern 1: Direct call to schema_utils_1.default() - line 31 and 34 from error
+  // This pattern matches: schema_utils_1.default(schema, options/this.options, config);
   if (replaced.includes('schema_utils_1.default(ForkTsCheckerWebpackPluginOptions_json_1.default')) {
     console.log('Applying Pattern 1: Direct schema_utils_1.default() call');
     const before = replaced;
+
+    // Replace both variants: with 'options' and with 'this.options'
     replaced = replaced.replace(
-      /schema_utils_1\.default\(ForkTsCheckerWebpackPluginOptions_json_1\.default, options, configuration\);/g,
-      `// PATCHED: Fix for schema-utils v3 compatibility
+      /schema_utils_1\.default\(ForkTsCheckerWebpackPluginOptions_json_1\.default, (options|this\.options), configuration\);/g,
+      (match, optionsVar) => {
+        patchCount++;
+        return `// PATCHED: Fix for schema-utils v3 compatibility
         (function() {
             const validateFn = schema_utils_1.validate ||
                              (schema_utils_1.default && schema_utils_1.default.validate) ||
                              schema_utils_1.default;
             if (typeof validateFn === 'function') {
-                validateFn(ForkTsCheckerWebpackPluginOptions_json_1.default, options, configuration);
+                validateFn(ForkTsCheckerWebpackPluginOptions_json_1.default, ${optionsVar}, configuration);
             } else {
                 console.warn('schema-utils validate function not found, skipping validation');
             }
-        })();`
+        })();`;
+      }
     );
+
     if (before !== replaced) {
-      patchCount++;
-      console.log('Pattern 1 applied successfully');
+      console.log(`Pattern 1 applied successfully (${patchCount} replacement(s))`);
     }
   }
 
