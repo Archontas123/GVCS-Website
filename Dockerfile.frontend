@@ -9,17 +9,16 @@ WORKDIR /app
 # Copy package files
 COPY frontend/package*.json ./
 
-# Install dependencies with forced override resolution
+# Install dependencies and patch schema-utils issue
 RUN rm -f package-lock.json && \
     npm install --legacy-peer-deps && \
+    find node_modules -name "schema-utils" -type d -path "*/fork-ts-checker-webpack-plugin/node_modules/schema-utils" -exec rm -rf {} + 2>/dev/null || true && \
+    cd node_modules/fork-ts-checker-webpack-plugin && \
+    mkdir -p node_modules && \
+    cd node_modules && \
+    npm install schema-utils@4.0.0 --no-save --legacy-peer-deps && \
+    cd /app && \
     npm cache clean --force
-
-# Manually fix the schema-utils incompatibility
-# Install schema-utils v4 directly into fork-ts-checker-webpack-plugin's node_modules
-RUN cd node_modules/fork-ts-checker-webpack-plugin && \
-    rm -rf node_modules/schema-utils && \
-    npm install schema-utils@^4.0.0 --no-save --legacy-peer-deps && \
-    cd /app
 
 # Copy source code
 COPY frontend/ ./
