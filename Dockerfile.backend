@@ -11,7 +11,7 @@ COPY backend/package*.json ./
 COPY backend/knexfile.js ./
 
 # Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --omit=dev --legacy-peer-deps && npm cache clean --force
 
 # Copy source code
 COPY backend/src/ ./src/
