@@ -28,7 +28,7 @@
 
 ```bash
 # Update DuckDNS to point to your VPS IP
-curl "https://www.duckdns.org/update?domains=YOUR_SUBDOMAIN&token=YOUR_TOKEN&ip=YOUR_VPS_IP"
+curl -4 "http://www.duckdns.org/update?domains=hackthevalley&token=5ae5c5e9-303d-42a1-b5c9-547d7c2bf698&ip=46.62.212.112"
 ```
 
 Replace:
@@ -39,7 +39,7 @@ Replace:
 **Verify it worked:**
 ```bash
 # Should show your VPS IP
-nslookup YOUR_SUBDOMAIN.duckdns.org
+nslookup hackthevalley.duckdns.org
 ```
 
 ---
@@ -151,7 +151,7 @@ Save and exit (Ctrl+X, Y, Enter).
 ## Step 7: Setup SSL Certificates
 
 ```bash
-cd /opt/cs-club-hackathon
+cd ~/cs-club-hackathon
 bash scripts/setup-ssl.sh
 ```
 
@@ -175,7 +175,7 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 ## Step 8: Deploy Application
 
 ```bash
-cd /opt/cs-club-hackathon
+cd ~/cs-club-hackathon
 bash deploy.sh
 ```
 
@@ -372,7 +372,7 @@ docker-compose -f docker-compose.prod.yml restart
 
 ### Update Application
 ```bash
-cd /opt/cs-club-hackathon
+cd ~/cs-club-hackathon
 git pull
 bash deploy.sh
 ```
@@ -426,7 +426,7 @@ docker system prune -a --volumes
 | **API Health** | https://yourname.duckdns.org/api/health |
 | **View Logs** | `docker-compose -f docker-compose.prod.yml logs -f` |
 | **Restart** | `docker-compose -f docker-compose.prod.yml restart` |
-| **Update** | `cd /opt/cs-club-hackathon && git pull && bash deploy.sh` |
+| **Update** | `cd ~/cs-club-hackathon && git pull && bash deploy.sh` |
 | **SSH to VPS** | `ssh root@YOUR_VPS_IP` |
 
 ---
