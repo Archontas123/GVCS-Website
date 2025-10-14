@@ -122,25 +122,12 @@ EOF
 # Copy built application from builder stage
 COPY --from=builder /app/build /usr/share/nginx/html
 
-# Set ownership (nginx user already exists in the base image)
-RUN chown -R nginx:nginx /usr/share/nginx/html && \
-    chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx && \
-    chown -R nginx:nginx /etc/nginx/conf.d
-
-# Create nginx run directory
-RUN mkdir -p /var/run/nginx && \
-    chown -R nginx:nginx /var/run/nginx
-
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost/health || exit 1
 
-# Switch to non-root user
-USER nginx
-
 # Expose port
 EXPOSE 80
 
-# Start nginx
+# Start nginx (runs as root, but worker processes run as nginx user for security)
 CMD ["nginx", "-g", "daemon off;"]
