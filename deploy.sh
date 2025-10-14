@@ -138,7 +138,7 @@ run_migrations() {
     # Wait for backend to be healthy
     sleep 10
 
-    docker exec cs_club_backend npm run migrate
+    docker exec cs_club_backend npm run db:migrate
 
     log_info "Migrations completed"
 }
