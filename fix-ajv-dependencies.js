@@ -1,10 +1,10 @@
-// Comprehensive fix script for ajv/ajv-keywords compatibility issues
-// This script ensures all ajv-keywords modules use the correct ajv version
+// Comprehensive fix script for ajv/ajv-keywords/ajv-formats compatibility issues
+// This script ensures all ajv-related modules use the correct ajv version
 
 const fs = require('fs');
 const path = require('path');
 
-function findAndFixAjvKeywords(dir) {
+function findAndFixAjvModules(dir) {
   const fixes = [];
 
   function walkDir(currentPath) {
@@ -15,15 +15,20 @@ function findAndFixAjvKeywords(dir) {
         const fullPath = path.join(currentPath, entry.name);
 
         if (entry.isDirectory()) {
-          // Skip if already in an ajv-keywords node_modules to avoid infinite recursion
-          if (entry.name === 'node_modules' && currentPath.includes('ajv-keywords')) {
+          // Skip if already in an ajv-* node_modules to avoid infinite recursion
+          if (entry.name === 'node_modules' && (currentPath.includes('ajv-keywords') || currentPath.includes('ajv-formats'))) {
             continue;
           }
 
           // If this is an ajv-keywords directory, fix it
           if (entry.name === 'ajv-keywords') {
             fixAjvKeywordsModule(fullPath, fixes);
-          } else if (entry.name === 'node_modules' || !currentPath.includes('node_modules')) {
+          }
+          // If this is an ajv-formats directory, fix it
+          else if (entry.name === 'ajv-formats') {
+            fixAjvFormatsModule(fullPath, fixes);
+          }
+          else if (entry.name === 'node_modules' || !currentPath.includes('node_modules')) {
             walkDir(fullPath);
           }
         }
@@ -76,7 +81,50 @@ const codegen_1 = {
   }
 }
 
-console.log('Scanning for ajv-keywords modules...');
+function fixAjvFormatsModule(ajvFormatsPath, fixes) {
+  // Check if this ajv-formats has the problematic import in limit.js
+  const limitPath = path.join(ajvFormatsPath, 'dist', 'limit.js');
+
+  if (!fs.existsSync(limitPath)) {
+    return;
+  }
+
+  try {
+    let content = fs.readFileSync(limitPath, 'utf8');
+
+    // Check if it has the problematic import
+    if (content.includes('ajv/dist/compile/codegen')) {
+      // Replace the import with a compatible version
+      const fixedContent = content.replace(
+        /const codegen_1 = require\("ajv\/dist\/compile\/codegen"\);/g,
+        `// Patched: ajv v6 doesn't have dist/compile/codegen
+const codegen_1 = {
+  _: (strings, ...values) => {
+    return strings.reduce((acc, str, i) => acc + str + (values[i] || ''), '');
+  },
+  str: JSON.stringify,
+  nil: null,
+  Name: class {
+    constructor(name) { this.str = name; }
+    toString() { return this.str; }
+  },
+  Code: class {
+    constructor() { this.code = ''; }
+    toString() { return this.code; }
+  }
+};`
+      );
+
+      fs.writeFileSync(limitPath, fixedContent, 'utf8');
+      fixes.push(limitPath);
+      console.log('Fixed ajv-formats at:', limitPath);
+    }
+  } catch (error) {
+    console.error('Error fixing', limitPath, ':', error.message);
+  }
+}
+
+console.log('Scanning for ajv-keywords and ajv-formats modules...');
 const nodeModulesPath = path.join(__dirname, 'node_modules');
 
 if (!fs.existsSync(nodeModulesPath)) {
@@ -84,13 +132,13 @@ if (!fs.existsSync(nodeModulesPath)) {
   process.exit(0);
 }
 
-const fixes = findAndFixAjvKeywords(nodeModulesPath);
+const fixes = findAndFixAjvModules(nodeModulesPath);
 
 if (fixes.length > 0) {
-  console.log(`Successfully fixed ${fixes.length} ajv-keywords module(s)`);
+  console.log(`Successfully fixed ${fixes.length} ajv-related module(s)`);
   fixes.forEach(fix => console.log('  -', fix));
 } else {
-  console.log('No ajv-keywords modules needed fixing (or already fixed)');
+  console.log('No ajv-related modules needed fixing (or already fixed)');
 }
 
 console.log('ajv dependency fix completed');
