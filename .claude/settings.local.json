@@ -9,7 +9,8 @@
       "Bash(netstat:*)",
       "Bash(if [ ! -f \".github/workflows/ci.yml\" ])",
       "Bash(then echo \"File does not exist\")",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(openssl rand:*)"
     ],
     "deny": [],
     "ask": [],
