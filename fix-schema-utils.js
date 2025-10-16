@@ -33,38 +33,64 @@ function findSchemaUtilsModules(dir) {
 
 function fixSchemaUtilsModule(schemaUtilsPath, fixes) {
   const validatePath = path.join(schemaUtilsPath, 'dist', 'validate.js');
+  const indexPath = path.join(schemaUtilsPath, 'dist', 'index.js');
 
-  if (!fs.existsSync(validatePath)) {
-    return;
-  }
+  // Fix validate.js
+  if (fs.existsSync(validatePath)) {
+    try {
+      let content = fs.readFileSync(validatePath, 'utf8');
 
-  try {
-    let content = fs.readFileSync(validatePath, 'utf8');
+      // Check if already patched
+      if (!content.includes('// PATCHED: schema-utils compatibility')) {
+        // Prepend the compatibility fix
+        const fixedContent = `"use strict";
+// PATCHED: schema-utils compatibility fix
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.validate = validate;
 
-    // Check if already patched
-    if (content.includes('// PATCHED: schema-utils compatibility')) {
-      return;
-    }
+${content.replace(/"use strict";\s*Object\.defineProperty\(exports, "__esModule", \{ value: true \}\);\s*(exports\.validate = validate;)?/g, '')}
 
-    // Fix the export issue
-    if (content.includes('schema_utils_1.default') || content.includes('exports.default')) {
-      const fixedContent = `// PATCHED: schema-utils compatibility fix
-${content}
-
-// Ensure both named and default exports work
-if (typeof exports.default === 'function') {
-  module.exports = exports.default;
-  module.exports.default = exports.default;
-  module.exports.validate = exports.default;
+// Ensure the function is exported correctly
+if (typeof validate === 'function') {
+  module.exports = validate;
+  module.exports.default = validate;
+  module.exports.validate = validate;
 }
 `;
 
-      fs.writeFileSync(validatePath, fixedContent, 'utf8');
-      fixes.push(validatePath);
-      console.log('Fixed schema-utils at:', validatePath);
+        fs.writeFileSync(validatePath, fixedContent, 'utf8');
+        fixes.push(validatePath);
+        console.log('Fixed validate.js at:', validatePath);
+      }
+    } catch (error) {
+      console.error('Error fixing', validatePath, ':', error.message);
     }
-  } catch (error) {
-    console.error('Error fixing', validatePath, ':', error.message);
+  }
+
+  // Fix index.js
+  if (fs.existsSync(indexPath)) {
+    try {
+      let content = fs.readFileSync(indexPath, 'utf8');
+
+      // Check if already patched
+      if (!content.includes('// PATCHED: schema-utils index')) {
+        // Ensure proper exports
+        const fixedContent = content.replace(
+          /exports\.validate = validate_1\.validate;/g,
+          `// PATCHED: schema-utils index
+exports.validate = validate_1.validate || validate_1.default || validate_1;
+exports.default = exports.validate;`
+        );
+
+        if (fixedContent !== content) {
+          fs.writeFileSync(indexPath, fixedContent, 'utf8');
+          fixes.push(indexPath);
+          console.log('Fixed index.js at:', indexPath);
+        }
+      }
+    } catch (error) {
+      console.error('Error fixing', indexPath, ':', error.message);
+    }
   }
 }
 
