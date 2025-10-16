@@ -74,19 +74,17 @@ if (typeof validate === 'function') {
 
       // Check if already patched
       if (!content.includes('// PATCHED: schema-utils index')) {
-        // Ensure proper exports
-        const fixedContent = content.replace(
-          /exports\.validate = validate_1\.validate;/g,
-          `// PATCHED: schema-utils index
-exports.validate = validate_1.validate || validate_1.default || validate_1;
-exports.default = exports.validate;`
-        );
+        // Add validateOptions alias at the end of the file
+        const fixedContent = content + `
 
-        if (fixedContent !== content) {
-          fs.writeFileSync(indexPath, fixedContent, 'utf8');
-          fixes.push(indexPath);
-          console.log('Fixed index.js at:', indexPath);
-        }
+// PATCHED: schema-utils index - Add validateOptions alias
+exports.validateOptions = exports.validate || validate_1.validate || validate_1.default || validate_1;
+exports.default = exports.validate || exports.validateOptions;
+`;
+
+        fs.writeFileSync(indexPath, fixedContent, 'utf8');
+        fixes.push(indexPath);
+        console.log('Fixed index.js at:', indexPath);
       }
     } catch (error) {
       console.error('Error fixing', indexPath, ':', error.message);
