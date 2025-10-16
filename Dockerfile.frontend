@@ -9,21 +9,10 @@ WORKDIR /app
 # Copy package files
 COPY frontend/package*.json ./
 
-# Copy patch scripts
-COPY patch-fork-ts-checker.js ./
-COPY fix-ajv-dependencies.js ./
-COPY disable-fork-ts-checker.js ./
-COPY fix-schema-utils.js ./
-
-# Install dependencies with forced ajv resolution
+# Install dependencies with legacy peer deps for compatibility
 RUN rm -f package-lock.json && \
     npm install --legacy-peer-deps && \
     npm cache clean --force
-
-# Apply all compatibility fixes
-RUN node fix-ajv-dependencies.js && \
-    node fix-schema-utils.js && \
-    npm uninstall fork-ts-checker-webpack-plugin || true
 
 # Copy source code
 COPY frontend/ ./
