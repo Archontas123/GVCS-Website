@@ -14,6 +14,7 @@ COPY patch-fork-ts-checker.js ./
 COPY fix-ajv-dependencies.js ./
 COPY disable-fork-ts-checker.js ./
 COPY fix-schema-utils.js ./
+COPY fix-webpack-plugins.js ./
 
 # Install dependencies with forced ajv resolution
 RUN rm -f package-lock.json && \
