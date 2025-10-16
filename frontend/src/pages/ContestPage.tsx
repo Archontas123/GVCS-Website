@@ -12,6 +12,8 @@ interface ContestProblem extends Problem {
     test_case_name: string;
     explanation: string;
   }>;
+  maxPoints?: number;
+  isSolved?: boolean;
 }
 
 const ContestPage: React.FC = () => {
@@ -30,7 +32,7 @@ const ContestPage: React.FC = () => {
     if (contestSlug) {
       fetchContestProblems(contestSlug);
     }
-  }, [contestSlug]);
+  }, [contestSlug, team]);
 
   const fetchContestProblems = async (slug: string) => {
     setLoading(true);
@@ -38,9 +40,35 @@ const ContestPage: React.FC = () => {
     try {
       const response = await apiService.getContestProblemsBySlug(slug);
       if (response.success) {
-        setProblems(response.data);
-        if (response.data.length > 0) {
-          const firstProblem = response.data[0] as any;
+        let problemsData = response.data;
+
+        // If user is authenticated, fetch solved status from team's submissions
+        if (team) {
+          try {
+            // Get team's submissions to determine solved status
+            const submissionsResponse = await apiService.getTeamSubmissions();
+            if (submissionsResponse.success && submissionsResponse.data) {
+              const solvedProblemIds = new Set(
+                submissionsResponse.data
+                  .filter((sub: any) => sub.status === 'accepted')
+                  .map((sub: any) => sub.problemId)
+              );
+
+              // Mark problems as solved
+              problemsData = problemsData.map((prob: any) => ({
+                ...prob,
+                isSolved: solvedProblemIds.has(prob.id)
+              }));
+            }
+          } catch (submissionErr) {
+            console.warn('Could not fetch solved status:', submissionErr);
+            // Continue without solved status
+          }
+        }
+
+        setProblems(problemsData);
+        if (problemsData.length > 0) {
+          const firstProblem = problemsData[0] as any;
           setContestId(firstProblem.contestId ?? firstProblem.contest_id ?? null);
           setContestName(slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
         } else {
@@ -374,14 +402,37 @@ const ContestPage: React.FC = () => {
                       className="problem-card-hover"
                       onClick={() => handleProblemClick(problem)}
                       style={{
-                        background: 'white',
-                        border: '4px solid #212529',
+                        background: problem.isSolved ? '#f0fdf4' : 'white',
+                        border: problem.isSolved ? '4px solid #22c55e' : '4px solid #212529',
                         padding: '1.5rem',
                         cursor: 'pointer',
                         boxShadow: '6px 6px 0px #212529',
                         animation: `slideUp 0.3s ease-out ${index * 0.05}s backwards`,
+                        position: 'relative',
                       }}
                     >
+                      {problem.isSolved && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '10px',
+                          right: '10px',
+                          backgroundColor: '#22c55e',
+                          color: 'white',
+                          border: '3px solid #212529',
+                          borderRadius: '50%',
+                          width: '35px',
+                          height: '35px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.2rem',
+                          fontWeight: 'bold',
+                          boxShadow: '3px 3px 0px #212529',
+                          zIndex: 1,
+                        }}>
+                          ✓
+                        </div>
+                      )}
                       <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -389,7 +440,7 @@ const ContestPage: React.FC = () => {
                         marginBottom: '1rem',
                       }}>
                         <span style={{
-                          background: '#2D58A6',
+                          background: problem.isSolved ? '#22c55e' : '#2D58A6',
                           color: 'white',
                           border: '3px solid #212529',
                           width: '45px',
@@ -440,6 +491,14 @@ const ContestPage: React.FC = () => {
                         flexWrap: 'wrap',
                       }}>
                         <span>⏱️ {problem.timeLimit}ms</span>
+                        {problem.maxPoints !== undefined && (
+                          <span style={{
+                            color: '#2D58A6',
+                            fontWeight: 'bold',
+                          }}>
+                            🏆 {problem.maxPoints} points
+                          </span>
+                        )}
                       </div>
 
                       <div style={{

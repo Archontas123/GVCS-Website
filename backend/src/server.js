@@ -549,11 +549,11 @@ app.get('/api/contests/:contestSlug/problems/public', async (req, res, next) => 
     }
     
     const problems = await Problem.findByContestId(contestId);
-    
+
     const problemsWithSamples = await Promise.all(
       problems.map(async (problem) => {
         const sampleTestCases = await TestCase.findByProblemId(problem.id, true);
-        
+
         return {
           id: problem.id,
           contest_id: problem.contest_id,
@@ -566,6 +566,7 @@ app.get('/api/contests/:contestSlug/problems/public', async (req, res, next) => 
           time_limit: problem.time_limit,
           memory_limit: problem.memory_limit,
           difficulty: problem.difficulty,
+          max_points: problem.max_points,
           sample_test_cases: sampleTestCases.map(tc => ({
             input: tc.input,
             expected_output: tc.expected_output

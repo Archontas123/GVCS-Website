@@ -39,6 +39,7 @@ export interface Problem {
   timeLimit: number; // in milliseconds
   memoryLimit: number; // in MB
   difficulty: 'easy' | 'medium' | 'hard';
+  maxPoints?: number; // maximum points for this problem
   // Additional fields from API response
   attemptCount?: number;
   isSolved?: boolean;

@@ -43,6 +43,7 @@ const transformProblemToFrontend = (problem) => {
     timeLimit: problem.time_limit,
     memoryLimit: problem.memory_limit,
     difficulty: problem.difficulty,
+    maxPoints: problem.max_points,
     // LeetCode-style fields
     uses_leetcode_style: problem.uses_leetcode_style,
     function_signature_cpp: problem.function_signature_cpp,
@@ -716,13 +717,13 @@ router.get('/contest/problems', authenticateTeam, async (req, res, next) => {
     
     // Get problems (without hidden information)
     const problems = await db('problems')
-      .select('id', 'problem_letter', 'title', 'description', 'input_format', 
+      .select('id', 'problem_letter', 'title', 'description', 'input_format',
               'output_format', 'sample_input', 'sample_output', 'constraints',
-              'time_limit', 'memory_limit', 'difficulty')
+              'time_limit', 'memory_limit', 'difficulty', 'max_points')
       .where('contest_id', contest.id)
       .orderBy('problem_letter');
-    
-    // Add sample test cases for each problem
+
+    // Add sample test cases and solve status for each problem
     const problemsWithSamples = await Promise.all(
       problems.map(async (problem) => {
         let sampleTestCases = await db('test_cases')
@@ -741,9 +742,17 @@ router.get('/contest/problems', authenticateTeam, async (req, res, next) => {
             : JSON.stringify(tc.expected_return)
         }));
 
+        // Check if team has solved this problem (has any accepted submission)
+        const acceptedSubmission = await db('submissions')
+          .where('team_id', req.team.id)
+          .where('problem_id', problem.id)
+          .where('status', 'accepted')
+          .first();
+
         return {
           ...problem,
-          sample_test_cases: sampleTestCases
+          sample_test_cases: sampleTestCases,
+          is_solved: !!acceptedSubmission
         };
       })
     );
