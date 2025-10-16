@@ -1,33 +1,43 @@
 // Fix script for schema-utils compatibility issues
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 console.log('=== Schema Utils Compatibility Fix ===');
 
 function findSchemaUtilsModules(dir) {
   const fixes = [];
+  const schemaUtilsPaths = [];
 
-  function walkDir(currentPath) {
-    try {
-      const entries = fs.readdirSync(currentPath, { withFileTypes: true });
+  // Use find command to locate all schema-utils directories
+  try {
+    const result = execSync('find node_modules -type d -name "schema-utils" 2>/dev/null || true', {
+      cwd: dir,
+      encoding: 'utf8',
+      maxBuffer: 10 * 1024 * 1024
+    });
 
-      for (const entry of entries) {
-        const fullPath = path.join(currentPath, entry.name);
+    const paths = result.trim().split('\n').filter(p => p);
+    console.log(`Found ${paths.length} schema-utils installation(s)`);
 
-        if (entry.isDirectory()) {
-          if (entry.name === 'schema-utils') {
-            fixSchemaUtilsModule(fullPath, fixes);
-          } else if (entry.name === 'node_modules' || !currentPath.includes('node_modules')) {
-            walkDir(fullPath);
-          }
-        }
-      }
-    } catch (error) {
-      // Silently skip directories we can't read
+    paths.forEach(relativePath => {
+      const fullPath = path.join(dir, relativePath);
+      console.log(`  - ${relativePath}`);
+      schemaUtilsPaths.push(fullPath);
+    });
+  } catch (error) {
+    console.log('Error finding schema-utils modules:', error.message);
+    // Fall back to direct path
+    const directPath = path.join(dir, 'node_modules', 'schema-utils');
+    if (fs.existsSync(directPath)) {
+      schemaUtilsPaths.push(directPath);
     }
   }
 
-  walkDir(dir);
+  schemaUtilsPaths.forEach(schemaUtilsPath => {
+    fixSchemaUtilsModule(schemaUtilsPath, fixes);
+  });
+
   return fixes;
 }
 
@@ -71,9 +81,12 @@ if (typeof validate === 'function') {
   if (fs.existsSync(indexPath)) {
     try {
       let content = fs.readFileSync(indexPath, 'utf8');
+      console.log(`  Checking index.js at: ${indexPath}`);
 
       // Check if already patched
-      if (!content.includes('// PATCHED: schema-utils index')) {
+      if (content.includes('// PATCHED: schema-utils index')) {
+        console.log('  Already patched, skipping');
+      } else {
         // Add validateOptions alias at the end of the file - use exports.validate which is already defined
         const fixedContent = content + `
 
@@ -86,11 +99,13 @@ if (!exports.default) {
 
         fs.writeFileSync(indexPath, fixedContent, 'utf8');
         fixes.push(indexPath);
-        console.log('Fixed index.js at:', indexPath);
+        console.log('  ✓ Fixed index.js - added validateOptions export');
       }
     } catch (error) {
-      console.error('Error fixing', indexPath, ':', error.message);
+      console.error('  ✗ Error fixing index.js:', error.message);
     }
+  } else {
+    console.log(`  ✗ index.js not found at: ${indexPath}`);
   }
 }
 
