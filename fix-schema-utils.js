@@ -74,12 +74,14 @@ if (typeof validate === 'function') {
 
       // Check if already patched
       if (!content.includes('// PATCHED: schema-utils index')) {
-        // Add validateOptions alias at the end of the file
+        // Add validateOptions alias at the end of the file - use exports.validate which is already defined
         const fixedContent = content + `
 
 // PATCHED: schema-utils index - Add validateOptions alias
-exports.validateOptions = exports.validate || validate_1.validate || validate_1.default || validate_1;
-exports.default = exports.validate || exports.validateOptions;
+exports.validateOptions = exports.validate;
+if (!exports.default) {
+  exports.default = exports.validate;
+}
 `;
 
         fs.writeFileSync(indexPath, fixedContent, 'utf8');
