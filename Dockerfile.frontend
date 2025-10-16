@@ -21,10 +21,29 @@ RUN rm -f package-lock.json && \
     npm cache clean --force
 
 # Apply all compatibility fixes
-RUN node fix-ajv-dependencies.js && \
-    node fix-schema-utils.js && \
-    node patch-fork-ts-checker.js && \
-    node disable-fork-ts-checker.js
+RUN echo "=== Applying Compatibility Fixes ===" && \
+    node fix-ajv-dependencies.js 2>&1 && \
+    echo "" && \
+    node fix-schema-utils.js 2>&1 && \
+    echo "" && \
+    node patch-fork-ts-checker.js 2>&1 && \
+    echo "" && \
+    node disable-fork-ts-checker.js 2>&1 && \
+    echo "=== Fixes Complete ===" && \
+    echo "" && \
+    echo "Verifying schema-utils patches..." && \
+    find node_modules -name "schema-utils" -type d | head -5 | while read dir; do \
+        echo "Checking: $dir/dist/index.js"; \
+        if [ -f "$dir/dist/index.js" ]; then \
+            if grep -q "validateOptions" "$dir/dist/index.js"; then \
+                echo "  ✓ validateOptions export found"; \
+            else \
+                echo "  ✗ validateOptions export NOT found"; \
+                echo "  Last 5 lines:"; \
+                tail -5 "$dir/dist/index.js"; \
+            fi; \
+        fi; \
+    done
 
 # Copy source code
 COPY frontend/ ./
