@@ -14,9 +14,6 @@ RUN rm -f package-lock.json && \
     npm install --legacy-peer-deps && \
     npm cache clean --force
 
-# Fix schema-utils compatibility issue by forcing version 2.7.1
-RUN npm install schema-utils@2.7.1 --save-exact --legacy-peer-deps || true
-
 # Copy source code
 COPY frontend/ ./
 
@@ -33,13 +30,20 @@ ENV ESLINT_NO_DEV_ERRORS=true
 ENV SKIP_PREFLIGHT_CHECK=true
 ENV CI=false
 
-# Build the application
+# Build the application with verbose logging
 RUN echo "Starting React build..." && \
-    npm run build && \
-    echo "Build completed successfully!" && \
+    npm run build 2>&1 | tee build.log && \
+    echo "Build process finished. Checking output..." && \
     echo "Contents of build directory:" && \
-    ls -laR /app/build | head -50 && \
-    test -f /app/build/index.html || (echo "ERROR: build/index.html not found!" && exit 1)
+    ls -laR /app/build 2>/dev/null || echo "Build directory does not exist" && \
+    echo "Checking for index.html..." && \
+    if [ ! -f /app/build/index.html ]; then \
+        echo "ERROR: build/index.html not found!"; \
+        echo "Last 50 lines of build log:"; \
+        tail -50 build.log; \
+        exit 1; \
+    fi && \
+    echo "Build completed successfully!"
 
 # Production stage
 FROM nginx:1.25-alpine AS production
