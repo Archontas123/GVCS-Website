@@ -14,6 +14,9 @@ RUN rm -f package-lock.json && \
     npm install --legacy-peer-deps && \
     npm cache clean --force
 
+# Fix schema-utils compatibility issue by forcing version 2.7.1
+RUN npm install schema-utils@2.7.1 --save-exact --legacy-peer-deps || true
+
 # Copy source code
 COPY frontend/ ./
 
