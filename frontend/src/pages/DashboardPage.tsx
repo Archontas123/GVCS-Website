@@ -650,10 +650,10 @@ const DashboardPage: React.FC = () => {
                               </span>
                             </td>
                             <td style={{ padding: '12px 8px', color: '#6b7280' }}>
-                              {submission.execution_time ? `${submission.execution_time}ms` : '-'}
+                              {submission.executionTime ? `${submission.executionTime}ms` : '-'}
                             </td>
                             <td style={{ padding: '12px 8px', color: '#6b7280' }}>
-                              {new Date(submission.submitted_at).toLocaleTimeString()}
+                              {new Date(submission.submittedAt).toLocaleTimeString()}
                             </td>
                           </tr>
                         );

@@ -72,7 +72,7 @@ const TeamDetailPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const result = await apiService.getTeamSubmissions(parseInt(contestId!), parseInt(teamId!));
+      const result = await apiService.getAdminTeamSubmissions(parseInt(contestId!), parseInt(teamId!));
       if (result.success && result.data) {
         setTeam(result.data.team);
         setStatistics(result.data.statistics);

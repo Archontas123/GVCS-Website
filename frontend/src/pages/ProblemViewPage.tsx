@@ -449,7 +449,7 @@ const ProblemViewPage: React.FC = () => {
               color: '#1f2937',
               margin: 0,
             }}>
-              Problem {problem.problemLetter || problem.letter}: {problem.title}
+              Problem {problem.problemLetter}: {problem.title}
             </h1>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>

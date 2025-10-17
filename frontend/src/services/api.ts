@@ -454,7 +454,7 @@ class ApiService {
     return response.data;
   }
 
-  async getTeamSubmissions(contestId: number, teamId: number): Promise<ApiResponse<any>> {
+  async getAdminTeamSubmissions(contestId: number, teamId: number): Promise<ApiResponse<any>> {
     const response = await this.api.get(`/admin/contests/${contestId}/teams/${teamId}/submissions`);
     return response.data;
   }
