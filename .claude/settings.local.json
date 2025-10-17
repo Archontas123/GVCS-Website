@@ -4,7 +4,9 @@
       "Bash(git push:*)",
       "Bash(chmod:*)",
       "Bash(rm:*)",
-      "Bash(docker-compose down:*)"
+      "Bash(docker-compose down:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": [],
