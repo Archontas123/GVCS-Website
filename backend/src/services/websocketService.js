@@ -510,13 +510,17 @@ class WebSocketService {
    */
   startUpdateBatcher() {
     this.updateInterval = setInterval(async () => {
-      const updates = Array.from(this.updateQueue.values());
-      this.updateQueue.clear();
+      try {
+        const updates = Array.from(this.updateQueue.values());
+        this.updateQueue.clear();
 
-      for (const update of updates) {
-        if (update.pending) {
-          await this.broadcastLeaderboardUpdate(update.contestId);
+        for (const update of updates) {
+          if (update.pending) {
+            await this.broadcastLeaderboardUpdate(update.contestId);
+          }
         }
+      } catch (error) {
+        console.error('Error in update batcher:', error);
       }
     }, 5000); // Batch updates every 5 seconds
 
