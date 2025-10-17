@@ -86,13 +86,13 @@ async function createAdmin() {
 createAdmin();
 EOFSCRIPT
 
-# Copy the script into the backend container and run it
-sudo docker cp /tmp/create-admin-temp.js programming_contest_backend:/tmp/create-admin.js
-sudo docker compose exec -T backend node /tmp/create-admin.js "$USERNAME" "$EMAIL" "$PASSWORD"
+# Copy the script into the backend container's app directory and run it
+sudo docker cp /tmp/create-admin-temp.js programming_contest_backend:/app/create-admin.js
+sudo docker compose exec -T backend node /app/create-admin.js "$USERNAME" "$EMAIL" "$PASSWORD"
 
 # Clean up
 rm /tmp/create-admin-temp.js
-sudo docker compose exec -T backend rm /tmp/create-admin.js
+sudo docker compose exec -T backend rm -f /app/create-admin.js
 
 echo ""
 echo "=== Done ==="
