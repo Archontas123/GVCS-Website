@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { MdTimer, MdEmojiEvents, MdDescription } from 'react-icons/md';
 import { Problem } from '../types';
 import apiService from '../services/api';
 import RealTimeSubmissions from '../components/RealTimeSubmissions/RealTimeSubmissions';
@@ -487,16 +488,26 @@ const ContestPage: React.FC = () => {
                         gap: '1rem',
                         marginBottom: '1rem',
                         fontSize: '0.6rem',
-                        color: '#6b7280',
                         flexWrap: 'wrap',
                       }}>
-                        <span>⏱️ {problem.timeLimit}ms</span>
+                        <span style={{
+                          color: '#212529',
+                          fontWeight: 'bold',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                        }}>
+                          <MdTimer size={14} /> {problem.timeLimit}ms
+                        </span>
                         {problem.maxPoints !== undefined && (
                           <span style={{
                             color: '#2D58A6',
                             fontWeight: 'bold',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
                           }}>
-                            🏆 {problem.maxPoints} points
+                            <MdEmojiEvents size={14} /> {problem.maxPoints} points
                           </span>
                         )}
                       </div>
@@ -525,10 +536,12 @@ const ContestPage: React.FC = () => {
                           padding: '0.5rem',
                           background: '#E8F0FE',
                           border: '2px solid #2D58A6',
-                          display: 'inline-block',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
                           fontWeight: 'bold',
                         }}>
-                          📝 {problem.sampleTestCases.length} sample test case{problem.sampleTestCases.length !== 1 ? 's' : ''}
+                          <MdDescription size={14} /> {problem.sampleTestCases.length} sample test case{problem.sampleTestCases.length !== 1 ? 's' : ''}
                         </div>
                       )}
                     </div>

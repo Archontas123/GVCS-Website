@@ -7,7 +7,6 @@
     "executeCmd": "solution.exe",
     "compileTimeout": 30000,
     "timeMultiplier": 1.0,
-    "memoryMultiplier": 1.0,
     "supportsCompilation": true,
     "mainFile": "solution.cpp",
     "outputFile": "solution.exe",
@@ -24,7 +23,6 @@
     "executeCmd": "java Solution",
     "compileTimeout": 30000,
     "timeMultiplier": 2.0,
-    "memoryMultiplier": 2.0,
     "supportsCompilation": true,
     "mainFile": "Solution.java",
     "outputFile": "Solution.class",
@@ -41,7 +39,6 @@
     "executeCmd": "python {source}",
     "compileTimeout": 0,
     "timeMultiplier": 3.0,
-    "memoryMultiplier": 1.5,
     "supportsCompilation": false,
     "mainFile": "solution.py",
     "errorPatterns": [

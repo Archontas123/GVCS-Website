@@ -17,11 +17,10 @@ class JudgeEngine {
     
     this.verdicts = {
       AC: 'Accepted',
-      WA: 'Wrong Answer', 
+      WA: 'Wrong Answer',
       TLE: 'Time Limit Exceeded',
       RTE: 'Runtime Error',
       CE: 'Compilation Error',
-      MLE: 'Memory Limit Exceeded',
       SE: 'System Error',
       PE: 'Presentation Error'
     };
@@ -50,7 +49,6 @@ class JudgeEngine {
     } = submission;
 
     const timeLimit = problem.timeLimit || 5000; // ms
-    const memoryLimit = problem.memoryLimit || 256; // MB
 
     let judgeResult = {
       submissionId,
@@ -122,7 +120,7 @@ class JudgeEngine {
 
       // Step 2: Run all test cases (LeetCode-style function execution)
       const testResult = await this.runAllTestCasesLeetCodeStyle(
-        code, language, testCases, timeLimit, memoryLimit, problemId
+        code, language, testCases, timeLimit, problemId
       );
       
       judgeResult = { ...judgeResult, ...testResult };
@@ -224,12 +222,11 @@ class JudgeEngine {
    * @param {string} language - Programming language
    * @param {Array} testCases - Array of test case objects with input_parameters/expected_return
    * @param {number} timeLimit - Maximum execution time per test case in milliseconds
-   * @param {number} memoryLimit - Maximum memory usage in MB
    * @param {number} problemId - Problem ID for template lookup
    * @returns {Promise<Object>} Test execution result with verdict and performance data
    * @throws {Error} If system error occurs during testing
    */
-  async runAllTestCasesLeetCodeStyle(userCode, language, testCases, timeLimit, memoryLimit, problemId) {
+  async runAllTestCasesLeetCodeStyle(userCode, language, testCases, timeLimit, problemId) {
     let result = {
       verdict: this.verdicts.AC,
       totalTime: 0,
@@ -259,7 +256,6 @@ class JudgeEngine {
           inputData,
           {
             timeLimit,
-            memoryLimit,
             usePerformanceMonitor: true
           }
         );
@@ -282,8 +278,7 @@ class JudgeEngine {
             input: inputData,
             output: expectedOutput
           },
-          timeLimit,
-          memoryLimit
+          timeLimit
         );
 
         const isHidden =
@@ -369,11 +364,10 @@ class JudgeEngine {
    * @param {string} language - Programming language
    * @param {Array} testCases - Array of test case objects with input/output
    * @param {number} timeLimit - Maximum execution time per test case in milliseconds
-   * @param {number} memoryLimit - Maximum memory usage in MB
    * @returns {Promise<Object>} Test execution result with verdict and performance data
    * @throws {Error} If system error occurs during testing
    */
-  async runAllTestCases(code, language, testCases, timeLimit, memoryLimit) {
+  async runAllTestCases(code, language, testCases, timeLimit) {
     let result = {
       verdict: this.verdicts.AC,
       totalTime: 0,
@@ -389,12 +383,11 @@ class JudgeEngine {
 
       try {
         const executeResult = await multiLangExecutor.executeCode(
-          code, 
-          language, 
-          testCase.input, 
+          code,
+          language,
+          testCase.input,
           {
             timeLimit,
-            memoryLimit,
             language: language, // Pass language for performance tracking
             usePerformanceMonitor: true
           }
@@ -414,8 +407,7 @@ class JudgeEngine {
         const testVerdict = this.analyzeExecution(
           executeResult,
           testCase,
-          timeLimit,
-          memoryLimit
+          timeLimit
         );
 
         const isHidden =
@@ -490,28 +482,20 @@ class JudgeEngine {
    * @param {Object} executeResult - Result from code execution
    * @param {Object} testCase - Test case with expected output
    * @param {number} timeLimit - Time limit in milliseconds
-   * @param {number} memoryLimit - Memory limit in MB
    * @returns {string} Verdict code (AC, WA, TLE, RTE, etc.)
    */
-  analyzeExecution(executeResult, testCase, timeLimit, memoryLimit) {
+  analyzeExecution(executeResult, testCase, timeLimit) {
     if (executeResult.verdict === 'Compilation Error') {
       return this.verdicts.CE;
     }
 
-    if (executeResult.executionTime > timeLimit || 
+    if (executeResult.executionTime > timeLimit ||
         executeResult.verdict === 'Time Limit Exceeded' ||
         executeResult.error.includes('Time limit exceeded')) {
       return this.verdicts.TLE;
     }
 
-    if (executeResult.memoryUsed > memoryLimit ||
-        executeResult.verdict === 'Memory Limit Exceeded' ||
-        executeResult.error.includes('Memory limit') ||
-        executeResult.error.includes('out of memory')) {
-      return this.verdicts.MLE;
-    }
-
-    if (executeResult.exitCode !== 0 || 
+    if (executeResult.exitCode !== 0 ||
         executeResult.verdict === 'Runtime Error' ||
         executeResult.error.includes('Segmentation fault') ||
         executeResult.error.includes('core dumped') ||
@@ -524,7 +508,7 @@ class JudgeEngine {
     }
 
     const outputMatch = this.compareOutputs(
-      executeResult.output || '', 
+      executeResult.output || '',
       testCase.output
     );
 
@@ -868,8 +852,7 @@ class JudgeEngine {
         contestId: submission.contest_id,
         submissionId: submission.submission_id
       }, testCases, {
-        timeLimit: submission.time_limit,
-        memoryLimit: submission.memory_limit
+        timeLimit: submission.time_limit
       });
 
     } catch (error) {

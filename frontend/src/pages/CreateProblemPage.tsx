@@ -17,7 +17,6 @@ interface ProblemFormData {
   outputFormat: string;
   points: number;
   timeLimit: number;
-  memoryLimit: number;
   difficulty: 'easy' | 'medium' | 'hard';
   // LeetCode-style fields
   functionName: string;
@@ -37,7 +36,6 @@ const CreateProblemPage: React.FC = () => {
     outputFormat: '',
     points: 1,
     timeLimit: 1000,
-    memoryLimit: 256,
     difficulty: 'medium',
     // LeetCode-style (always enabled)
     functionName: 'solution',
@@ -203,7 +201,6 @@ const CreateProblemPage: React.FC = () => {
         sample_input: '',
         sample_output: '',
         time_limit: formData.timeLimit,
-        memory_limit: formData.memoryLimit,
         difficulty: formData.difficulty,
         max_points: formData.points,
         // LeetCode-style fields
@@ -454,54 +451,7 @@ const CreateProblemPage: React.FC = () => {
                     marginTop: '6px',
                     lineHeight: '1.6',
                   }}>
-                    Must be between 100 and 30000 milliseconds.
-                  </p>
-                </div>
-
-                <div>
-                  <label style={{
-                    display: 'block',
-                    marginBottom: '8px',
-                    color: '#212529',
-                    fontSize: '0.7rem',
-                    fontWeight: 'bold',
-                    fontFamily: "'Press Start 2P', cursive",
-                  }}>
-                    Memory Limit (MB)
-                  </label>
-                  <input
-                    type="number"
-                    min={16}
-                    max={2048}
-                    value={formData.memoryLimit}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value, 10);
-                      if (Number.isNaN(value)) {
-                        handleInputChange('memoryLimit')(formData.memoryLimit);
-                      } else {
-                        const clamped = Math.min(Math.max(value, 16), 2048);
-                        handleInputChange('memoryLimit')(clamped);
-                      }
-                    }}
-                    placeholder="e.g., 256"
-                    style={{
-                      width: '100%',
-                      border: '3px solid #212529',
-                      fontSize: '0.8rem',
-                      padding: '12px 16px',
-                      backgroundColor: '#ffffff',
-                      color: '#1f2937',
-                      fontFamily: 'system-ui, sans-serif',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                  <p style={{
-                    fontSize: '0.6rem',
-                    color: '#6b7280',
-                    marginTop: '6px',
-                    lineHeight: '1.6',
-                  }}>
-                    Must be between 16 and 2048 megabytes.
+                    Base time limit (C++). Java gets 2x, Python gets 3x.
                   </p>
                 </div>
 

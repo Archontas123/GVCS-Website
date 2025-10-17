@@ -366,9 +366,8 @@ class MultiLangExecutor {
       language: langForMonitoring = language // Allow override for monitoring
     } = options;
 
-    // Apply language-specific multipliers
+    // Apply language-specific time multiplier
     const adjustedTimeLimit = timeLimit * config.timeMultiplier;
-    const adjustedMemoryLimit = memoryLimit * config.memoryMultiplier;
 
     let execDir, sourceFile, compileResult;
 
@@ -431,8 +430,6 @@ class MultiLangExecutor {
         verdict = 'Accepted';
       } else if (result.error && result.error.includes('Time limit exceeded')) {
         verdict = 'Time Limit Exceeded';
-      } else if (result.error && this.isMemoryLimitExceeded(result.error, result.memoryUsed, adjustedMemoryLimit)) {
-        verdict = 'Memory Limit Exceeded';
       } else if (result.exitCode !== 0) {
         verdict = 'Runtime Error';
       } else {
@@ -449,7 +446,6 @@ class MultiLangExecutor {
         verdict,
         language,
         timeLimit: adjustedTimeLimit,
-        memoryLimit: adjustedMemoryLimit,
         // Performance monitoring data
         netExecutionTime: result.netExecutionTime || result.executionTime || 0,
         containerOverhead: result.containerOverhead || 0,
@@ -526,20 +522,6 @@ class MultiLangExecutor {
     }
   }
 
-  /**
-   * Check if memory limit was exceeded
-   * @param {string} error - Error message
-   * @param {number} memoryUsed - Memory used in MB
-   * @param {number} memoryLimit - Memory limit in MB
-   * @returns {boolean} True if memory limit exceeded
-   */
-  isMemoryLimitExceeded(error, memoryUsed, memoryLimit) {
-    return (
-      error.includes('out of memory') ||
-      error.includes('memory limit') ||
-      (memoryUsed > memoryLimit)
-    );
-  }
 
   /**
    * Get language statistics and capabilities
@@ -547,17 +529,16 @@ class MultiLangExecutor {
    */
   getLanguageStats() {
     const stats = {};
-    
+
     for (const [lang, config] of Object.entries(languageConfigs)) {
       stats[lang] = {
         name: config.name,
         supportsCompilation: config.supportsCompilation,
         timeMultiplier: config.timeMultiplier,
-        memoryMultiplier: config.memoryMultiplier,
         extension: config.extension
       };
     }
-    
+
     return stats;
   }
 

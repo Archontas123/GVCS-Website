@@ -95,38 +95,37 @@ class DockerExecutor {
     async executeCode(language, code, input = '', timeLimit = 5, memoryLimit = 256) {
         const executionId = this.generateExecutionId();
         const config = this.languageConfig[language];
-        
+
         if (!config) {
             throw new Error(`Unsupported language: ${language}`);
         }
 
         const executionDir = path.join(this.tempDir, executionId);
-        
+
         try {
             // Create execution directory
             await fs.mkdir(executionDir, { recursive: true });
-            
+
             // Write source code file
             const codeFile = path.join(executionDir, config.filename);
             await fs.writeFile(codeFile, code, 'utf8');
-            
+
             // Write input file if provided
             if (input.trim()) {
                 const inputFile = path.join(executionDir, 'input.txt');
                 await fs.writeFile(inputFile, input, 'utf8');
             }
-            
-            // Calculate adjusted limits
+
+            // Calculate adjusted time limit
             const adjustedTimeLimit = Math.ceil(timeLimit * config.timeMultiplier);
-            const adjustedMemoryLimit = Math.ceil(memoryLimit * config.memoryMultiplier);
-            
+
             // Execute in Docker container
             const result = await this.runContainer(
                 executionId,
                 executionDir,
                 language,
                 adjustedTimeLimit,
-                adjustedMemoryLimit
+                memoryLimit
             );
             
             // Read output and error files
