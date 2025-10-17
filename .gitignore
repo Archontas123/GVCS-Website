@@ -85,6 +85,7 @@ final-*.js
 *.sh
 !scripts/*.sh
 !deploy.sh
+!fix-database-*.sh
 
 # SSL certificates
 *.pem
