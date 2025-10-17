@@ -823,6 +823,13 @@ process.on('uncaughtException', async (error) => {
  * @listens process#unhandledRejection
  */
 process.on('unhandledRejection', async (reason, promise) => {
+  console.error('==================== UNHANDLED REJECTION ====================');
+  console.error('Reason:', reason);
+  console.error('Reason type:', typeof reason);
+  console.error('Reason stack:', reason?.stack);
+  console.error('Promise:', promise);
+  console.error('=============================================================');
+
   logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
   try {
     if (contestScheduler.getStatus().isRunning) {
