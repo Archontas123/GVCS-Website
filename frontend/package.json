@@ -37,8 +37,8 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "cross-env NODE_OPTIONS=\"--max-old-space-size=8192\" GENERATE_SOURCEMAP=false BROWSER=none react-scripts start",
-    "build": "cross-env NODE_OPTIONS=\"--max-old-space-size=8192\" GENERATE_SOURCEMAP=false react-scripts build",
+    "start": "cross-env NODE_OPTIONS=\"--max-old-space-size=8192 --require ./setup-env.js\" GENERATE_SOURCEMAP=false BROWSER=none react-scripts start",
+    "build": "cross-env NODE_OPTIONS=\"--max-old-space-size=8192 --require ./setup-env.js\" GENERATE_SOURCEMAP=false react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "postinstall": "node postinstall-fix.js || true"

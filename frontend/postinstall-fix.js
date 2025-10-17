@@ -53,7 +53,19 @@ function findAndPatchAllSchemaUtils() {
       const patch = `
 // PATCHED: validateOptions alias for webpack compatibility
 if (typeof exports.validate === 'function') {
+  // Add validateOptions as an alias
   exports.validateOptions = exports.validate;
+
+  // Also set as default export for CommonJS interop
+  if (!exports.default) {
+    exports.default = exports.validate;
+  }
+
+  // Make the module callable directly
+  module.exports = exports.validate;
+  module.exports.validate = exports.validate;
+  module.exports.validateOptions = exports.validate;
+  module.exports.default = exports.validate;
 }
 `;
       content += patch;
@@ -75,4 +87,16 @@ if (typeof exports.validate === 'function') {
 // Run all patches
 findAndPatchAllSchemaUtils();
 
-console.log('Post-install fixes complete');
+// Also run webpack loader patcher
+console.log('\nPatching webpack loaders...');
+try {
+  const { execSync } = require('child_process');
+  execSync('node patch-webpack-loaders.js', {
+    cwd: __dirname,
+    stdio: 'inherit'
+  });
+} catch (error) {
+  console.error('Warning: Webpack loader patching failed:', error.message);
+}
+
+console.log('\nPost-install fixes complete');

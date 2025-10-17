@@ -6,9 +6,11 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files and postinstall script
+# Copy package files and compatibility scripts
 COPY frontend/package*.json ./
 COPY frontend/postinstall-fix.js ./
+COPY frontend/patch-webpack-loaders.js ./
+COPY frontend/setup-env.js ./
 
 # Install dependencies with forced ajv resolution
 # The postinstall script will automatically patch schema-utils

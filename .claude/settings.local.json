@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git push:*)",
       "Bash(chmod:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(docker-compose down:*)"
     ],
     "deny": [],
     "ask": [],
