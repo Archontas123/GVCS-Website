@@ -752,9 +752,15 @@ app.use('*', (req, res) => {
  */
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received. Starting graceful shutdown...');
-  contestScheduler.stop();
-  websocketService.shutdown();
-  await judgeQueueService.shutdown();
+  try {
+    if (contestScheduler.getStatus().isRunning) {
+      contestScheduler.stop();
+    }
+    websocketService.shutdown();
+    await judgeQueueService.shutdown();
+  } catch (shutdownError) {
+    logger.error('Error during shutdown:', shutdownError);
+  }
   process.exit(0);
 });
 
@@ -769,9 +775,15 @@ process.on('SIGTERM', async () => {
  */
 process.on('SIGINT', async () => {
   logger.info('SIGINT received. Starting graceful shutdown...');
-  contestScheduler.stop();
-  websocketService.shutdown();
-  await judgeQueueService.shutdown();
+  try {
+    if (contestScheduler.getStatus().isRunning) {
+      contestScheduler.stop();
+    }
+    websocketService.shutdown();
+    await judgeQueueService.shutdown();
+  } catch (shutdownError) {
+    logger.error('Error during shutdown:', shutdownError);
+  }
   process.exit(0);
 });
 
@@ -787,9 +799,15 @@ process.on('SIGINT', async () => {
  */
 process.on('uncaughtException', async (error) => {
   logger.error('Uncaught Exception:', error);
-  contestScheduler.stop();
-  websocketService.shutdown();
-  await judgeQueueService.shutdown();
+  try {
+    if (contestScheduler.getStatus().isRunning) {
+      contestScheduler.stop();
+    }
+    websocketService.shutdown();
+    await judgeQueueService.shutdown();
+  } catch (shutdownError) {
+    logger.error('Error during shutdown:', shutdownError);
+  }
   process.exit(1);
 });
 
@@ -806,9 +824,15 @@ process.on('uncaughtException', async (error) => {
  */
 process.on('unhandledRejection', async (reason, promise) => {
   logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  contestScheduler.stop();
-  websocketService.shutdown();
-  await judgeQueueService.shutdown();
+  try {
+    if (contestScheduler.getStatus().isRunning) {
+      contestScheduler.stop();
+    }
+    websocketService.shutdown();
+    await judgeQueueService.shutdown();
+  } catch (shutdownError) {
+    logger.error('Error during shutdown:', shutdownError);
+  }
   process.exit(1);
 });
 
