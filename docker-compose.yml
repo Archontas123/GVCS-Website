@@ -6,10 +6,10 @@ services:
     container_name: programming_contest_postgres
     restart: always
     environment:
-      POSTGRES_DB: hackathon_db
-      POSTGRES_USER: hackathon_user
-      POSTGRES_PASSWORD: hackathon_password
-      POSTGRES_HOST_AUTH_METHOD: md5
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST_AUTH_METHOD: ${POSTGRES_HOST_AUTH_METHOD}
     ports:
       - "5432:5432"
     volumes:
@@ -43,16 +43,22 @@ services:
       dockerfile: Dockerfile.backend
     container_name: programming_contest_backend
     restart: always
+    env_file:
+      - .env
     environment:
-      - NODE_ENV=development
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=hackathon_db
-      - DB_USER=hackathon_user
-      - DB_PASSWORD=hackathon_password
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - JWT_SECRET=your_jwt_secret_change_in_production
+      - NODE_ENV=${NODE_ENV}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+      - LOG_LEVEL=${LOG_LEVEL}
     ports:
       - "3000:3000"
     volumes:
@@ -74,8 +80,8 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
       args:
-        - REACT_APP_API_URL=http://localhost:3000
-        - REACT_APP_WS_URL=ws://localhost:3000
+        - REACT_APP_API_URL=${REACT_APP_API_URL}
+        - REACT_APP_WS_URL=${REACT_APP_WS_URL}
     container_name: programming_contest_frontend
     restart: always
     ports:

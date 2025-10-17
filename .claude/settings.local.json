@@ -6,7 +6,8 @@
       "Bash(rm:*)",
       "Bash(docker-compose down:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": [],
