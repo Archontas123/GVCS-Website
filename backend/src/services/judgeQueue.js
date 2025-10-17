@@ -334,7 +334,7 @@ class JudgeQueueService {
 
     // Auto-scale worker count based on system resources
     const defaultWorkerCount = Math.min(4, Math.max(1, require('os').cpus().length - 1));
-    const numWorkers = workerCount || process.env.JUDGE_WORKERS || defaultWorkerCount;
+    const numWorkers = parseInt(workerCount || process.env.JUDGE_WORKERS || defaultWorkerCount, 10);
 
     console.log(`Starting ${numWorkers} judge workers...`);
 
