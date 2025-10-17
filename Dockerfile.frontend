@@ -6,36 +6,25 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files and postinstall script
 COPY frontend/package*.json ./
-
-# Copy patch scripts
-COPY patch-fork-ts-checker.js ./
-COPY fix-ajv-dependencies.js ./
-COPY disable-fork-ts-checker.js ./
-COPY fix-schema-utils.js ./
-COPY fix-webpack-plugins.js ./
+COPY frontend/postinstall-fix.js ./
 
 # Install dependencies with forced ajv resolution
+# The postinstall script will automatically patch schema-utils
 RUN rm -f package-lock.json && \
     npm install --legacy-peer-deps && \
     npm cache clean --force
 
-# Apply all compatibility fixes
-RUN echo "=== Applying Compatibility Fixes ===" && \
-    node fix-ajv-dependencies.js 2>&1 && \
-    echo "" && \
-    node fix-schema-utils.js 2>&1 && \
-    echo "" && \
-    node fix-webpack-plugins.js 2>&1 && \
-    echo "" && \
-    node patch-fork-ts-checker.js 2>&1 && \
-    echo "" && \
-    node disable-fork-ts-checker.js 2>&1 && \
-    echo "=== Fixes Complete ==="
-
 # Copy source code
 COPY frontend/ ./
+
+# Verify react-icons type declarations exist
+RUN if [ -f src/react-icons.d.ts ]; then \
+      echo "✓ React Icons type declarations found"; \
+    else \
+      echo "✗ WARNING: react-icons.d.ts not found!"; \
+    fi
 
 # Set build-time environment variables
 ARG REACT_APP_API_URL=http://localhost:3000
@@ -49,6 +38,8 @@ ENV DISABLE_ESLINT_PLUGIN=true
 ENV ESLINT_NO_DEV_ERRORS=true
 ENV SKIP_PREFLIGHT_CHECK=true
 ENV CI=false
+ENV DISABLE_NEW_JSX_TRANSFORM=false
+ENV INLINE_RUNTIME_CHUNK=false
 
 # Build the application with verbose logging
 RUN echo "Starting React build..." && \
