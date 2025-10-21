@@ -17,8 +17,8 @@ The production database is missing critical schema updates from multiple migrati
 - **Error**: Internal server error
 - **HTTP Status**: 500
 - **Endpoint**: `POST /api/team/register`
-- **Root Cause**: The code tries to insert into columns (`contest_code`, `school_name`, `member_names`, `session_token`, `is_active`, `last_activity`) that don't exist in the production database
-- **Missing Migrations**: 002
+- **Root Cause**: The code tries to insert into columns (`contest_code`, `school_name`, `member_names`, `session_token`, `is_active`, `last_activity`, `member1_first_name`, `member1_last_name`, etc.) that don't exist in the production database
+- **Missing Migrations**: 002, 006
 
 ### What Went Wrong
 
@@ -34,6 +34,11 @@ The production database is missing several critical migrations:
 - Drops `contest_id` foreign key
 - Renames `school` to `school_name_old`
 - Renames `last_login` to `last_activity_old`
+
+**Migration 006** - Adds member name columns to teams table:
+- `member1_first_name`, `member1_last_name`
+- `member2_first_name`, `member2_last_name`
+- `member3_first_name`, `member3_last_name`
 
 **Migration 003** - Adds LeetCode-style columns to `test_cases` table:
 - `input_parameters` (jsonb)
@@ -202,6 +207,7 @@ sudo docker compose exec backend npx knex migrate:rollback --all --knexfile /app
 - `002_update_teams_table.js` - Updates teams table structure for new registration flow
 - `003_leetcode_style_conversion.js` - Adds LeetCode-style columns to test_cases and problems
 - `004_remove_legacy_test_case_fields.js` - Removes old `input` and `expected_output` columns
+- `006_add_member_first_last_names.js` - Adds separate first/last name columns for team members
 
 ## Support
 
