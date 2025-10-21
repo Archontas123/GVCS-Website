@@ -5,6 +5,7 @@
  */
 
 const path = require('path');
+const fs = require('fs');
 const dotenv = require('dotenv');
 
 /**
@@ -12,9 +13,26 @@ const dotenv = require('dotenv');
  * to support alternate deploy configurations while keeping a single source
  * of truth for local development.
  */
-const resolvedEnvPath = process.env.ENV_FILE_PATH
-  ? path.resolve(process.env.ENV_FILE_PATH)
-  : path.resolve(__dirname, '../../.env');
+const candidatePaths = [];
+
+if (process.env.ENV_FILE_PATH) {
+  candidatePaths.push(path.resolve(process.env.ENV_FILE_PATH));
+}
+
+// Prefer repository root .env (one level above backend/)
+candidatePaths.push(path.resolve(__dirname, '../../../.env'));
+
+// Fallback to legacy backend/.env location
+candidatePaths.push(path.resolve(__dirname, '../../.env'));
+
+const resolvedEnvPath =
+  candidatePaths.find((envPath) => {
+    try {
+      return fs.existsSync(envPath);
+    } catch (_) {
+      return false;
+    }
+  }) || candidatePaths[0];
 
 /**
  * Load environment variables from the resolved path when the file is present.
