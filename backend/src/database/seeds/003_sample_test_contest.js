@@ -886,7 +886,7 @@ exports.seed = async function(knex) {
       .insert({
         contest_name: CONTEST_NAME,
         description: 'Sample programming contest featuring classic LeetCode-style problems for testing the platform.',
-        registration_code: 'SAMPLETEST',
+        registration_code: 'SAMPLETE',
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
         duration: 120,
