@@ -244,6 +244,15 @@ router.post('/register', validate(teamRegistrationSchema), async (req, res, next
       });
     }
 
+    // Log the actual error for debugging
+    console.error('Team registration error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      stack: error.stack
+    });
+
     const dbError = new Error('Registration failed');
     dbError.name = 'DatabaseError';
     next(dbError);

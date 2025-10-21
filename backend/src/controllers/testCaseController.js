@@ -221,11 +221,13 @@ class TestCase {
 
     // Get problem parameters for validation
     let problemParameters = null;
-    if (problem.function_parameters) {
+    if (problem.function_parameters && problem.function_parameters.trim() !== '') {
       try {
         problemParameters = JSON.parse(problem.function_parameters);
       } catch (error) {
         console.warn('Failed to parse problem function_parameters:', error);
+        console.warn('function_parameters value:', problem.function_parameters);
+        // Continue with null parameters - validation will handle it
       }
     }
 
