@@ -366,7 +366,7 @@ class Problem {
       const [submissions, testCases, acceptedSubmissions] = await Promise.all([
         db('submissions').where('problem_id', problemId).count('* as count').first(),
         db('test_cases').where('problem_id', problemId).count('* as count').first(),
-        db('submissions').where('problem_id', problemId).where('verdict', 'accepted').count('* as count').first()
+        db('submissions').where('problem_id', problemId).where('status', 'accepted').count('* as count').first()
       ]);
 
       return {

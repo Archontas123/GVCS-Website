@@ -250,7 +250,7 @@ class DashboardService {
       case 'acceptance_rate':
         let query = db('submissions').select(
           db.raw('COUNT(*) as total'),
-          db.raw('COUNT(CASE WHEN verdict = \'AC\' THEN 1 END) as accepted')
+          db.raw('COUNT(CASE WHEN status = \'AC\' THEN 1 END) as accepted')
         );
         if (contestId) query = query.where({ contest_id: contestId });
         
@@ -341,7 +341,7 @@ class DashboardService {
     
     const problems = await db('problems').where({ contest_id: contestId }).select('*');
     const solvedCounts = await db('submissions')
-      .where({ contest_id: contestId, verdict: 'AC' })
+      .where({ contest_id: contestId, status: 'AC' })
       .select('problem_id')
       .countDistinct('team_id as solved_by')
       .groupBy('problem_id');

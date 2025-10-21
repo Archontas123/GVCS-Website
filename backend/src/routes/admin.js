@@ -1041,7 +1041,7 @@ router.get('/dashboard/stats', verifyAdminToken, async (req, res, next) => {
       .first();
 
     const pendingSubmissions = await db('submissions')
-      .where('verdict', 'PE')
+      .where('status', 'PE')
       .count('* as count')
       .first();
 
@@ -1127,10 +1127,10 @@ router.get('/judge/queue', verifyAdminToken, async (req, res, next) => {
     const { db } = require('../utils/db');
     
     const [pending, processing, completed, failed] = await Promise.all([
-      db('submissions').where('verdict', 'PE').count('* as count').first(),
-      db('submissions').where('verdict', 'RU').count('* as count').first(),
-      db('submissions').whereNot('verdict', 'PE').whereNot('verdict', 'RU').count('* as count').first(),
-      db('submissions').where('verdict', 'CE').count('* as count').first()
+      db('submissions').where('status', 'PE').count('* as count').first(),
+      db('submissions').where('status', 'RU').count('* as count').first(),
+      db('submissions').whereNot('status', 'PE').whereNot('status', 'RU').count('* as count').first(),
+      db('submissions').where('status', 'CE').count('* as count').first()
     ]);
 
     const avgTime = await db('submissions')
@@ -1188,7 +1188,7 @@ router.get('/contests/:id/live-stats', verifyAdminToken, requireContestAccess, a
     const [teamsCount, submissionsCount, problemsSolved, totalSubmissions] = await Promise.all([
       db('teams').where('contest_id', contestId).count('* as count').first(),
       db('submissions').where('contest_id', contestId).count('* as count').first(),
-      db('submissions').where('contest_id', contestId).where('verdict', 'AC').countDistinct('problem_id as count').first(),
+      db('submissions').where('contest_id', contestId).where('status', 'AC').countDistinct('problem_id as count').first(),
       db('submissions').where('contest_id', contestId).count('* as count').first()
     ]);
 
@@ -1204,7 +1204,7 @@ router.get('/contests/:id/live-stats', verifyAdminToken, requireContestAccess, a
     const avgSolveTime = contest.start_time
       ? await db('submissions')
           .where('contest_id', contestId)
-          .where('verdict', 'AC')
+          .where('status', 'AC')
           .select(db.raw('AVG(EXTRACT(epoch FROM (submitted_at - ?::timestamp)) / 60) as avg_minutes', [contest.start_time]))
           .first()
       : { avg_minutes: null };
@@ -1480,7 +1480,7 @@ router.get('/contests/:contestId/teams/:teamId/submissions', verifyAdminToken, r
       problem_max_points: sub.max_points,
       language: sub.language,
       source_code: sub.source_code,
-      status: sub.status || sub.verdict,
+      status: sub.status,
       submitted_at: sub.submitted_at,
       judged_at: sub.judged_at,
       execution_time_ms: sub.execution_time_ms,
@@ -1690,7 +1690,7 @@ router.get('/submissions/live', verifyAdminToken, async (req, res, next) => {
     }
     
     if (status) {
-      query = query.where('submissions.verdict', status);
+      query = query.where('submissions.status', status);
     }
 
     const submissions = await query;
@@ -1701,7 +1701,7 @@ router.get('/submissions/live', verifyAdminToken, async (req, res, next) => {
       problem_letter: submission.problem_letter,
       problem_title: submission.problem_title,
       language: submission.language,
-      status: submission.verdict?.toLowerCase().replace('_', ' ') || 'pending',
+      status: submission.status?.toLowerCase().replace('_', ' ') || 'pending',
       submission_time: submission.submitted_at,
       judged_at: submission.judged_at,
       execution_time: submission.execution_time_ms,
@@ -1752,7 +1752,7 @@ router.get('/submissions/stats', verifyAdminToken, async (req, res, next) => {
       .first();
 
     const pendingCount = await baseQuery.clone()
-      .where('verdict', 'PE')
+      .where('status', 'PE')
       .count('* as count')
       .first();
 
@@ -1812,17 +1812,17 @@ router.get('/submissions/analytics', verifyAdminToken, async (req, res, next) =>
     });
 
     const verdictDistribution = await baseQuery.clone()
-      .select('verdict')
+      .select('status')
       .count('* as count')
-      .whereNotNull('verdict')
-      .groupBy('verdict')
+      .whereNotNull('status')
+      .groupBy('status')
       .orderBy('count', 'desc');
 
     const totalJudged = verdictDistribution.reduce((sum, verdict) => sum + parseInt(verdict.count), 0);
-    
+
     const verdictStats = {};
     verdictDistribution.forEach(verdict => {
-      const verdictName = verdict.verdict.toLowerCase().replace('_', ' ');
+      const verdictName = verdict.status.toLowerCase().replace('_', ' ');
       verdictStats[verdictName] = Math.round((parseInt(verdict.count) / totalJudged) * 100);
     });
 
@@ -1867,8 +1867,8 @@ router.get('/system/status', verifyAdminToken, async (req, res, next) => {
     const dbConnections = await db.raw('SELECT count(*) as count FROM pg_stat_activity').catch(() => ({ rows: [{ count: 0 }] }));
 
     const [pending, processing] = await Promise.all([
-      db('submissions').where('verdict', 'PE').count('* as count').first(),
-      db('submissions').where('verdict', 'RU').count('* as count').first()
+      db('submissions').where('status', 'PE').count('* as count').first(),
+      db('submissions').where('status', 'RU').count('* as count').first()
     ]);
 
     const systemStatus = {

@@ -362,7 +362,7 @@ class ReportingService {
         .where('submitted_at', '>', cutoffDate)
         .select(
           db.raw('COUNT(*) as total_submissions'),
-          db.raw('COUNT(CASE WHEN verdict = \'AC\' THEN 1 END) as accepted_submissions'),
+          db.raw('COUNT(CASE WHEN status = \'AC\' THEN 1 END) as accepted_submissions'),
           db.raw('COUNT(DISTINCT team_id) as active_teams'),
           db.raw('COUNT(DISTINCT problem_id) as problems_attempted')
         )

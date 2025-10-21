@@ -221,12 +221,18 @@ class TestCase {
 
     // Get problem parameters for validation
     let problemParameters = null;
-    if (problem.function_parameters && problem.function_parameters.trim() !== '') {
+    if (problem.function_parameters) {
       try {
-        problemParameters = JSON.parse(problem.function_parameters);
+        // Check if it's already an object
+        if (typeof problem.function_parameters === 'object') {
+          problemParameters = problem.function_parameters;
+        } else if (typeof problem.function_parameters === 'string' && problem.function_parameters.trim() !== '') {
+          problemParameters = JSON.parse(problem.function_parameters);
+        }
       } catch (error) {
         console.warn('Failed to parse problem function_parameters:', error);
         console.warn('function_parameters value:', problem.function_parameters);
+        console.warn('function_parameters type:', typeof problem.function_parameters);
         // Continue with null parameters - validation will handle it
       }
     }

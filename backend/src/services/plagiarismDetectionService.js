@@ -425,7 +425,7 @@ class PlagiarismDetectionService {
 
       const submissions = await db('submissions')
         .where({ contest_id: contestId })
-        .where('verdict', 'AC') // Only analyze accepted submissions
+        .where('status', 'AC') // Only analyze accepted submissions
         .select('id');
 
       const results = [];

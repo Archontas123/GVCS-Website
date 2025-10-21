@@ -762,19 +762,19 @@ class JudgeEngine {
   async getJudgingStats(contestId = null) {
     try {
       let query = db('submissions')
-        .select('verdict')
+        .select('status')
         .count('* as count')
-        .groupBy('verdict');
+        .groupBy('status');
 
       if (contestId) {
         query = query.where('contest_id', contestId);
       }
 
       const results = await query;
-      
+
       const stats = {};
       results.forEach(row => {
-        stats[row.verdict] = parseInt(row.count);
+        stats[row.status] = parseInt(row.count);
       });
 
       return stats;
@@ -809,7 +809,7 @@ class JudgeEngine {
 
       return {
         submissionId: submission.submission_id,
-        verdict: submission.verdict,
+        verdict: submission.status,
         executionTime: submission.execution_time,
         memoryUsed: submission.memory_used,
         score: submission.score,

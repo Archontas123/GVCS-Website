@@ -304,7 +304,7 @@ class AnalyticsService {
         .select(
           db.raw('DATE_TRUNC(\'hour\', submitted_at) as time_period'),
           db.raw('COUNT(*) as total_submissions'),
-          db.raw('COUNT(CASE WHEN verdict = \'AC\' THEN 1 END) as accepted_submissions'),
+          db.raw('COUNT(CASE WHEN status = \'AC\' THEN 1 END) as accepted_submissions'),
           db.raw('COUNT(DISTINCT team_id) as active_teams')
         )
         .groupBy('time_period')
@@ -365,7 +365,7 @@ class AnalyticsService {
           'problems.difficulty'
         )
         .count('submissions.id as total_submissions')
-        .count(db.raw('CASE WHEN submissions.verdict = \'AC\' THEN 1 END as accepted_submissions'))
+        .count(db.raw('CASE WHEN submissions.status = \'AC\' THEN 1 END as accepted_submissions'))
         .countDistinct('submissions.team_id as teams_attempted')
         .groupBy('problems.id', 'problems.problem_letter', 'problems.title', 'problems.difficulty')
         .orderBy('problems.problem_letter');
@@ -456,7 +456,7 @@ class AnalyticsService {
         .leftJoin('submissions', 'teams.id', 'submissions.team_id')
         .select('teams.id', 'teams.team_name')
         .count('submissions.id as total_submissions')
-        .count(db.raw('CASE WHEN submissions.verdict = \'AC\' THEN 1 END as solved_problems'))
+        .count(db.raw('CASE WHEN submissions.status = \'AC\' THEN 1 END as solved_problems'))
         .groupBy('teams.id', 'teams.team_name')
         .orderBy('solved_problems', 'desc')
         .orderBy('total_submissions', 'asc')
