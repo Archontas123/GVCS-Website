@@ -221,7 +221,7 @@ class Problem {
     }
 
     try {
-      const result = await db('problems').insert({
+      const insertData = {
         contest_id: contestId,
         problem_letter: problemLetter,
         title: problemData.title.trim(),
@@ -234,8 +234,32 @@ class Problem {
         time_limit: problemData.time_limit || 2000,
         memory_limit: problemData.memory_limit || 256,
         difficulty: problemData.difficulty || 'medium',
-        max_points: problemData.max_points || 100
-      }).returning('id');
+        max_points: problemData.max_points || 100,
+        // LeetCode-style fields
+        uses_leetcode_style: problemData.uses_leetcode_style || false,
+        function_name: problemData.function_name || null,
+        function_parameters: typeof problemData.function_parameters === 'string'
+          ? problemData.function_parameters
+          : (problemData.function_parameters ? JSON.stringify(problemData.function_parameters) : null),
+        return_type: problemData.return_type || null,
+        // Function signatures
+        function_signature_cpp: problemData.function_signature_cpp || null,
+        function_signature_java: problemData.function_signature_java || null,
+        function_signature_python: problemData.function_signature_python || null,
+        function_signature_javascript: problemData.function_signature_javascript || null,
+        // IO wrappers
+        io_wrapper_cpp: problemData.io_wrapper_cpp || null,
+        io_wrapper_java: problemData.io_wrapper_java || null,
+        io_wrapper_python: problemData.io_wrapper_python || null,
+        io_wrapper_javascript: problemData.io_wrapper_javascript || null,
+        // Default solutions
+        default_solution_cpp: problemData.default_solution_cpp || null,
+        default_solution_java: problemData.default_solution_java || null,
+        default_solution_python: problemData.default_solution_python || null,
+        default_solution_javascript: problemData.default_solution_javascript || null
+      };
+
+      const result = await db('problems').insert(insertData).returning('id');
       
       const problemId = Array.isArray(result) ? result[0].id || result[0] : result.id || result;
 

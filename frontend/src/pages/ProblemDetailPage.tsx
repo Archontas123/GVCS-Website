@@ -1578,6 +1578,11 @@ const ProblemDetailPage: React.FC = () => {
         onSave={handleSaveTestCase}
         testCase={editingTestCase}
         problemId={problemId}
+        problemFunction={problem ? {
+          name: problem.functionName || '',
+          parameters: problem.parameters || [],
+          returnType: problem.returnType || 'INT'
+        } : undefined}
       />
 
       {/* Delete Test Case Confirmation Dialog */}

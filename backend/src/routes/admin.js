@@ -307,6 +307,122 @@ const problemCreateSchema = Joi.object({
     .messages({
       'string.length': 'Problem letter must be exactly 1 character',
       'string.pattern.base': 'Problem letter must be a single uppercase letter (A-Z)'
+    }),
+
+  // LeetCode-style fields
+  uses_leetcode_style: Joi.boolean()
+    .default(false),
+
+  function_name: Joi.string()
+    .max(255)
+    .allow('')
+    .messages({
+      'string.max': 'Function name must not exceed 255 characters'
+    }),
+
+  function_parameters: Joi.alternatives()
+    .try(
+      Joi.string(),
+      Joi.array(),
+      Joi.object()
+    )
+    .allow(null, '')
+    .messages({
+      'alternatives.types': 'Function parameters must be a valid JSON string, array, or object'
+    }),
+
+  return_type: Joi.string()
+    .max(255)
+    .allow('')
+    .messages({
+      'string.max': 'Return type must not exceed 255 characters'
+    }),
+
+  // Function signatures
+  function_signature_cpp: Joi.string()
+    .max(10000)
+    .allow('', null)
+    .messages({
+      'string.max': 'C++ function signature must not exceed 10000 characters'
+    }),
+
+  function_signature_java: Joi.string()
+    .max(10000)
+    .allow('', null)
+    .messages({
+      'string.max': 'Java function signature must not exceed 10000 characters'
+    }),
+
+  function_signature_python: Joi.string()
+    .max(10000)
+    .allow('', null)
+    .messages({
+      'string.max': 'Python function signature must not exceed 10000 characters'
+    }),
+
+  function_signature_javascript: Joi.string()
+    .max(10000)
+    .allow('', null)
+    .messages({
+      'string.max': 'JavaScript function signature must not exceed 10000 characters'
+    }),
+
+  // IO wrappers
+  io_wrapper_cpp: Joi.string()
+    .max(50000)
+    .allow('', null)
+    .messages({
+      'string.max': 'C++ IO wrapper must not exceed 50000 characters'
+    }),
+
+  io_wrapper_java: Joi.string()
+    .max(50000)
+    .allow('', null)
+    .messages({
+      'string.max': 'Java IO wrapper must not exceed 50000 characters'
+    }),
+
+  io_wrapper_python: Joi.string()
+    .max(50000)
+    .allow('', null)
+    .messages({
+      'string.max': 'Python IO wrapper must not exceed 50000 characters'
+    }),
+
+  io_wrapper_javascript: Joi.string()
+    .max(50000)
+    .allow('', null)
+    .messages({
+      'string.max': 'JavaScript IO wrapper must not exceed 50000 characters'
+    }),
+
+  // Default solutions
+  default_solution_cpp: Joi.string()
+    .max(50000)
+    .allow('', null)
+    .messages({
+      'string.max': 'C++ default solution must not exceed 50000 characters'
+    }),
+
+  default_solution_java: Joi.string()
+    .max(50000)
+    .allow('', null)
+    .messages({
+      'string.max': 'Java default solution must not exceed 50000 characters'
+    }),
+
+  default_solution_python: Joi.string()
+    .max(50000)
+    .allow('', null)
+    .messages({
+      'string.max': 'Python default solution must not exceed 50000 characters'
+    }),
+
+  default_solution_javascript: Joi.string()
+    .max(50000)
+    .allow('', null)
+    .messages({
+      'string.max': 'JavaScript default solution must not exceed 50000 characters'
     })
 });
 
