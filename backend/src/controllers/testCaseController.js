@@ -245,15 +245,29 @@ class TestCase {
     }
 
     try {
+      // Helper to ensure valid JSON for database JSON columns
+      const ensureValidJson = (value) => {
+        if (value === null || value === undefined) return null;
+        if (typeof value === 'string') {
+          // Check if it's already valid JSON
+          try {
+            JSON.parse(value);
+            return value; // Already valid JSON string
+          } catch {
+            // Not valid JSON, so wrap it as a JSON string
+            return JSON.stringify(value);
+          }
+        }
+        // It's an object/array, stringify it
+        return JSON.stringify(value);
+      };
+
       const insertData = {
         problem_id: problemId,
         test_case_name: testCaseData.test_case_name,
-        input_parameters: typeof testCaseData.input_parameters === 'string' ?
-          testCaseData.input_parameters : JSON.stringify(testCaseData.input_parameters),
-        expected_return: typeof testCaseData.expected_return === 'string' ?
-          testCaseData.expected_return : JSON.stringify(testCaseData.expected_return),
-        parameter_types: typeof testCaseData.parameter_types === 'string' ?
-          testCaseData.parameter_types : JSON.stringify(testCaseData.parameter_types),
+        input_parameters: ensureValidJson(testCaseData.input_parameters),
+        expected_return: ensureValidJson(testCaseData.expected_return),
+        parameter_types: ensureValidJson(testCaseData.parameter_types),
         explanation: testCaseData.explanation || '',
         is_sample: testCaseData.is_sample || false,
         converted_to_params: true
@@ -264,7 +278,7 @@ class TestCase {
       return await this.findById(result.id);
     } catch (error) {
       console.error('Test case creation error:', error);
-      console.error('Insert data:', JSON.stringify(insertData, null, 2));
+      console.error('Test case data received:', testCaseData);
       console.error('Error details:', {
         message: error.message,
         code: error.code,
