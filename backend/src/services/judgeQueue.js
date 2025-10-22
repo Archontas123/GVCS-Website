@@ -657,23 +657,7 @@ class JudgeQueueService {
    * @param {Object} submissionData - Submission information
    */
   async broadcastQueuePosition(submissionData) {
-    try {
-      const queueStats = await this.getQueueStats();
-      const position = queueStats.waiting + 1; // New submission is at end of queue
-      const estimatedWaitTime = this.calculateEstimatedWaitTime(position);
-      
-      const websocketService = require('./websocketService');
-      await websocketService.broadcastSubmissionStatus({
-        submissionId: submissionData.submissionId,
-        teamId: submissionData.teamId,
-        contestId: submissionData.contestId,
-        status: 'queued',
-        queuePosition: position,
-        estimatedWaitTime: estimatedWaitTime
-      });
-    } catch (error) {
-      console.error('Error broadcasting queue position:', error);
-    }
+    // Queue position updates removed - no longer broadcasting via WebSocket
   }
 
   /**
@@ -738,47 +722,7 @@ class JudgeQueueService {
    * Broadcast updated queue positions to all relevant teams
    */
   async broadcastQueueUpdates() {
-    if (!this.judgeQueue) return;
-
-    try {
-      const waiting = await this.judgeQueue.getWaiting();
-      const queueUpdates = [];
-
-      for (let i = 0; i < waiting.length; i++) {
-        const job = waiting[i];
-        const position = i + 1;
-        const estimatedWaitTime = this.calculateEstimatedWaitTime(position);
-
-        queueUpdates.push({
-          submissionId: job.data.submissionId,
-          teamId: job.data.teamId,
-          position: position,
-          estimatedWaitTime: estimatedWaitTime,
-          totalInQueue: waiting.length
-        });
-      }
-
-      if (queueUpdates.length > 0) {
-        const websocketService = require('./websocketService');
-        // Group by contest for efficient broadcasting
-        const updatesByContest = {};
-        for (const update of queueUpdates) {
-          const contestId = waiting.find(j => j.data.submissionId === update.submissionId)?.data.contestId;
-          if (contestId) {
-            if (!updatesByContest[contestId]) {
-              updatesByContest[contestId] = [];
-            }
-            updatesByContest[contestId].push(update);
-          }
-        }
-
-        for (const [contestId, updates] of Object.entries(updatesByContest)) {
-          await websocketService.broadcastQueuePositionUpdates(parseInt(contestId), updates);
-        }
-      }
-    } catch (error) {
-      console.error('Error broadcasting queue updates:', error);
-    }
+    // Queue position broadcasting removed - no longer using WebSocket
   }
 
   /**

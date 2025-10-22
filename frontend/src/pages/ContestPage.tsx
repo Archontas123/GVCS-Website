@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { MdTimer, MdEmojiEvents, MdDescription } from 'react-icons/md';
 import { Problem } from '../types';
 import apiService from '../services/api';
-import RealTimeSubmissions from '../components/RealTimeSubmissions/RealTimeSubmissions';
 import { useAuth } from '../hooks/useAuth';
 
 interface ContestProblem extends Problem {
@@ -27,7 +26,6 @@ const ContestPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [contestName, setContestName] = useState<string>('');
   const [contestId, setContestId] = useState<number | null>(null);
-  const [showSubmissions, setShowSubmissions] = useState(false);
 
   useEffect(() => {
     if (contestSlug) {
@@ -555,110 +553,6 @@ const ContestPage: React.FC = () => {
                     </div>
                   ))}
                 </div>
-
-                {/* Submissions Section */}
-                {contestId && (
-                  <div style={{
-                    backgroundColor: 'white',
-                    border: '4px solid #212529',
-                    boxShadow: '8px 8px 0px #212529',
-                    padding: '2rem',
-                    animation: 'slideUp 0.5s ease-out 0.2s backwards',
-                  }}>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: '1.5rem',
-                      flexWrap: 'wrap',
-                      gap: '1rem',
-                      paddingBottom: '1rem',
-                      borderBottom: '3px solid #212529',
-                    }}>
-                      <div>
-                        <h2 style={{
-                          margin: '0 0 0.5rem 0',
-                          fontSize: 'clamp(0.9rem, 2.5vw, 1.3rem)',
-                          color: '#212529',
-                          fontWeight: 'bold',
-                        }}>
-                          Your Contest Submissions
-                        </h2>
-                        <p style={{
-                          margin: 0,
-                          fontSize: '0.6rem',
-                          color: '#6b7280',
-                          lineHeight: '1.6',
-                        }}>
-                          Track your latest runs without leaving the contest.
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setShowSubmissions(!showSubmissions)}
-                        style={{
-                          border: '3px solid #212529',
-                          backgroundColor: showSubmissions ? '#2D58A6' : 'white',
-                          color: showSubmissions ? 'white' : '#212529',
-                          boxShadow: '3px 3px 0px #212529',
-                          textShadow: showSubmissions ? '1px 1px 0px #212529' : 'none',
-                          fontSize: '0.6rem',
-                          padding: '10px 16px',
-                          cursor: 'pointer',
-                          fontFamily: "'Press Start 2P', cursive",
-                          transition: 'all 0.15s ease-in-out',
-                          fontWeight: 'bold',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'translate(1px, 1px)';
-                          e.currentTarget.style.boxShadow = '2px 2px 0px #212529';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'translate(0, 0)';
-                          e.currentTarget.style.boxShadow = '3px 3px 0px #212529';
-                        }}
-                      >
-                        {showSubmissions ? '▼ Hide' : '▶ Show'} Submissions
-                      </button>
-                    </div>
-
-                    {showSubmissions && (
-                      <>
-                        {team ? (
-                          <div style={{
-                            animation: 'slideUp 0.3s ease-out',
-                          }}>
-                            <RealTimeSubmissions
-                              contestId={contestId}
-                              teamId={team.id}
-                              showAllTeams={false}
-                              showOnlyRecent={false}
-                              showFilters={false}
-                              autoScroll={false}
-                              maxSubmissions={75}
-                            />
-                          </div>
-                        ) : (
-                          <div style={{
-                            border: '3px dashed #9ca3af',
-                            padding: '3rem 2rem',
-                            textAlign: 'center',
-                            background: 'rgba(249, 250, 251, 0.5)',
-                            animation: 'fadeIn 0.3s ease-out',
-                          }}>
-                            <p style={{
-                              fontSize: '0.65rem',
-                              color: '#6b7280',
-                              margin: 0,
-                              lineHeight: '1.8',
-                            }}>
-                              Sign in as a team to see live submission updates for this contest.
-                            </p>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
               </>
             )}
           </div>

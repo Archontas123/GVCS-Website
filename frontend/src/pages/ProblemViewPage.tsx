@@ -4,6 +4,7 @@ import { Problem } from '../types';
 import apiService from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import CodeEditor from '../components/CodeEditor';
+import SubmissionTracker from '../components/SubmissionTracker/SubmissionTracker';
 import '../styles/theme.css';
 
 
@@ -18,20 +19,12 @@ const ProblemViewPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null); 
   
   const [activeTab, setActiveTab] = useState<'problem' | 'editor'>('problem');
-  const [code, setCode] = useState(''); 
-  const [language, setLanguage] = useState('cpp'); 
+  const [code, setCode] = useState('');
+  const [language, setLanguage] = useState('cpp');
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
-  
-  const [showSubmissionModal, setShowSubmissionModal] = useState(false);
-  const [submissionResult, setSubmissionResult] = useState<{
-    success: boolean;
-    submissionId?: number;
-    message?: string;
-    status?: string;
-    verdict?: string;
-    executionTime?: number | null;
-  } | null>(null);
-  const [isPolling, setIsPolling] = useState(false);
+
+  const [showSubmissionTracker, setShowSubmissionTracker] = useState(false);
+  const [trackingSubmissionId, setTrackingSubmissionId] = useState<number | null>(null);
   const [contestSlug, setContestSlug] = useState<string | null>(null); 
 
 
@@ -108,433 +101,161 @@ const ProblemViewPage: React.FC = () => {
         language: submitLanguage as 'cpp' | 'java' | 'python',
       });
 
-      if (response.success) {
-        setSubmissionResult({
-          success: true,
-          submissionId: response.data.submissionId,
-          message: 'Your solution is being evaluated...',
-          status: 'pending',
-        });
-        setShowSubmissionModal(true);
-        setIsPolling(true);
-
-        // Start polling for results
-        pollSubmissionStatus(response.data.submissionId);
+      if (response.success && response.data.submissionId) {
+        // Show the submission tracker modal
+        setTrackingSubmissionId(response.data.submissionId);
+        setShowSubmissionTracker(true);
       } else {
-        setSubmissionResult({
-          success: false,
-          message: response.message || 'Failed to submit solution'
-        });
-        setShowSubmissionModal(true);
+        alert(response.message || 'Failed to submit solution');
       }
     } catch (err: any) {
-      setSubmissionResult({
-        success: false,
-        message: err.response?.data?.message || err.message || 'An error occurred while submitting your solution'
-      });
-      setShowSubmissionModal(true);
+      alert(err.response?.data?.message || err.message || 'An error occurred while submitting your solution');
     }
   };
 
-  const pollSubmissionStatus = async (submissionId: number) => {
-    const maxAttempts = 60; // Poll for up to 60 seconds
-    let attempts = 0;
-
-    const poll = async () => {
-      try {
-        const response = await apiService.getSubmission(submissionId);
-
-        if (response.success) {
-          const submission = response.data;
-
-          // Check if submission has been judged
-          if (submission.status !== 'pending') {
-            setIsPolling(false);
-            setSubmissionResult({
-              success: submission.status === 'accepted',
-              submissionId: submissionId,
-              status: submission.status,
-              verdict: submission.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-              executionTime: submission.executionTime,
-              message: submission.status === 'accepted'
-                ? 'Congratulations! Your solution passed all test cases.'
-                : `Your solution was judged as: ${submission.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`
-            });
-            return;
-          }
-
-          // Continue polling if still pending
-          attempts++;
-          if (attempts < maxAttempts) {
-            setTimeout(poll, 1000);
-          } else {
-            setIsPolling(false);
-            setSubmissionResult(prev => ({
-              ...prev!,
-              message: 'Submission is taking longer than expected. Please check your submissions page for results.',
-            }));
-          }
-        }
-      } catch (err: any) {
-        console.error('Error polling submission status:', err);
-        setIsPolling(false);
-      }
-    };
-
-    poll();
-  };
-
-
-
-
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'easy': return { bg: '#dcfce7', color: '#166534' }; 
-      case 'medium': return { bg: '#fef3c7', color: '#a16207' }; 
-      case 'hard': return { bg: '#fef2f2', color: '#dc2626' }; 
-      default: return { bg: '#f3f4f6', color: '#6b7280' }; 
+      case 'easy': return { bg: '#D4F1D4', color: '#065f46' };
+      case 'medium': return { bg: '#FFF4CC', color: '#92400e' };
+      case 'hard': return { bg: '#FFCCCC', color: '#991b1b' };
+      default: return { bg: '#f3f4f6', color: '#6b7280' };
     }
   };
 
 
   const processMarkdown = (content: string): string => {
     return content
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
-      .replace(/\*(.*?)\*/g, '<em>$1</em>') 
-      .replace(/`(.*?)`/g, '<code style="background-color: #f3f4f6; padding: 2px 4px; border-radius: 4px; font-size: 0.9em;">$1</code>') 
-      .replace(/## (.*?)$/gm, '<h3 style="font-size: 1.25rem; font-weight: 600; margin: 24px 0 12px; color: #1f2937;">$1</h3>')
-      .replace(/^- (.*?)$/gm, '<li style="margin: 4px 0;">$1</li>') 
-      .replace(/```([\s\S]*?)```/g, '<pre style="background-color: #1f2937; color: #f8fafc; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 16px 0;"><code>$1</code></pre>') 
-      .replace(/\n/g, '<br>'); 
+      .replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight: 700; color: #212529;">$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/`(.*?)`/g, '<code style="background-color: #FFF4CC; color: #212529; padding: 2px 4px; border: 2px solid #212529; font-size: 0.85em; font-weight: 600;">$1</code>')
+      .replace(/## (.*?)$/gm, '<h3 style="font-size: clamp(0.7rem, 1.8vw, 0.9rem); font-weight: 700; margin: 1.5rem 0 0.75rem; color: #212529; padding-bottom: 0.5rem; border-bottom: 3px solid #212529;">$1</h3>')
+      .replace(/^- (.*?)$/gm, '<li style="margin: 0.5rem 0; padding-left: 0.5rem; color: #4b5563;">$1</li>')
+      .replace(/```([\s\S]*?)```/g, '<pre style="background-color: #212529; color: #D4F1D4; padding: 1rem; border: 3px solid #212529; overflow-x: auto; margin: 1rem 0; box-shadow: 4px 4px 0px rgba(33, 37, 41, 0.5);"><code style="font-size: 0.65rem; line-height: 1.6;">$1</code></pre>')
+      .replace(/\n/g, '<br>');
   };
 
 
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '400px',
-        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-      }}>
+      <>
+        <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
         <div style={{
-          width: '40px',
-          height: '40px',
-          border: '4px solid #e5e7eb', 
-          borderTop: '4px solid #1d4ed8', 
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite', 
-        }}></div>
-      </div>
+          fontFamily: "'Press Start 2P', cursive",
+          backgroundColor: '#CECDE2',
+          backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px)',
+          backgroundSize: '30px 30px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          flexDirection: 'column',
+          gap: '20px',
+        }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '4px solid transparent',
+            borderTop: '4px solid #212529',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+          }}></div>
+          <p style={{
+            color: '#212529',
+            fontSize: '0.7rem',
+            textShadow: '2px 2px 0px rgba(255, 255, 255, 0.5)',
+          }}>Loading problem...</p>
+        </div>
+      </>
     );
   }
 
 
   if (error || !problem) {
     return (
-      <div style={{
-        padding: '32px',
-        textAlign: 'center',
-        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-      }}>
+      <>
+        <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
         <div style={{
-          backgroundColor: '#fef2f2', 
-          border: '1px solid #fecaca', 
-          borderRadius: '12px',
-          padding: '24px',
-          maxWidth: '500px',
-          margin: '0 auto',
+          fontFamily: "'Press Start 2P', cursive",
+          backgroundColor: '#CECDE2',
+          backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px)',
+          backgroundSize: '30px 30px',
+          minHeight: '100vh',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: '20px',
         }}>
-          <h2 style={{ 
-            color: '#dc2626', 
-            marginBottom: '16px',
-            fontSize: '1.5rem',
-            fontWeight: 600,
+          <div style={{
+            backgroundColor: 'white',
+            border: '4px solid #212529',
+            boxShadow: '8px 8px 0px #212529',
+            maxWidth: '600px',
+            width: '100%',
+            padding: '32px',
+            textAlign: 'center',
           }}>
-            Problem Not Found
-          </h2>
-          <p style={{ color: '#6b7280', marginBottom: '24px' }}>
-            {error || 'The requested problem could not be found.'}
-          </p>
-          <button
-            onClick={handleBack}
-            style={{
-              background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '12px 24px',
-              fontSize: '1rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            ← Back to Contest
-          </button>
+            <h2 style={{
+              color: '#dc2626',
+              fontSize: 'clamp(1rem, 3vw, 1.5rem)',
+              marginBottom: '20px',
+              textShadow: '2px 2px 0px rgba(220, 38, 38, 0.2)',
+            }}>
+              Problem Not Found
+            </h2>
+            <p style={{
+              color: '#212529',
+              fontSize: '0.7rem',
+              marginBottom: '32px',
+              lineHeight: '1.8',
+            }}>
+              {error || 'The requested problem could not be found.'}
+            </p>
+            <button
+              onClick={handleBack}
+              style={{
+                border: '4px solid #212529',
+                backgroundColor: '#2D58A6',
+                color: 'white',
+                boxShadow: '6px 6px 0px #212529',
+                textShadow: '2px 2px 0px #212529',
+                fontSize: '0.75rem',
+                padding: '14px 28px',
+                cursor: 'pointer',
+                fontFamily: "'Press Start 2P', cursive",
+                transition: 'all 0.15s ease-in-out',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translate(2px, 2px)';
+                e.currentTarget.style.boxShadow = '4px 4px 0px #212529';
+                e.currentTarget.style.backgroundColor = '#3B6BBD';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translate(0, 0)';
+                e.currentTarget.style.boxShadow = '6px 6px 0px #212529';
+                e.currentTarget.style.backgroundColor = '#2D58A6';
+              }}
+            >
+              ← Back to Contest
+            </button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
 
   const difficultyStyle = getDifficultyColor(problem.difficulty);
 
-  
-  const renderSubmissionModal = () => {
-    if (!showSubmissionModal || !submissionResult) return null;
-
-    const getVerdictColor = (status?: string) => {
-      if (!status) return { bg: '#f0f9ff', border: '#bae6fd', text: '#0369a1' };
-
-      switch (status) {
-        case 'accepted':
-          return { bg: '#dcfce7', border: '#bbf7d0', text: '#16a34a' };
-        case 'wrong_answer':
-          return { bg: '#fef2f2', border: '#fecaca', text: '#dc2626' };
-        case 'time_limit_exceeded':
-          return { bg: '#fef3c7', border: '#fde68a', text: '#d97706' };
-        case 'runtime_error':
-          return { bg: '#fed7aa', border: '#fdba74', text: '#7c2d12' };
-        case 'compilation_error':
-          return { bg: '#dbeafe', border: '#bfdbfe', text: '#1d4ed8' };
-        default:
-          return { bg: '#f3f4f6', border: '#d1d5db', text: '#6b7280' };
-      }
-    };
-
-    const verdictColors = getVerdictColor(submissionResult.status);
-    const isSuccess = submissionResult.status === 'accepted';
-
-    return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-      }}>
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          padding: '32px',
-          maxWidth: '550px',
-          width: '90%',
-          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
-          border: '1px solid #e5e7eb',
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: '24px',
-          }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: isSuccess ? '#dcfce7' : submissionResult.success ? '#f0f9ff' : '#fef2f2',
-              marginRight: '16px',
-            }}>
-              {isPolling ? (
-                <div style={{
-                  width: '24px',
-                  height: '24px',
-                  border: '3px solid #e5e7eb',
-                  borderTop: '3px solid #1d4ed8',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite',
-                }}></div>
-              ) : (
-                <span style={{
-                  fontSize: '24px',
-                  color: isSuccess ? '#16a34a' : submissionResult.success ? '#0369a1' : '#dc2626',
-                }}>
-                  {isSuccess ? '✓' : submissionResult.success ? '⏳' : '✗'}
-                </span>
-              )}
-            </div>
-            <div>
-              <h2 style={{
-                fontSize: '1.5rem',
-                fontWeight: 700,
-                color: '#1f2937',
-                margin: 0,
-              }}>
-                {isPolling ? 'Evaluating Submission...' : submissionResult.verdict || (submissionResult.success ? 'Submission Received' : 'Submission Failed')}
-              </h2>
-              <p style={{
-                fontSize: '0.9rem',
-                color: '#6b7280',
-                margin: '4px 0 0 0',
-              }}>
-                {isPolling
-                  ? 'Running your code against test cases'
-                  : isSuccess
-                    ? 'All test cases passed!'
-                    : submissionResult.success
-                      ? 'Please wait for results'
-                      : 'There was an issue with your submission'
-                }
-              </p>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '24px' }}>
-            {submissionResult.submissionId && (
-              <div style={{
-                backgroundColor: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-                padding: '16px',
-                marginBottom: '16px',
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: submissionResult.executionTime ? '12px' : 0 }}>
-                  <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Submission ID:</span>
-                  <span style={{
-                    fontFamily: 'monospace',
-                    backgroundColor: '#e5e7eb',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                  }}>
-                    #{submissionResult.submissionId}
-                  </span>
-                </div>
-
-                {submissionResult.executionTime !== undefined && submissionResult.executionTime !== null && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Execution Time:</span>
-                    <span style={{
-                      fontFamily: 'monospace',
-                      backgroundColor: '#e5e7eb',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      fontSize: '0.9rem',
-                      fontWeight: 600,
-                    }}>
-                      {submissionResult.executionTime}ms
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {submissionResult.verdict && (
-              <div style={{
-                backgroundColor: verdictColors.bg,
-                border: `1px solid ${verdictColors.border}`,
-                borderRadius: '8px',
-                padding: '12px',
-                marginBottom: '12px',
-              }}>
-                <div style={{
-                  fontWeight: 600,
-                  fontSize: '1rem',
-                  color: verdictColors.text,
-                  marginBottom: '4px',
-                }}>
-                  {submissionResult.verdict}
-                </div>
-              </div>
-            )}
-
-            {submissionResult.message && (
-              <div style={{
-                backgroundColor: isSuccess ? '#f0f9ff' : submissionResult.success ? '#f8fafc' : '#fef2f2',
-                border: `1px solid ${isSuccess ? '#bae6fd' : submissionResult.success ? '#e2e8f0' : '#fecaca'}`,
-                borderRadius: '8px',
-                padding: '12px',
-                color: isSuccess ? '#0369a1' : submissionResult.success ? '#475569' : '#dc2626',
-                fontSize: '0.9rem',
-              }}>
-                {submissionResult.message}
-              </div>
-            )}
-          </div>
-
-          <div style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: '12px',
-          }}>
-            <button
-              onClick={() => setShowSubmissionModal(false)}
-              disabled={isPolling}
-              style={{
-                backgroundColor: isPolling ? '#e5e7eb' : '#f3f4f6',
-                color: '#374151',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '10px 20px',
-                fontSize: '0.9rem',
-                fontWeight: 500,
-                cursor: isPolling ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s ease',
-                opacity: isPolling ? 0.6 : 1,
-              }}
-              onMouseEnter={(e) => {
-                if (!isPolling) e.currentTarget.style.backgroundColor = '#e5e7eb';
-              }}
-              onMouseLeave={(e) => {
-                if (!isPolling) e.currentTarget.style.backgroundColor = '#f3f4f6';
-              }}
-            >
-              Close
-            </button>
-
-            {submissionResult.success && !isPolling && (
-              <button
-                onClick={() => {
-                  setShowSubmissionModal(false);
-                  if (contestSlug) {
-                    navigate(`/contest/${contestSlug}`);
-                  } else {
-                    navigate('/');
-                  }
-                }}
-                style={{
-                  background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '10px 20px',
-                  fontSize: '0.9rem',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(29, 78, 216, 0.25)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                Back to Contest
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
 
   return (
     <>
+      <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
       <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
@@ -542,113 +263,179 @@ const ProblemViewPage: React.FC = () => {
         }
       `}</style>
       <div style={{
-        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+        fontFamily: "'Press Start 2P', cursive",
+        backgroundColor: '#CECDE2',
+        backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px)',
+        backgroundSize: '30px 30px',
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
       }}>
       <div style={{
-        backgroundColor: '#ffffff',
-        borderBottom: '1px solid #e2e8f0',
-        padding: '16px 24px',
+        backgroundColor: '#2D58A6',
+        border: '4px solid #212529',
+        borderLeft: 'none',
+        borderRight: 'none',
+        borderTop: 'none',
+        padding: 'clamp(1rem, 2vw, 1.5rem)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '16px',
-        position: 'sticky', 
-        top: 0,
-        zIndex: 100, 
+        gap: 'clamp(1rem, 2vw, 1.5rem)',
+        boxShadow: '0 4px 0px #212529',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(0.75rem, 2vw, 1.25rem)' }}>
           <button
             onClick={handleBack}
             style={{
-              background: 'none',
-              border: 'none',
-              color: '#6b7280',
+              backgroundColor: 'white',
+              border: '3px solid #212529',
+              color: '#212529',
               cursor: 'pointer',
-              fontSize: '1.2rem',
-              padding: '8px',
-              borderRadius: '8px',
-              transition: 'all 0.2s ease',
+              fontSize: 'clamp(0.8rem, 2vw, 1rem)',
+              padding: '0.5rem 0.75rem',
+              boxShadow: '4px 4px 0px #212529',
+              transition: 'all 0.15s ease-in-out',
+              fontFamily: "'Press Start 2P', cursive",
+              fontWeight: 'bold',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f3f4f6';
-              e.currentTarget.style.color = '#374151';
+              e.currentTarget.style.transform = 'translate(2px, 2px)';
+              e.currentTarget.style.boxShadow = '2px 2px 0px #212529';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#6b7280';
+              e.currentTarget.style.transform = 'translate(0, 0)';
+              e.currentTarget.style.boxShadow = '4px 4px 0px #212529';
             }}
           >
             ←
           </button>
-          
+
           <div>
-            <h1 style={{
-              fontSize: '1.25rem',
-              fontWeight: 700,
-              color: '#1f2937',
-              margin: 0,
-            }}>
-              Problem {problem.problemLetter}: {problem.title}
-            </h1>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(0.5rem, 1.5vw, 0.75rem)', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+              <span style={{
+                backgroundColor: '#2D58A6',
+                color: 'white',
+                border: '3px solid #212529',
+                width: 'clamp(35px, 8vw, 45px)',
+                height: 'clamp(35px, 8vw, 45px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 'clamp(0.7rem, 2vw, 1rem)',
+                textShadow: '2px 2px 0px #212529',
+                boxShadow: '3px 3px 0px #212529',
+                fontWeight: 'bold',
+              }}>
+                {problem.problemLetter}
+              </span>
+              <h1 style={{
+                fontSize: 'clamp(0.75rem, 2.5vw, 1.2rem)',
+                fontWeight: 'bold',
+                color: 'white',
+                margin: 0,
+                textShadow: '3px 3px 0px #212529',
+              }}>
+                {problem.title}
+              </h1>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(0.5rem, 1.5vw, 0.75rem)', marginTop: '0.5rem', flexWrap: 'wrap' }}>
               <span style={{
                 backgroundColor: difficultyStyle.bg,
                 color: difficultyStyle.color,
-                padding: '4px 8px',
-                borderRadius: '6px',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                textTransform: 'capitalize',
+                padding: 'clamp(0.35rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 0.75rem)',
+                border: '3px solid #212529',
+                fontSize: 'clamp(0.45rem, 1.2vw, 0.55rem)',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                boxShadow: '3px 3px 0px #212529',
               }}>
                 {problem.difficulty}
               </span>
-              
-              <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                {problem.timeLimit}ms
-              </span>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                backgroundColor: 'white',
+                padding: 'clamp(0.35rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 0.75rem)',
+                border: '3px solid #212529',
+                boxShadow: '3px 3px 0px #212529',
+              }}>
+                <span style={{ fontSize: 'clamp(0.45rem, 1.2vw, 0.55rem)', color: '#212529', fontWeight: 'bold' }}>
+                  ⏱ {problem.timeLimit}ms
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
         {!isDesktop && (
-        <div style={{ 
-          display: 'flex', 
-          gap: '8px',
+        <div style={{
+          display: 'flex',
+          gap: '0.75rem',
+          width: '100%',
+          justifyContent: 'center',
         }}>
           <button
             onClick={() => setActiveTab('problem')}
             style={{
-              background: activeTab === 'problem' ? 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)' : 'transparent',
-              color: activeTab === 'problem' ? 'white' : '#6b7280',
-              border: activeTab === 'problem' ? 'none' : '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '8px 16px',
-              fontSize: '0.9rem',
-              fontWeight: 500,
+              background: activeTab === 'problem' ? 'white' : '#CECDE2',
+              color: '#212529',
+              border: '3px solid #212529',
+              padding: 'clamp(0.5rem, 1.5vw, 0.75rem) clamp(0.75rem, 2vw, 1rem)',
+              fontSize: 'clamp(0.45rem, 1.2vw, 0.6rem)',
+              fontWeight: 'bold',
               cursor: 'pointer',
-              transition: 'all 0.2s ease',
+              transition: 'all 0.15s ease-in-out',
+              flex: 1,
+              boxShadow: activeTab === 'problem' ? '4px 4px 0px #212529' : '3px 3px 0px #212529',
+              fontFamily: "'Press Start 2P', cursive",
+            }}
+            onMouseEnter={(e) => {
+              if (activeTab !== 'problem') {
+                e.currentTarget.style.transform = 'translate(1px, 1px)';
+                e.currentTarget.style.boxShadow = '2px 2px 0px #212529';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== 'problem') {
+                e.currentTarget.style.transform = 'translate(0, 0)';
+                e.currentTarget.style.boxShadow = '3px 3px 0px #212529';
+              }
             }}
           >
             Problem
           </button>
-          
+
           <button
             onClick={() => setActiveTab('editor')}
             style={{
-              background: activeTab === 'editor' ? 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)' : 'transparent',
-              color: activeTab === 'editor' ? 'white' : '#6b7280',
-              border: activeTab === 'editor' ? 'none' : '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '8px 16px',
-              fontSize: '0.9rem',
-              fontWeight: 500,
+              background: activeTab === 'editor' ? 'white' : '#CECDE2',
+              color: '#212529',
+              border: '3px solid #212529',
+              padding: 'clamp(0.5rem, 1.5vw, 0.75rem) clamp(0.75rem, 2vw, 1rem)',
+              fontSize: 'clamp(0.45rem, 1.2vw, 0.6rem)',
+              fontWeight: 'bold',
               cursor: 'pointer',
-              transition: 'all 0.2s ease',
+              transition: 'all 0.15s ease-in-out',
+              flex: 1,
+              boxShadow: activeTab === 'editor' ? '4px 4px 0px #212529' : '3px 3px 0px #212529',
+              fontFamily: "'Press Start 2P', cursive",
+            }}
+            onMouseEnter={(e) => {
+              if (activeTab !== 'editor') {
+                e.currentTarget.style.transform = 'translate(1px, 1px)';
+                e.currentTarget.style.boxShadow = '2px 2px 0px #212529';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== 'editor') {
+                e.currentTarget.style.transform = 'translate(0, 0)';
+                e.currentTarget.style.boxShadow = '3px 3px 0px #212529';
+              }
             }}
           >
             Editor
@@ -665,53 +452,70 @@ const ProblemViewPage: React.FC = () => {
         
 
         <div style={{
-          width: isDesktop ? '50%' : '100%', 
-          display: (isDesktop || activeTab === 'problem') ? 'flex' : 'none', 
+          width: isDesktop ? '50%' : '100%',
+          display: (isDesktop || activeTab === 'problem') ? 'flex' : 'none',
           flexDirection: 'column',
-          borderRight: isDesktop ? '1px solid #e2e8f0' : 'none', 
-          backgroundColor: '#ffffff',
+          borderRight: isDesktop ? '4px solid #212529' : 'none',
+          backgroundColor: '#CECDE2',
         }}>
           <div style={{
-            padding: '24px',
-            overflowY: 'auto', 
-            flex: 1, 
+            padding: 'clamp(1rem, 3vw, 2rem)',
+            overflowY: 'auto',
+            flex: 1,
           }}>
+            <div style={{
+              backgroundColor: 'white',
+              border: '4px solid #212529',
+              padding: 'clamp(1rem, 3vw, 1.5rem)',
+              boxShadow: '6px 6px 0px #212529',
+            }}>
+              <div
+                style={{
+                  fontSize: 'clamp(0.6rem, 1.5vw, 0.75rem)',
+                  lineHeight: '1.8',
+                  color: '#212529',
+                  maxWidth: '100%',
+                }}
+                dangerouslySetInnerHTML={{
+                  __html: processMarkdown(problem.description)
+                }}
+              />
+            </div>
 
-            <div
-              style={{
-                fontSize: '1rem',
-                lineHeight: '1.7', 
-                color: '#374151',
-                maxWidth: '100%',
-              }}
-              dangerouslySetInnerHTML={{
-                __html: processMarkdown(problem.description)
-              }}
-            />
-            
             {!isDesktop && (
-              <div style={{ 
-                position: 'sticky', 
-                bottom: '20px',
+              <div style={{
                 textAlign: 'center',
-                marginTop: '32px'
+                marginTop: 'clamp(1rem, 3vw, 2rem)',
               }}>
                 <button
                   onClick={handleGoToEditor}
                   style={{
-                    background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+                    backgroundColor: '#2D58A6',
                     color: 'white',
-                    border: 'none',
-                    borderRadius: '12px',
-                    padding: '14px 28px',
-                    fontSize: '1rem',
-                    fontWeight: 600,
+                    border: '3px solid #212529',
+                    padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2rem)',
+                    fontSize: 'clamp(0.55rem, 1.5vw, 0.7rem)',
+                    fontWeight: 'bold',
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 4px 12px rgba(29, 78, 216, 0.25)',
+                    boxShadow: '6px 6px 0px #212529',
+                    textShadow: '2px 2px 0px #212529',
+                    transition: 'all 0.15s ease-in-out',
+                    width: '100%',
+                    maxWidth: '300px',
+                    fontFamily: "'Press Start 2P', cursive",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translate(2px, 2px)';
+                    e.currentTarget.style.boxShadow = '4px 4px 0px #212529';
+                    e.currentTarget.style.backgroundColor = '#3B6BBD';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translate(0, 0)';
+                    e.currentTarget.style.boxShadow = '6px 6px 0px #212529';
+                    e.currentTarget.style.backgroundColor = '#2D58A6';
                   }}
                 >
-                  Start Coding →
+                  Start Coding
                 </button>
               </div>
             )}
@@ -720,33 +524,37 @@ const ProblemViewPage: React.FC = () => {
 
 
         <div style={{
-          width: isDesktop ? '50%' : '100%', 
-          display: (isDesktop || activeTab === 'editor') ? 'flex' : 'none', 
+          width: isDesktop ? '50%' : '100%',
+          display: (isDesktop || activeTab === 'editor') ? 'flex' : 'none',
           flexDirection: 'column',
-          backgroundColor: '#fafafa', 
+          backgroundColor: '#CECDE2',
         }}>
           <div style={{
-            padding: '16px 24px',
-            borderBottom: '1px solid #e2e8f0',
-            backgroundColor: '#ffffff',
+            padding: 'clamp(0.75rem, 2vw, 1.25rem)',
+            backgroundColor: 'white',
+            border: '4px solid #212529',
+            borderLeft: 'none',
+            borderRight: 'none',
+            borderTop: 'none',
+            boxShadow: '0 4px 0px #212529',
           }}>
             <h2 style={{
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              color: '#1f2937',
+              fontSize: 'clamp(0.65rem, 1.8vw, 0.85rem)',
+              fontWeight: 'bold',
+              color: '#212529',
               margin: 0,
+              textShadow: '2px 2px 0px rgba(33, 37, 41, 0.1)',
             }}>
-              Code Editor
+              💻 Code Editor
             </h2>
             <p style={{
-              fontSize: '0.9rem',
+              fontSize: 'clamp(0.5rem, 1.2vw, 0.6rem)',
               color: '#6b7280',
-              margin: '4px 0 0 0',
+              margin: '0.5rem 0 0 0',
             }}>
-              Write your solution below and test it before submitting
+              Write and submit your solution
             </p>
           </div>
-          
 
           <div style={{ flex: 1, minHeight: '400px' }}>
             <CodeEditor
@@ -761,7 +569,16 @@ const ProblemViewPage: React.FC = () => {
         </div>
       </div>
 
-      {renderSubmissionModal()}
+      {showSubmissionTracker && trackingSubmissionId && (
+        <SubmissionTracker
+          submissionId={trackingSubmissionId}
+          onClose={() => {
+            setShowSubmissionTracker(false);
+            setTrackingSubmissionId(null);
+          }}
+          autoClose={false}
+        />
+      )}
       </div>
     </>
   );

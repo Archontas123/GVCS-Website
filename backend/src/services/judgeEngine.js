@@ -3,6 +3,8 @@ const ExecutionMonitor = require('./executionMonitor');
 const { db } = require('../utils/db');
 const fs = require('fs').promises;
 const path = require('path');
+const redis = require('../config/redis');
+const pushNotificationService = require('./pushNotificationService');
 
 /**
  * Judge Engine Service for executing and evaluating code submissions
@@ -72,15 +74,6 @@ class JudgeEngine {
     };
 
     try {
-      // Notify compilation start
-      await this.broadcastVerdictUpdate({
-        submissionId,
-        teamId,
-        contestId,
-        problemId,
-        status: 'compiling'
-      });
-
       // Step 1: Compile code if necessary (for LeetCode-style, use template)
       const compileResult = await this.compileLeetCodeStyle(problemId, code, language, timeLimit);
       if (!compileResult.success) {
@@ -91,32 +84,12 @@ class JudgeEngine {
           stage: 'compilation'
         });
 
-        // Broadcast compilation error
-        await this.broadcastSubmissionResult({
-          ...judgeResult,
-          submissionId,
-          teamId,
-          contestId,
-          problemId,
-          language
-        });
-
         // CE doesn't count as attempt
         await this.updateSubmissionResult(submissionId, judgeResult, false);
         return judgeResult;
       }
 
       judgeResult.compilationTime = compileResult.executionTime || 0;
-      
-      // Notify judging start
-      await this.broadcastVerdictUpdate({
-        submissionId,
-        teamId,
-        contestId,
-        problemId,
-        status: 'judging',
-        totalTestCases: testCases.length
-      });
 
       // Step 2: Run all test cases (LeetCode-style function execution)
       const testResult = await this.runAllTestCasesLeetCodeStyle(
@@ -137,16 +110,23 @@ class JudgeEngine {
       }
 
       await this.updateSubmissionResult(submissionId, judgeResult, true);
-      
-      await this.broadcastSubmissionResult({
-        ...judgeResult,
+
+      // Clear Redis cache for this submission
+      await this.clearSubmissionCache(submissionId);
+
+      // Send push notification
+      await this.notifySubmissionComplete({
         submissionId,
         teamId,
         contestId,
         problemId,
-        language
+        problemLetter: problem?.problemLetter,
+        verdict: judgeResult.verdict,
+        result: judgeResult.verdict,
+        status: judgeResult.verdict === 'Accepted' ? 'accepted' : judgeResult.verdict.toLowerCase().replace(/ /g, '_'),
+        executionTime: judgeResult.executionTime
       });
-      
+
       return judgeResult;
 
     } catch (error) {
@@ -906,30 +886,25 @@ class JudgeEngine {
     this.performanceMonitor.resetPerformanceStats();
   }
 
-
   /**
-   * Broadcast submission result via WebSocket
-   * @param {Object} submissionResult - Complete judging result
+   * Clear Redis cache for a submission
    */
-  async broadcastSubmissionResult(submissionResult) {
+  async clearSubmissionCache(submissionId) {
     try {
-      const websocketService = require('./websocketService');
-      await websocketService.broadcastSubmissionResult(submissionResult);
+      await redis.del(`submission:status:${submissionId}`);
     } catch (error) {
-      console.error('Failed to broadcast submission result:', error);
+      console.error('Failed to clear submission cache:', error);
     }
   }
 
   /**
-   * Broadcast verdict update via WebSocket
-   * @param {Object} verdictUpdate - Partial judging status
+   * Send push notification for completed submission
    */
-  async broadcastVerdictUpdate(verdictUpdate) {
+  async notifySubmissionComplete(submission) {
     try {
-      const websocketService = require('./websocketService');
-      await websocketService.broadcastVerdictUpdate(verdictUpdate);
+      await pushNotificationService.notifySubmissionComplete(submission);
     } catch (error) {
-      console.error('Failed to broadcast verdict update:', error);
+      console.error('Failed to send push notification:', error);
     }
   }
 }

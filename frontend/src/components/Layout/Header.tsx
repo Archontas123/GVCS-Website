@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import NotificationSystem from '../NotificationSystem';
-import ConnectionStatus from '../ConnectionStatus';
 import '../../styles/theme.css';
 
 interface HeaderProps {
@@ -299,19 +297,6 @@ const Header: React.FC<HeaderProps> = ({
         )}
       </div>
 
-      {contestName && !isMobile && (
-        <div style={{ margin: '0 24px' }}>
-          <span style={{ 
-            fontSize: '0.95rem',
-            color: '#64748b',
-            fontWeight: 500,
-            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-          }}>
-            {contestName}
-          </span>
-        </div>
-      )}
-
       <div style={{ flexGrow: 1 }} />
 
       {displayTime && (
@@ -337,9 +322,6 @@ const Header: React.FC<HeaderProps> = ({
       {isAuthenticated ? (
         <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
           {!isMobile && <NavigationButtons />}
-
-          <ConnectionStatus compact />
-          <NotificationSystem contestId={contestId} />
 
           {isMobile && (
             <button

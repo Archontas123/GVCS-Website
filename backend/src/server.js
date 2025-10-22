@@ -39,7 +39,6 @@ const winston = require('winston');
 const { testConnection } = require('./utils/db');
 const { startSessionCleanupInterval } = require('./services/sessionManager');
 const contestScheduler = require('./services/contestScheduler');
-const websocketService = require('./services/websocketService');
 const judgeQueueService = require('./services/judgeQueue');
 const performanceStatsStorage = require('./services/performanceStatsStorage');
 const { responseHelpers } = require('./utils/response');
@@ -756,7 +755,6 @@ process.on('SIGTERM', async () => {
     if (contestScheduler.getStatus().isRunning) {
       contestScheduler.stop();
     }
-    websocketService.shutdown();
     await judgeQueueService.shutdown();
   } catch (shutdownError) {
     logger.error('Error during shutdown:', shutdownError);
@@ -779,7 +777,6 @@ process.on('SIGINT', async () => {
     if (contestScheduler.getStatus().isRunning) {
       contestScheduler.stop();
     }
-    websocketService.shutdown();
     await judgeQueueService.shutdown();
   } catch (shutdownError) {
     logger.error('Error during shutdown:', shutdownError);
@@ -803,7 +800,6 @@ process.on('uncaughtException', async (error) => {
     if (contestScheduler.getStatus().isRunning) {
       contestScheduler.stop();
     }
-    websocketService.shutdown();
     await judgeQueueService.shutdown();
   } catch (shutdownError) {
     logger.error('Error during shutdown:', shutdownError);
@@ -835,7 +831,6 @@ process.on('unhandledRejection', async (reason, promise) => {
     if (contestScheduler.getStatus().isRunning) {
       contestScheduler.stop();
     }
-    websocketService.shutdown();
     await judgeQueueService.shutdown();
   } catch (shutdownError) {
     logger.error('Error during shutdown:', shutdownError);
@@ -876,8 +871,6 @@ if (process.env.NODE_ENV !== 'test') {
     try {
       await testConnection();
       startSessionCleanupInterval();
-
-      websocketService.initialize(server);
 
       // Contest scheduler disabled - all contests use manual control
       // Admins must manually start/end contests via API endpoints

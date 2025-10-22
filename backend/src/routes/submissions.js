@@ -19,9 +19,12 @@
 const express = require('express');
 const router = express.Router();
 const Joi = require('joi');
+const crypto = require('crypto');
 const { authenticateTeam } = require('../middleware/auth');
 const { testConnection, db } = require('../utils/db');
 const judgeQueueService = require('../services/judgeQueue');
+const redis = require('../config/redis');
+const pushNotificationService = require('../services/pushNotificationService');
 
 /**
  * @description Joi validation schemas for request validation
@@ -299,14 +302,31 @@ router.get('/:id/status', authenticateTeam, async (req, res) => {
     try {
         const submissionId = parseInt(req.params.id);
         const teamId = req.team.id;
-        
+
         if (!submissionId) {
             return res.status(400).json({
                 success: false,
                 error: 'Invalid submission ID'
             });
         }
-        
+
+        // Try Redis cache first
+        const cacheKey = `submission:status:${submissionId}`;
+        const cached = await redis.get(cacheKey);
+
+        if (cached) {
+            const data = JSON.parse(cached);
+
+            // Handle conditional requests with ETag
+            if (req.headers['if-none-match'] === data.etag) {
+                return res.status(304).end(); // Not Modified
+            }
+
+            res.setHeader('ETag', data.etag);
+            res.setHeader('Cache-Control', 'no-cache');
+            return res.json(data);
+        }
+
         // Get submission from database
         const submission = await db('submissions')
             .select('submissions.*', 'problems.problem_letter', 'problems.title')
@@ -314,23 +334,23 @@ router.get('/:id/status', authenticateTeam, async (req, res) => {
             .where('submissions.id', submissionId)
             .where('submissions.team_id', teamId) // Ensure team can only see their own submissions
             .first();
-            
+
         if (!submission) {
             return res.status(404).json({
                 success: false,
                 error: 'Submission not found'
             });
         }
-        
+
         let queueInfo = null;
-        
+
         // If submission is still pending, try to get queue information
         if (submission.status === 'pending') {
             try {
                 const queueStats = await judgeQueueService.getQueueStats();
                 if (queueStats) {
                     queueInfo = {
-                        position: 'unknown', // Would need to track job IDs to determine exact position
+                        position: 'unknown',
                         estimatedWaitTime: estimateWaitTime(queueStats),
                         activeWorkers: queueStats.workers.length,
                         queueLength: queueStats.waiting
@@ -340,8 +360,8 @@ router.get('/:id/status', authenticateTeam, async (req, res) => {
                 console.error('Error getting queue info:', queueError);
             }
         }
-        
-        res.json({
+
+        const responseData = {
             success: true,
             data: {
                 submissionId: submission.id,
@@ -350,13 +370,35 @@ router.get('/:id/status', authenticateTeam, async (req, res) => {
                 language: submission.language,
                 status: submission.status,
                 result: submission.result,
+                verdict: submission.result,
                 submissionTime: submission.submitted_at,
                 judgedAt: submission.judged_at,
                 executionTime: submission.execution_time,
                 memoryUsed: submission.memory_used,
                 queueInfo: queueInfo
             }
-        });
+        };
+
+        // Generate ETag
+        const etag = crypto
+            .createHash('md5')
+            .update(JSON.stringify(responseData.data))
+            .digest('hex');
+
+        responseData.etag = etag;
+
+        // Cache with appropriate TTL
+        // Pending/judging: 2 seconds, Final states: 5 minutes
+        const isFinal = ['accepted', 'wrong_answer', 'time_limit_exceeded',
+                        'runtime_error', 'compilation_error', 'memory_limit_exceeded']
+            .includes(submission.status);
+        const ttl = isFinal ? 300 : 2;
+
+        await redis.setex(cacheKey, ttl, JSON.stringify(responseData));
+
+        res.setHeader('ETag', etag);
+        res.setHeader('Cache-Control', 'no-cache');
+        res.json(responseData);
     } catch (error) {
         console.error('Error getting submission status:', error);
         res.status(500).json({
@@ -810,5 +852,100 @@ function estimateWaitTime(queueStats = null) {
     
     return '> 5 minutes';
 }
+
+/**
+ * @route POST /api/submissions/notifications/subscribe
+ * @description Subscribe to push notifications for submission updates
+ */
+router.post('/notifications/subscribe', authenticateTeam, async (req, res) => {
+    try {
+        const { subscription } = req.body;
+        const teamId = req.team.id;
+
+        if (!subscription || !subscription.endpoint || !subscription.keys) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid subscription data'
+            });
+        }
+
+        const result = await pushNotificationService.saveSubscription(teamId, subscription);
+
+        if (result.success) {
+            res.json({
+                success: true,
+                message: 'Subscribed to push notifications'
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                error: 'Failed to save subscription'
+            });
+        }
+    } catch (error) {
+        console.error('Error subscribing to notifications:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to subscribe to notifications'
+        });
+    }
+});
+
+/**
+ * @route DELETE /api/submissions/notifications/unsubscribe
+ * @description Unsubscribe from push notifications
+ */
+router.delete('/notifications/unsubscribe', authenticateTeam, async (req, res) => {
+    try {
+        const { endpoint } = req.body;
+
+        if (!endpoint) {
+            return res.status(400).json({
+                success: false,
+                error: 'Endpoint required'
+            });
+        }
+
+        const result = await pushNotificationService.removeSubscription(endpoint);
+
+        if (result.success) {
+            res.json({
+                success: true,
+                message: 'Unsubscribed from push notifications'
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                error: 'Failed to unsubscribe'
+            });
+        }
+    } catch (error) {
+        console.error('Error unsubscribing from notifications:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to unsubscribe'
+        });
+    }
+});
+
+/**
+ * @route GET /api/submissions/notifications/vapid-public-key
+ * @description Get VAPID public key for push notification setup
+ */
+router.get('/notifications/vapid-public-key', (req, res) => {
+    const publicKey = process.env.VAPID_PUBLIC_KEY || '';
+
+    if (!publicKey) {
+        return res.status(503).json({
+            success: false,
+            error: 'Push notifications not configured'
+        });
+    }
+
+    res.json({
+        success: true,
+        publicKey: publicKey
+    });
+});
 
 module.exports = router;

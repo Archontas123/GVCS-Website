@@ -26,6 +26,7 @@ import LeaderboardPage from './pages/LeaderboardPage';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import ProblemTestPage from './pages/ProblemTestPage';
 import { createContestSlug } from './utils/contestUtils';
+import submissionTrackingService from './services/submissionTracking';
 
 function App() {
   const auth = useAuth();
@@ -45,7 +46,7 @@ function App() {
               'Content-Type': 'application/json',
             },
           });
-          
+
           if (response.ok) {
             const data = await response.json();
             if (data.success && data.data.timing) {
@@ -62,9 +63,9 @@ function App() {
       };
 
       fetchContestTimer();
-      
+
       const timerInterval = setInterval(updateTimer, 1000);
-      
+
       const syncInterval = setInterval(fetchContestTimer, 30000);
 
       return () => {
@@ -73,6 +74,26 @@ function App() {
       };
     }
   }, [auth.isAuthenticated, auth.team?.contestCode, auth.token]);
+
+  // Setup browser notifications when authenticated
+  useEffect(() => {
+    if (auth.isAuthenticated) {
+      // Request notification permission and subscribe to push notifications
+      const setupNotifications = async () => {
+        try {
+          const permission = await submissionTrackingService.requestNotificationPermission();
+          if (permission === 'granted') {
+            // Attempt to subscribe to push notifications (optional - won't fail if VAPID not configured)
+            await submissionTrackingService.subscribeToPushNotifications();
+          }
+        } catch (error) {
+          console.log('Browser notifications not available or setup failed:', error);
+        }
+      };
+
+      setupNotifications();
+    }
+  }, [auth.isAuthenticated]);
 
   if (auth.loading || adminAuth.loading) {
     return (
