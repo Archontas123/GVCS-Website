@@ -41,6 +41,7 @@ const { startSessionCleanupInterval } = require('./services/sessionManager');
 const contestScheduler = require('./services/contestScheduler');
 const judgeQueueService = require('./services/judgeQueue');
 const performanceStatsStorage = require('./services/performanceStatsStorage');
+const websocketService = require('./services/websocketService');
 const { responseHelpers } = require('./utils/response');
 const { 
   ValidationError, 
@@ -64,6 +65,7 @@ const app = express();
  * @constant {Object} server - The HTTP server instance
  */
 const server = http.createServer(app);
+websocketService.initialize(server);
 
 /**
  * Server port configuration from environment or default.
