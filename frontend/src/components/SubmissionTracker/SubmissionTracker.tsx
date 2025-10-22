@@ -301,6 +301,68 @@ const SubmissionTracker: React.FC<SubmissionTrackerProps> = ({
               </div>
             </div>
 
+            <div
+              style={{
+                backgroundColor: '#f8fafc',
+                border: '3px solid #212529',
+                padding: '0.75rem',
+                boxShadow: '3px 3px 0px #212529',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 'clamp(0.45rem, 1.2vw, 0.5rem)',
+                  color: '#6b7280',
+                  marginBottom: '0.5rem',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Memory
+              </div>
+              <div
+                style={{
+                  fontSize: 'clamp(0.55rem, 1.5vw, 0.65rem)',
+                  fontWeight: 'bold',
+                  color: '#212529',
+                }}
+              >
+                {status?.memoryUsed !== undefined && status?.memoryUsed !== null
+                  ? `${Math.round(status.memoryUsed)}MB`
+                  : '---'}
+              </div>
+            </div>
+
+            {status?.totalTestCases !== undefined && status?.totalTestCases !== null && (
+              <div
+                style={{
+                  backgroundColor: '#f8fafc',
+                  border: '3px solid #212529',
+                  padding: '0.75rem',
+                  boxShadow: '3px 3px 0px #212529',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 'clamp(0.45rem, 1.2vw, 0.5rem)',
+                    color: '#6b7280',
+                    marginBottom: '0.5rem',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Tests
+                </div>
+                <div
+                  style={{
+                    fontSize: 'clamp(0.55rem, 1.5vw, 0.65rem)',
+                    fontWeight: 'bold',
+                    color: '#212529',
+                  }}
+                >
+                  {status.testCasesPassed || 0}/{status.totalTestCases}
+                </div>
+              </div>
+            )}
+
             {status?.queueInfo && (
               <div
                 style={{
@@ -354,6 +416,130 @@ const SubmissionTracker: React.FC<SubmissionTrackerProps> = ({
                 ⏱ Wait time: {status.queueInfo.estimatedWaitTime}
               </div>
             </div>
+          )}
+
+          {/* Error Details Section */}
+          {isComplete && status?.judgeOutput && (
+            <>
+              {/* Compilation Error */}
+              {status.status === 'compilation_error' && status.judgeOutput.testCases && status.judgeOutput.testCases.length > 0 && status.judgeOutput.testCases[0].error && (
+                <div
+                  style={{
+                    backgroundColor: '#dbeafe',
+                    border: '3px solid #3b82f6',
+                    padding: '1rem',
+                    marginBottom: '1.5rem',
+                    boxShadow: '3px 3px 0px #212529',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 'clamp(0.5rem, 1.3vw, 0.6rem)',
+                      fontWeight: 'bold',
+                      color: '#1e40af',
+                      marginBottom: '0.75rem',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Compilation Error
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 'clamp(0.45rem, 1.2vw, 0.55rem)',
+                      color: '#1e40af',
+                      lineHeight: '1.6',
+                      fontFamily: 'monospace',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                    }}
+                  >
+                    {status.judgeOutput.testCases[0].error}
+                  </div>
+                </div>
+              )}
+
+              {/* Runtime/Logic Errors from Failed Test Cases */}
+              {status.status !== 'compilation_error' && status.status !== 'accepted' && status.judgeOutput.testCases && (
+                <div
+                  style={{
+                    backgroundColor: '#fed7aa',
+                    border: '3px solid #ea580c',
+                    padding: '1rem',
+                    marginBottom: '1.5rem',
+                    boxShadow: '3px 3px 0px #212529',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 'clamp(0.5rem, 1.3vw, 0.6rem)',
+                      fontWeight: 'bold',
+                      color: '#7c2d12',
+                      marginBottom: '0.75rem',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Error Details
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {status.judgeOutput.testCases
+                      .filter(tc => tc.error || !tc.passed)
+                      .slice(0, 3) // Show only first 3 failed test cases
+                      .map((testCase, index) => (
+                        <div
+                          key={index}
+                          style={{
+                            backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                            border: '2px solid #7c2d12',
+                            padding: '0.75rem',
+                            borderRadius: '4px',
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: 'clamp(0.45rem, 1.2vw, 0.55rem)',
+                              fontWeight: 'bold',
+                              color: '#7c2d12',
+                              marginBottom: '0.5rem',
+                            }}
+                          >
+                            {testCase.testCase || `Test Case ${index + 1}`}
+                          </div>
+                          {testCase.error && (
+                            <div
+                              style={{
+                                fontSize: 'clamp(0.4rem, 1.1vw, 0.5rem)',
+                                color: '#7c2d12',
+                                lineHeight: '1.5',
+                                fontFamily: 'monospace',
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                                marginTop: '0.5rem',
+                              }}
+                            >
+                              {testCase.error}
+                            </div>
+                          )}
+                          {!testCase.error && !testCase.passed && testCase.output !== testCase.expectedOutput && (
+                            <div
+                              style={{
+                                fontSize: 'clamp(0.4rem, 1.1vw, 0.5rem)',
+                                color: '#7c2d12',
+                                lineHeight: '1.5',
+                              }}
+                            >
+                              Expected: {JSON.stringify(testCase.expectedOutput)}
+                              <br />
+                              Got: {JSON.stringify(testCase.output)}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {/* Buttons */}

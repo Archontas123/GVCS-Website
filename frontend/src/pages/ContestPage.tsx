@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MdTimer, MdEmojiEvents, MdDescription } from 'react-icons/md';
-import { Problem } from '../types';
+import { Problem, Submission } from '../types';
 import apiService from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 
@@ -16,13 +16,21 @@ interface ContestProblem extends Problem {
   isSolved?: boolean;
 }
 
+interface SubmissionWithDetails extends Submission {
+  problemLetter?: string;
+  problemTitle?: string;
+}
+
 const ContestPage: React.FC = () => {
   const { contestSlug } = useParams<{ contestSlug: string }>();
   const navigate = useNavigate();
   const { team } = useAuth();
 
   const [problems, setProblems] = useState<ContestProblem[]>([]);
+  const [submissions, setSubmissions] = useState<SubmissionWithDetails[]>([]);
+  const [activeTab, setActiveTab] = useState<'problems' | 'submissions'>('problems');
   const [loading, setLoading] = useState(true);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [contestName, setContestName] = useState<string>('');
   const [contestId, setContestId] = useState<number | null>(null);
@@ -94,12 +102,103 @@ const ContestPage: React.FC = () => {
     }
   };
 
+  const fetchSubmissions = async () => {
+    if (!team || !contestId) return;
+
+    setSubmissionsLoading(true);
+    try {
+      const response = await apiService.getTeamSubmissions(team.id, { contestId });
+
+      if (response.success && response.data?.submissions) {
+        // Enrich submissions with problem details
+        const enrichedSubmissions = response.data.submissions.map((sub: any) => {
+          const problem = problems.find(p => p.id === (sub.problemId ?? sub.problem_id));
+          return {
+            ...sub,
+            id: sub.id,
+            teamId: sub.teamId ?? sub.team_id,
+            problemId: sub.problemId ?? sub.problem_id,
+            language: sub.language,
+            code: sub.code || '',
+            status: sub.status,
+            submissionTime: sub.submissionTime ?? sub.submission_time,
+            executionTime: sub.executionTime ?? sub.execution_time,
+            memoryUsed: sub.memoryUsed ?? sub.memory_used,
+            judgedAt: sub.judgedAt ?? sub.judged_at,
+            problemLetter: problem?.problemLetter || sub.problem_letter,
+            problemTitle: problem?.title || sub.problem_title,
+          };
+        });
+
+        setSubmissions(enrichedSubmissions);
+      }
+    } catch (err) {
+      console.error('Failed to fetch submissions:', err);
+    } finally {
+      setSubmissionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'submissions' && contestId && team) {
+      fetchSubmissions();
+    }
+  }, [activeTab, contestId, team]);
+
   const handleProblemClick = (problem: ContestProblem) => {
     navigate(`/problem/${problem.id}`);
   };
 
   const handleBackToDashboard = () => {
     navigate('/');
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'accepted':
+      case 'ac':
+        return { bg: '#D4F1D4', color: '#065f46', border: '#22c55e' };
+      case 'wrong_answer':
+      case 'wa':
+        return { bg: '#FFCCCC', color: '#991b1b', border: '#dc2626' };
+      case 'time_limit_exceeded':
+      case 'tle':
+        return { bg: '#FFF4CC', color: '#92400e', border: '#d97706' };
+      case 'memory_limit_exceeded':
+      case 'mle':
+        return { bg: '#FFF4CC', color: '#92400e', border: '#d97706' };
+      case 'runtime_error':
+      case 'rte':
+        return { bg: '#fed7aa', color: '#7c2d12', border: '#ea580c' };
+      case 'compilation_error':
+      case 'ce':
+        return { bg: '#dbeafe', color: '#1e40af', border: '#3b82f6' };
+      case 'pending':
+      case 'judging':
+        return { bg: '#f3f4f6', color: '#374151', border: '#6b7280' };
+      default:
+        return { bg: '#f3f4f6', color: '#374151', border: '#6b7280' };
+    }
+  };
+
+  const formatStatus = (status: string) => {
+    const statusMap: Record<string, string> = {
+      'accepted': 'Accepted',
+      'ac': 'Accepted',
+      'wrong_answer': 'Wrong Answer',
+      'wa': 'Wrong Answer',
+      'time_limit_exceeded': 'Time Limit',
+      'tle': 'Time Limit',
+      'memory_limit_exceeded': 'Memory Limit',
+      'mle': 'Memory Limit',
+      'runtime_error': 'Runtime Error',
+      'rte': 'Runtime Error',
+      'compilation_error': 'Compile Error',
+      'ce': 'Compile Error',
+      'pending': 'Pending',
+      'judging': 'Judging',
+    };
+    return statusMap[status?.toLowerCase()] || status;
   };
 
   if (loading) {
@@ -281,7 +380,7 @@ const ContestPage: React.FC = () => {
               gap: '2rem',
               flexWrap: 'wrap',
             }}>
-              <div>
+              <div style={{ flex: 1 }}>
                 <h1 style={{
                   margin: 0,
                   color: 'white',
@@ -299,6 +398,48 @@ const ContestPage: React.FC = () => {
                 }}>
                   {problems.length} problem{problems.length !== 1 ? 's' : ''} available
                 </p>
+
+                {/* Tabs */}
+                {team && (
+                  <div style={{
+                    display: 'flex',
+                    gap: '12px',
+                    marginTop: '1.5rem',
+                  }}>
+                    <button
+                      onClick={() => setActiveTab('problems')}
+                      style={{
+                        border: activeTab === 'problems' ? '4px solid #212529' : '3px solid rgba(255,255,255,0.3)',
+                        backgroundColor: activeTab === 'problems' ? 'white' : 'rgba(255,255,255,0.1)',
+                        color: activeTab === 'problems' ? '#212529' : 'white',
+                        boxShadow: activeTab === 'problems' ? '4px 4px 0px #212529' : 'none',
+                        fontSize: 'clamp(0.55rem, 1.5vw, 0.7rem)',
+                        padding: '0.75rem 1.25rem',
+                        cursor: 'pointer',
+                        fontFamily: "'Press Start 2P', cursive",
+                        transition: 'all 0.15s ease-in-out',
+                      }}
+                    >
+                      Problems
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('submissions')}
+                      style={{
+                        border: activeTab === 'submissions' ? '4px solid #212529' : '3px solid rgba(255,255,255,0.3)',
+                        backgroundColor: activeTab === 'submissions' ? 'white' : 'rgba(255,255,255,0.1)',
+                        color: activeTab === 'submissions' ? '#212529' : 'white',
+                        boxShadow: activeTab === 'submissions' ? '4px 4px 0px #212529' : 'none',
+                        fontSize: 'clamp(0.55rem, 1.5vw, 0.7rem)',
+                        padding: '0.75rem 1.25rem',
+                        cursor: 'pointer',
+                        fontFamily: "'Press Start 2P', cursive",
+                        transition: 'all 0.15s ease-in-out',
+                      }}
+                    >
+                      Submissions
+                    </button>
+                  </div>
+                )}
               </div>
               <div style={{
                 display: 'flex',
@@ -369,41 +510,42 @@ const ContestPage: React.FC = () => {
             margin: '0 auto',
             padding: '0 1.5rem',
           }}>
-            {problems.length === 0 ? (
-              <div style={{
-                backgroundColor: 'white',
-                border: '4px solid #212529',
-                boxShadow: '8px 8px 0px #212529',
-                padding: '4rem 2rem',
-                textAlign: 'center',
-                animation: 'slideUp 0.5s ease-out',
-              }}>
-                <h3 style={{
-                  margin: '0 0 1rem 0',
-                  color: '#212529',
-                  fontSize: 'clamp(1rem, 2.5vw, 1.3rem)',
-                }}>
-                  No Problems Available Yet
-                </h3>
-                <p style={{
-                  margin: 0,
-                  color: '#6b7280',
-                  fontSize: 'clamp(0.6rem, 1.5vw, 0.75rem)',
-                  lineHeight: '1.8',
-                }}>
-                  The contest organizer hasn't added any problems to this contest yet.
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* Problems Grid */}
+            {activeTab === 'problems' ? (
+              problems.length === 0 ? (
                 <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 350px), 1fr))',
-                  gap: '2rem',
-                  marginBottom: '3rem',
+                  backgroundColor: 'white',
+                  border: '4px solid #212529',
+                  boxShadow: '8px 8px 0px #212529',
+                  padding: '4rem 2rem',
+                  textAlign: 'center',
+                  animation: 'slideUp 0.5s ease-out',
                 }}>
-                  {problems.map((problem, index) => (
+                  <h3 style={{
+                    margin: '0 0 1rem 0',
+                    color: '#212529',
+                    fontSize: 'clamp(1rem, 2.5vw, 1.3rem)',
+                  }}>
+                    No Problems Available Yet
+                  </h3>
+                  <p style={{
+                    margin: 0,
+                    color: '#6b7280',
+                    fontSize: 'clamp(0.6rem, 1.5vw, 0.75rem)',
+                    lineHeight: '1.8',
+                  }}>
+                    The contest organizer hasn't added any problems to this contest yet.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Problems Grid */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 350px), 1fr))',
+                    gap: '2rem',
+                    marginBottom: '3rem',
+                  }}>
+                    {problems.map((problem, index) => (
                     <div
                       key={problem.id}
                       className="problem-card-hover"
@@ -551,9 +693,273 @@ const ContestPage: React.FC = () => {
                         </div>
                       )}
                     </div>
-                  ))}
-                </div>
-              </>
+                    ))}
+                  </div>
+                </>
+              )
+            ) : (
+              /* Submissions View */
+              <div style={{
+                backgroundColor: 'white',
+                border: '4px solid #212529',
+                boxShadow: '8px 8px 0px #212529',
+                animation: 'slideUp 0.3s ease-out',
+              }}>
+                {!team ? (
+                  <div style={{
+                    padding: '4rem 2rem',
+                    textAlign: 'center',
+                  }}>
+                    <h3 style={{
+                      margin: '0 0 1rem 0',
+                      color: '#212529',
+                      fontSize: 'clamp(1rem, 2.5vw, 1.3rem)',
+                    }}>
+                      Sign In to View Submissions
+                    </h3>
+                    <p style={{
+                      margin: 0,
+                      color: '#6b7280',
+                      fontSize: 'clamp(0.6rem, 1.5vw, 0.75rem)',
+                      lineHeight: '1.8',
+                    }}>
+                      You need to be signed in to view your team's submissions.
+                    </p>
+                  </div>
+                ) : submissionsLoading ? (
+                  <div style={{
+                    padding: '4rem 2rem',
+                    textAlign: 'center',
+                  }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      border: '4px solid transparent',
+                      borderTop: '4px solid #212529',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                      margin: '0 auto 20px',
+                    }}></div>
+                    <p style={{
+                      color: '#212529',
+                      fontSize: '0.7rem',
+                    }}>Loading submissions...</p>
+                  </div>
+                ) : submissions.length === 0 ? (
+                  <div style={{
+                    padding: '4rem 2rem',
+                    textAlign: 'center',
+                  }}>
+                    <h3 style={{
+                      margin: '0 0 1rem 0',
+                      color: '#212529',
+                      fontSize: 'clamp(1rem, 2.5vw, 1.3rem)',
+                    }}>
+                      No Submissions Yet
+                    </h3>
+                    <p style={{
+                      margin: 0,
+                      color: '#6b7280',
+                      fontSize: 'clamp(0.6rem, 1.5vw, 0.75rem)',
+                      lineHeight: '1.8',
+                    }}>
+                      You haven't submitted any solutions for this contest yet.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{
+                      width: '100%',
+                      borderCollapse: 'separate',
+                      borderSpacing: 0,
+                    }}>
+                      <thead>
+                        <tr style={{
+                          backgroundColor: '#2D58A6',
+                          color: 'white',
+                        }}>
+                          <th style={{
+                            padding: '1rem',
+                            textAlign: 'left',
+                            fontSize: 'clamp(0.6rem, 1.5vw, 0.75rem)',
+                            fontWeight: 'bold',
+                            borderBottom: '3px solid #212529',
+                            textShadow: '2px 2px 0px #212529',
+                          }}>ID</th>
+                          <th style={{
+                            padding: '1rem',
+                            textAlign: 'left',
+                            fontSize: 'clamp(0.6rem, 1.5vw, 0.75rem)',
+                            fontWeight: 'bold',
+                            borderBottom: '3px solid #212529',
+                            textShadow: '2px 2px 0px #212529',
+                          }}>Problem</th>
+                          <th style={{
+                            padding: '1rem',
+                            textAlign: 'left',
+                            fontSize: 'clamp(0.6rem, 1.5vw, 0.75rem)',
+                            fontWeight: 'bold',
+                            borderBottom: '3px solid #212529',
+                            textShadow: '2px 2px 0px #212529',
+                          }}>Language</th>
+                          <th style={{
+                            padding: '1rem',
+                            textAlign: 'left',
+                            fontSize: 'clamp(0.6rem, 1.5vw, 0.75rem)',
+                            fontWeight: 'bold',
+                            borderBottom: '3px solid #212529',
+                            textShadow: '2px 2px 0px #212529',
+                          }}>Status</th>
+                          <th style={{
+                            padding: '1rem',
+                            textAlign: 'left',
+                            fontSize: 'clamp(0.6rem, 1.5vw, 0.75rem)',
+                            fontWeight: 'bold',
+                            borderBottom: '3px solid #212529',
+                            textShadow: '2px 2px 0px #212529',
+                          }}>Time</th>
+                          <th style={{
+                            padding: '1rem',
+                            textAlign: 'left',
+                            fontSize: 'clamp(0.6rem, 1.5vw, 0.75rem)',
+                            fontWeight: 'bold',
+                            borderBottom: '3px solid #212529',
+                            textShadow: '2px 2px 0px #212529',
+                          }}>Memory</th>
+                          <th style={{
+                            padding: '1rem',
+                            textAlign: 'left',
+                            fontSize: 'clamp(0.6rem, 1.5vw, 0.75rem)',
+                            fontWeight: 'bold',
+                            borderBottom: '3px solid #212529',
+                            textShadow: '2px 2px 0px #212529',
+                          }}>Submitted</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {submissions.map((submission, index) => {
+                          const statusColors = getStatusColor(submission.status);
+                          return (
+                            <tr
+                              key={submission.id}
+                              style={{
+                                backgroundColor: index % 2 === 0 ? 'white' : '#f9fafb',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.15s',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#E8F0FE';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = index % 2 === 0 ? 'white' : '#f9fafb';
+                              }}
+                              onClick={() => navigate(`/problem/${submission.problemId}`)}
+                            >
+                              <td style={{
+                                padding: '1rem',
+                                fontSize: 'clamp(0.6rem, 1.5vw, 0.7rem)',
+                                color: '#6b7280',
+                                borderBottom: '1px solid #e5e7eb',
+                              }}>
+                                #{submission.id}
+                              </td>
+                              <td style={{
+                                padding: '1rem',
+                                fontSize: 'clamp(0.6rem, 1.5vw, 0.7rem)',
+                                borderBottom: '1px solid #e5e7eb',
+                              }}>
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.5rem',
+                                }}>
+                                  <span style={{
+                                    backgroundColor: '#2D58A6',
+                                    color: 'white',
+                                    border: '2px solid #212529',
+                                    width: '30px',
+                                    height: '30px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 'bold',
+                                    boxShadow: '2px 2px 0px #212529',
+                                  }}>
+                                    {submission.problemLetter || '?'}
+                                  </span>
+                                  <span style={{
+                                    color: '#212529',
+                                    fontWeight: 'bold',
+                                  }}>
+                                    {submission.problemTitle || `Problem ${submission.problemId}`}
+                                  </span>
+                                </div>
+                              </td>
+                              <td style={{
+                                padding: '1rem',
+                                fontSize: 'clamp(0.6rem, 1.5vw, 0.7rem)',
+                                color: '#212529',
+                                textTransform: 'uppercase',
+                                fontWeight: 'bold',
+                                borderBottom: '1px solid #e5e7eb',
+                              }}>
+                                {submission.language}
+                              </td>
+                              <td style={{
+                                padding: '1rem',
+                                borderBottom: '1px solid #e5e7eb',
+                              }}>
+                                <span style={{
+                                  display: 'inline-block',
+                                  padding: '0.4rem 0.8rem',
+                                  border: `3px solid ${statusColors.border}`,
+                                  backgroundColor: statusColors.bg,
+                                  color: statusColors.color,
+                                  fontSize: 'clamp(0.55rem, 1.5vw, 0.65rem)',
+                                  fontWeight: 'bold',
+                                  textTransform: 'uppercase',
+                                  boxShadow: '2px 2px 0px #212529',
+                                }}>
+                                  {formatStatus(submission.status)}
+                                </span>
+                              </td>
+                              <td style={{
+                                padding: '1rem',
+                                fontSize: 'clamp(0.6rem, 1.5vw, 0.7rem)',
+                                color: '#212529',
+                                borderBottom: '1px solid #e5e7eb',
+                              }}>
+                                {submission.executionTime !== null && submission.executionTime !== undefined
+                                  ? `${submission.executionTime}ms`
+                                  : '-'}
+                              </td>
+                              <td style={{
+                                padding: '1rem',
+                                fontSize: 'clamp(0.6rem, 1.5vw, 0.7rem)',
+                                color: '#212529',
+                                borderBottom: '1px solid #e5e7eb',
+                              }}>
+                                {submission.memoryUsed !== null && submission.memoryUsed !== undefined
+                                  ? `${Math.round(submission.memoryUsed / 1024)}MB`
+                                  : '-'}
+                              </td>
+                              <td style={{
+                                padding: '1rem',
+                                fontSize: 'clamp(0.6rem, 1.5vw, 0.7rem)',
+                                color: '#6b7280',
+                                borderBottom: '1px solid #e5e7eb',
+                              }}>
+                                {new Date(submission.submissionTime).toLocaleString()}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </main>

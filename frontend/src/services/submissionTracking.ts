@@ -28,6 +28,24 @@ export interface SubmissionStatus {
   judgedAt?: string;
   executionTime?: number;
   memoryUsed?: number;
+  testCasesPassed?: number;
+  totalTestCases?: number;
+  pointsEarned?: number;
+  judgeOutput?: {
+    testCases?: Array<{
+      testCase?: string;
+      passed?: boolean;
+      error?: string;
+      output?: string;
+      expectedOutput?: string;
+      executionTime?: number;
+      memoryUsed?: number;
+    }>;
+    compilationTime?: number;
+    testCasesRun?: number;
+    testCasesPassed?: number;
+    verdict?: string;
+  };
   queueInfo?: {
     position: string | number;
     estimatedWaitTime: string;

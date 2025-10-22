@@ -361,6 +361,18 @@ router.get('/:id/status', authenticateTeam, async (req, res) => {
             }
         }
 
+        // Parse judge_output if available
+        let judgeOutput = null;
+        if (submission.judge_output) {
+            try {
+                judgeOutput = typeof submission.judge_output === 'string'
+                    ? JSON.parse(submission.judge_output)
+                    : submission.judge_output;
+            } catch (parseError) {
+                console.error('Error parsing judge_output:', parseError);
+            }
+        }
+
         const responseData = {
             success: true,
             data: {
@@ -375,6 +387,10 @@ router.get('/:id/status', authenticateTeam, async (req, res) => {
                 judgedAt: submission.judged_at,
                 executionTime: submission.execution_time,
                 memoryUsed: submission.memory_used,
+                testCasesPassed: submission.test_cases_passed,
+                totalTestCases: submission.total_test_cases,
+                pointsEarned: submission.points_earned,
+                judgeOutput: judgeOutput,
                 queueInfo: queueInfo
             }
         };

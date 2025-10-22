@@ -284,7 +284,7 @@ function App() {
           <Route path="/*" element={
             <Layout
               teamName={auth.team?.teamName}
-              contestName="Hack The Valley 2025"
+              contestName=""
               timeRemaining={contestTimer}
               isAuthenticated={auth.isAuthenticated}
               onLogout={auth.logout}
