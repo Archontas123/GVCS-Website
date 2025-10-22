@@ -312,6 +312,24 @@ class MultiLangExecutor {
         child.stdin.end();
       }
 
+      child.on('error', (error) => {
+        clearTimeout(timer);
+        const executionTime = Date.now() - startTime;
+
+        console.error(
+          `[MultiLangExecutor] Failed to spawn ${command}: ${error.message}. PATH=${env.PATH}`
+        );
+
+        resolve({
+          success: false,
+          error: error.message,
+          executionTime,
+          memoryUsed: memoryPeak,
+          exitCode: -1,
+          signal: 'SPAWN_ERROR'
+        });
+      });
+
       // Handle process exit
       child.on('close', (code, signal) => {
         clearTimeout(timer);

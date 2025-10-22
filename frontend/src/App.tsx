@@ -271,6 +271,15 @@ function App() {
             }
           />
 
+          <Route
+            path="/contest/:contestSlug"
+            element={
+              <ProtectedRoute>
+                <ContestPage />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Team Routes wrapped in Layout */}
           <Route path="/*" element={
             <Layout
@@ -282,15 +291,6 @@ function App() {
               contestSlug={teamContestSlug || undefined}
             >
               <Routes>
-            <Route
-              path="/contest/:contestSlug"
-              element={
-                <ProtectedRoute>
-                  <ContestPage />
-                </ProtectedRoute>
-              }
-            />
-
             <Route
               path="/problem/:problemId"
               element={
