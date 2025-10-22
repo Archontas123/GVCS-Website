@@ -49,17 +49,6 @@ const HomePage: React.FC = () => {
           alignItems: 'center',
           textAlign: 'center',
         }}>
-          <h1 style={{
-            fontSize: 'clamp(2rem, 6vw, 4rem)',
-            fontWeight: 'bold',
-            color: 'white',
-            marginBottom: '64px',
-            letterSpacing: '0.05em',
-            textShadow: '4px 4px 0px #212529',
-          }}>
-            Hack The Valley
-          </h1>
-
           <button
             onClick={() => navigate('/join-contest')}
             style={{

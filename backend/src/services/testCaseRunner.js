@@ -276,7 +276,8 @@ class TestCaseRunner {
         error: executeResult.error || '',
         input: testCase.input,
         expectedOutput: testCase.expectedOutput,
-        outputMatches: verdict === 'Accepted'
+        outputMatches: verdict === 'Accepted',
+        isSample: testCase.is_sample || false
       };
 
     } catch (error) {
@@ -291,7 +292,8 @@ class TestCaseRunner {
         error: error.message,
         input: testCase.input,
         expectedOutput: testCase.expectedOutput,
-        outputMatches: false
+        outputMatches: false,
+        isSample: testCase.is_sample || false
       };
     }
   }

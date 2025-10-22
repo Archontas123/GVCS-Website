@@ -23,6 +23,7 @@ import ProblemsListPage from './pages/admin/problems/ProblemsListPage';
 import TeamDetailPage from './pages/admin/teams/TeamDetailPage';
 import ContestPage from './pages/ContestPage';
 import LeaderboardPage from './pages/LeaderboardPage';
+import SubmissionsPage from './pages/SubmissionsPage';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import ProblemTestPage from './pages/ProblemTestPage';
 import { createContestSlug } from './utils/contestUtils';
@@ -310,6 +311,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <LeaderboardPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/submissions"
+              element={
+                <ProtectedRoute>
+                  <SubmissionsPage />
                 </ProtectedRoute>
               }
             />

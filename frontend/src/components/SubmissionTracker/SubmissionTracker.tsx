@@ -418,7 +418,7 @@ const SubmissionTracker: React.FC<SubmissionTrackerProps> = ({
             </div>
           )}
 
-          {/* Error Details Section */}
+          {/* Test Case Breakdown Section */}
           {isComplete && status?.judgeOutput && (
             <>
               {/* Compilation Error */}
@@ -460,12 +460,12 @@ const SubmissionTracker: React.FC<SubmissionTrackerProps> = ({
                 </div>
               )}
 
-              {/* Runtime/Logic Errors from Failed Test Cases */}
-              {status.status !== 'compilation_error' && status.status !== 'accepted' && status.judgeOutput.testCases && (
+              {/* Comprehensive Test Case Breakdown */}
+              {status.status !== 'compilation_error' && status.judgeOutput.testCases && status.judgeOutput.testCases.length > 0 && (
                 <div
                   style={{
-                    backgroundColor: '#fed7aa',
-                    border: '3px solid #ea580c',
+                    backgroundColor: '#f3f4f6',
+                    border: '3px solid #212529',
                     padding: '1rem',
                     marginBottom: '1.5rem',
                     boxShadow: '3px 3px 0px #212529',
@@ -475,67 +475,139 @@ const SubmissionTracker: React.FC<SubmissionTrackerProps> = ({
                     style={{
                       fontSize: 'clamp(0.5rem, 1.3vw, 0.6rem)',
                       fontWeight: 'bold',
-                      color: '#7c2d12',
+                      color: '#212529',
                       marginBottom: '0.75rem',
                       textTransform: 'uppercase',
                     }}
                   >
-                    Error Details
+                    Test Case Breakdown
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {status.judgeOutput.testCases
-                      .filter(tc => tc.error || !tc.passed)
-                      .slice(0, 3) // Show only first 3 failed test cases
-                      .map((testCase, index) => (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {status.judgeOutput.testCases.map((testCase: any, index: number) => {
+                      const isPassed = testCase.passed || testCase.verdict === 'Accepted' || testCase.outputMatches;
+                      const isSample = testCase.isSample;
+                      const hasError = !!testCase.error;
+
+                      // Determine background color based on status
+                      const bgColor = isPassed ? '#d1fae5' : (hasError ? '#fee2e2' : '#fed7aa');
+                      const borderColor = isPassed ? '#10b981' : (hasError ? '#ef4444' : '#ea580c');
+                      const textColor = isPassed ? '#065f46' : (hasError ? '#7f1d1d' : '#7c2d12');
+
+                      return (
                         <div
                           key={index}
                           style={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.5)',
-                            border: '2px solid #7c2d12',
+                            backgroundColor: bgColor,
+                            border: `2px solid ${borderColor}`,
                             padding: '0.75rem',
                             borderRadius: '4px',
                           }}
                         >
                           <div
                             style={{
-                              fontSize: 'clamp(0.45rem, 1.2vw, 0.55rem)',
-                              fontWeight: 'bold',
-                              color: '#7c2d12',
-                              marginBottom: '0.5rem',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              marginBottom: hasError || (!isPassed && !isSample) ? '0.5rem' : '0',
                             }}
                           >
-                            {testCase.testCase || `Test Case ${index + 1}`}
-                          </div>
-                          {testCase.error && (
+                            <div
+                              style={{
+                                fontSize: 'clamp(0.45rem, 1.2vw, 0.55rem)',
+                                fontWeight: 'bold',
+                                color: textColor,
+                              }}
+                            >
+                              {isSample ? '📝 ' : '🔒 '}
+                              {testCase.testCase || `Test Case #${index + 1}`}
+                              {isSample && ' (Sample)'}
+                            </div>
                             <div
                               style={{
                                 fontSize: 'clamp(0.4rem, 1.1vw, 0.5rem)',
-                                color: '#7c2d12',
+                                fontWeight: 'bold',
+                                color: textColor,
+                                padding: '0.25rem 0.5rem',
+                                backgroundColor: 'rgba(255, 255, 255, 0.6)',
+                                borderRadius: '3px',
+                              }}
+                            >
+                              {isPassed ? '✓ PASSED' : '✗ FAILED'}
+                            </div>
+                          </div>
+
+                          {/* Show error message if present */}
+                          {hasError && (
+                            <div
+                              style={{
+                                fontSize: 'clamp(0.4rem, 1.1vw, 0.5rem)',
+                                color: textColor,
                                 lineHeight: '1.5',
                                 fontFamily: 'monospace',
                                 whiteSpace: 'pre-wrap',
                                 wordBreak: 'break-word',
+                                backgroundColor: 'rgba(255, 255, 255, 0.4)',
+                                padding: '0.5rem',
+                                borderRadius: '3px',
                                 marginTop: '0.5rem',
                               }}
                             >
-                              {testCase.error}
+                              <strong>Error:</strong> {testCase.error}
                             </div>
                           )}
-                          {!testCase.error && !testCase.passed && testCase.output !== testCase.expectedOutput && (
+
+                          {/* Show input/output for sample test cases OR if there's an error in hidden test cases */}
+                          {!isPassed && (isSample || hasError) && !hasError && (
                             <div
                               style={{
                                 fontSize: 'clamp(0.4rem, 1.1vw, 0.5rem)',
-                                color: '#7c2d12',
+                                color: textColor,
                                 lineHeight: '1.5',
+                                fontFamily: 'monospace',
+                                backgroundColor: 'rgba(255, 255, 255, 0.4)',
+                                padding: '0.5rem',
+                                borderRadius: '3px',
+                                marginTop: '0.5rem',
                               }}
                             >
-                              Expected: {JSON.stringify(testCase.expectedOutput)}
-                              <br />
-                              Got: {JSON.stringify(testCase.output)}
+                              <div><strong>Expected:</strong> {testCase.expectedOutput || testCase.expected_output || 'N/A'}</div>
+                              <div style={{ marginTop: '0.25rem' }}><strong>Got:</strong> {testCase.output || 'N/A'}</div>
+                            </div>
+                          )}
+
+                          {/* For hidden test cases that failed without error, just show the verdict */}
+                          {!isPassed && !isSample && !hasError && (
+                            <div
+                              style={{
+                                fontSize: 'clamp(0.4rem, 1.1vw, 0.5rem)',
+                                color: textColor,
+                                lineHeight: '1.5',
+                                fontStyle: 'italic',
+                                marginTop: '0.5rem',
+                              }}
+                            >
+                              Hidden test case - {testCase.verdict || 'Wrong Answer'}
+                            </div>
+                          )}
+
+                          {/* Show execution metrics */}
+                          {(testCase.executionTime !== undefined || testCase.memoryUsed !== undefined) && (
+                            <div
+                              style={{
+                                fontSize: 'clamp(0.35rem, 1.0vw, 0.45rem)',
+                                color: textColor,
+                                marginTop: '0.5rem',
+                                opacity: 0.8,
+                              }}
+                            >
+                              {testCase.executionTime !== undefined && `⏱️ ${testCase.executionTime}ms`}
+                              {testCase.executionTime !== undefined && testCase.memoryUsed !== undefined && ' | '}
+                              {testCase.memoryUsed !== undefined && `💾 ${testCase.memoryUsed}MB`}
                             </div>
                           )}
                         </div>
-                      ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
