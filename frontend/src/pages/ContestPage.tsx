@@ -41,18 +41,27 @@ const ContestPage: React.FC = () => {
     try {
       const response = await apiService.getContestProblemsBySlug(slug);
       if (response.success) {
-        let problemsData = response.data;
+        let problemsData = response.data || [];
+        const firstProblem = problemsData.length > 0 ? (problemsData[0] as any) : null;
+        const derivedContestId = firstProblem?.contestId ?? firstProblem?.contest_id ?? null;
 
         // If user is authenticated, fetch solved status from team's submissions
-        if (team) {
+        if (team && team.id) {
           try {
-            // Get team's submissions to determine solved status
-            const submissionsResponse = await apiService.getTeamSubmissions();
-            if (submissionsResponse.success && submissionsResponse.data) {
+            const submissionsResponse = await apiService.getTeamSubmissions(
+              team.id,
+              derivedContestId ? { contestId: derivedContestId } : undefined
+            );
+
+            if (submissionsResponse.success && submissionsResponse.data?.submissions) {
               const solvedProblemIds = new Set(
-                submissionsResponse.data
-                  .filter((sub: any) => sub.status === 'accepted')
-                  .map((sub: any) => sub.problemId)
+                submissionsResponse.data.submissions
+                  .filter((sub: any) => {
+                    const status = (sub.status || '').toString().toLowerCase();
+                    return status === 'accepted' || status === 'ac';
+                  })
+                  .map((sub: any) => sub.problemId ?? sub.problem_id)
+                  .filter((id: any) => typeof id === 'number')
               );
 
               // Mark problems as solved
@@ -69,8 +78,7 @@ const ContestPage: React.FC = () => {
 
         setProblems(problemsData);
         if (problemsData.length > 0) {
-          const firstProblem = problemsData[0] as any;
-          setContestId(firstProblem.contestId ?? firstProblem.contest_id ?? null);
+          setContestId(derivedContestId);
           setContestName(slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
         } else {
           setContestId(null);
@@ -93,7 +101,7 @@ const ContestPage: React.FC = () => {
   };
 
   const handleBackToDashboard = () => {
-    navigate('/dashboard');
+    navigate('/');
   };
 
   if (loading) {
@@ -201,7 +209,7 @@ const ContestPage: React.FC = () => {
                 e.currentTarget.style.backgroundColor = '#2D58A6';
               }}
             >
-              Back to Dashboard
+              Back to Home
             </button>
           </div>
         </div>
@@ -349,7 +357,7 @@ const ContestPage: React.FC = () => {
                     e.currentTarget.style.backgroundColor = 'white';
                   }}
                 >
-                  ← Dashboard
+                  ← Home
                 </button>
               </div>
             </div>

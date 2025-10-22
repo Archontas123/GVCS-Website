@@ -27,7 +27,12 @@ const ProblemViewPage: React.FC = () => {
     success: boolean;
     submissionId?: number;
     message?: string;
-  } | null>(null); 
+    status?: string;
+    verdict?: string;
+    executionTime?: number | null;
+  } | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const [contestSlug, setContestSlug] = useState<string | null>(null); 
 
 
 
@@ -55,6 +60,16 @@ const ProblemViewPage: React.FC = () => {
       const response = await apiService.getProblem(parseInt(id));
       if (response.success) {
         setProblem(response.data);
+
+        // Try to get contest slug from team status
+        try {
+          const statusResponse = await apiService.getTeamStatus();
+          if (statusResponse.success && statusResponse.data.team.contestSlug) {
+            setContestSlug(statusResponse.data.team.contestSlug);
+          }
+        } catch (err) {
+          console.warn('Could not fetch contest slug:', err);
+        }
       } else {
         setError('Problem not found');
       }
@@ -71,7 +86,11 @@ const ProblemViewPage: React.FC = () => {
 
 
   const handleBack = () => {
-    navigate('/dashboard');
+    if (contestSlug) {
+      navigate(`/contest/${contestSlug}`);
+    } else {
+      navigate('/');
+    }
   };
 
   const handleGoToEditor = () => {
@@ -81,21 +100,26 @@ const ProblemViewPage: React.FC = () => {
 
   const handleSubmit = async (submitCode: string, submitLanguage: string) => {
     if (!problemId) return;
-    
+
     try {
       const response = await apiService.submitSolution({
         problemId: parseInt(problemId),
         code: submitCode,
         language: submitLanguage as 'cpp' | 'java' | 'python',
       });
-      
+
       if (response.success) {
         setSubmissionResult({
           success: true,
           submissionId: response.data.submissionId,
-          message: 'Your solution has been queued for evaluation. You can view the results in your dashboard.'
+          message: 'Your solution is being evaluated...',
+          status: 'pending',
         });
         setShowSubmissionModal(true);
+        setIsPolling(true);
+
+        // Start polling for results
+        pollSubmissionStatus(response.data.submissionId);
       } else {
         setSubmissionResult({
           success: false,
@@ -112,21 +136,55 @@ const ProblemViewPage: React.FC = () => {
     }
   };
 
+  const pollSubmissionStatus = async (submissionId: number) => {
+    const maxAttempts = 60; // Poll for up to 60 seconds
+    let attempts = 0;
 
-  const handleTest = async (testCode: string, testLanguage: string, input: string) => {
-    try {
-      const response = await apiService.testCode(testLanguage, testCode, input);
-      
-      if (response.success) {
-        const result = response.data;
-        alert(`Test completed!\nVerdict: ${result.verdict}\nOutput: ${result.output}\nExecution time: ${result.executionTime}ms`);
-      } else {
-        alert('Test failed: ' + response.message);
+    const poll = async () => {
+      try {
+        const response = await apiService.getSubmission(submissionId);
+
+        if (response.success) {
+          const submission = response.data;
+
+          // Check if submission has been judged
+          if (submission.status !== 'pending') {
+            setIsPolling(false);
+            setSubmissionResult({
+              success: submission.status === 'accepted',
+              submissionId: submissionId,
+              status: submission.status,
+              verdict: submission.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+              executionTime: submission.executionTime,
+              message: submission.status === 'accepted'
+                ? 'Congratulations! Your solution passed all test cases.'
+                : `Your solution was judged as: ${submission.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`
+            });
+            return;
+          }
+
+          // Continue polling if still pending
+          attempts++;
+          if (attempts < maxAttempts) {
+            setTimeout(poll, 1000);
+          } else {
+            setIsPolling(false);
+            setSubmissionResult(prev => ({
+              ...prev!,
+              message: 'Submission is taking longer than expected. Please check your submissions page for results.',
+            }));
+          }
+        }
+      } catch (err: any) {
+        console.error('Error polling submission status:', err);
+        setIsPolling(false);
       }
-    } catch (err: any) {
-      alert('Error testing code: ' + (err.response?.data?.message || err.message));
-    }
+    };
+
+    poll();
   };
+
+
 
 
   const getDifficultyColor = (difficulty: string) => {
@@ -213,7 +271,7 @@ const ProblemViewPage: React.FC = () => {
               transition: 'all 0.2s ease',
             }}
           >
-            ← Back to Dashboard
+            ← Back to Contest
           </button>
         </div>
       </div>
@@ -226,6 +284,28 @@ const ProblemViewPage: React.FC = () => {
   
   const renderSubmissionModal = () => {
     if (!showSubmissionModal || !submissionResult) return null;
+
+    const getVerdictColor = (status?: string) => {
+      if (!status) return { bg: '#f0f9ff', border: '#bae6fd', text: '#0369a1' };
+
+      switch (status) {
+        case 'accepted':
+          return { bg: '#dcfce7', border: '#bbf7d0', text: '#16a34a' };
+        case 'wrong_answer':
+          return { bg: '#fef2f2', border: '#fecaca', text: '#dc2626' };
+        case 'time_limit_exceeded':
+          return { bg: '#fef3c7', border: '#fde68a', text: '#d97706' };
+        case 'runtime_error':
+          return { bg: '#fed7aa', border: '#fdba74', text: '#7c2d12' };
+        case 'compilation_error':
+          return { bg: '#dbeafe', border: '#bfdbfe', text: '#1d4ed8' };
+        default:
+          return { bg: '#f3f4f6', border: '#d1d5db', text: '#6b7280' };
+      }
+    };
+
+    const verdictColors = getVerdictColor(submissionResult.status);
+    const isSuccess = submissionResult.status === 'accepted';
 
     return (
       <div style={{
@@ -245,7 +325,7 @@ const ProblemViewPage: React.FC = () => {
           backgroundColor: 'white',
           borderRadius: '12px',
           padding: '32px',
-          maxWidth: '500px',
+          maxWidth: '550px',
           width: '90%',
           boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
           border: '1px solid #e5e7eb',
@@ -262,15 +342,26 @@ const ProblemViewPage: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: submissionResult.success ? '#dcfce7' : '#fef2f2',
+              backgroundColor: isSuccess ? '#dcfce7' : submissionResult.success ? '#f0f9ff' : '#fef2f2',
               marginRight: '16px',
             }}>
-              <span style={{
-                fontSize: '24px',
-                color: submissionResult.success ? '#16a34a' : '#dc2626',
-              }}>
-                {submissionResult.success ? '✓' : '✗'}
-              </span>
+              {isPolling ? (
+                <div style={{
+                  width: '24px',
+                  height: '24px',
+                  border: '3px solid #e5e7eb',
+                  borderTop: '3px solid #1d4ed8',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                }}></div>
+              ) : (
+                <span style={{
+                  fontSize: '24px',
+                  color: isSuccess ? '#16a34a' : submissionResult.success ? '#0369a1' : '#dc2626',
+                }}>
+                  {isSuccess ? '✓' : submissionResult.success ? '⏳' : '✗'}
+                </span>
+              )}
             </div>
             <div>
               <h2 style={{
@@ -279,23 +370,27 @@ const ProblemViewPage: React.FC = () => {
                 color: '#1f2937',
                 margin: 0,
               }}>
-                {submissionResult.success ? 'Submission Successful!' : 'Submission Failed'}
+                {isPolling ? 'Evaluating Submission...' : submissionResult.verdict || (submissionResult.success ? 'Submission Received' : 'Submission Failed')}
               </h2>
               <p style={{
                 fontSize: '0.9rem',
                 color: '#6b7280',
                 margin: '4px 0 0 0',
               }}>
-                {submissionResult.success 
-                  ? 'Your solution has been submitted for evaluation' 
-                  : 'There was an issue with your submission'
+                {isPolling
+                  ? 'Running your code against test cases'
+                  : isSuccess
+                    ? 'All test cases passed!'
+                    : submissionResult.success
+                      ? 'Please wait for results'
+                      : 'There was an issue with your submission'
                 }
               </p>
             </div>
           </div>
 
           <div style={{ marginBottom: '24px' }}>
-            {submissionResult.success && submissionResult.submissionId && (
+            {submissionResult.submissionId && (
               <div style={{
                 backgroundColor: '#f8fafc',
                 border: '1px solid #e2e8f0',
@@ -303,10 +398,10 @@ const ProblemViewPage: React.FC = () => {
                 padding: '16px',
                 marginBottom: '16px',
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: submissionResult.executionTime ? '12px' : 0 }}>
                   <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Submission ID:</span>
-                  <span style={{ 
-                    fontFamily: 'monospace', 
+                  <span style={{
+                    fontFamily: 'monospace',
                     backgroundColor: '#e5e7eb',
                     padding: '4px 8px',
                     borderRadius: '4px',
@@ -316,16 +411,51 @@ const ProblemViewPage: React.FC = () => {
                     #{submissionResult.submissionId}
                   </span>
                 </div>
+
+                {submissionResult.executionTime !== undefined && submissionResult.executionTime !== null && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Execution Time:</span>
+                    <span style={{
+                      fontFamily: 'monospace',
+                      backgroundColor: '#e5e7eb',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                    }}>
+                      {submissionResult.executionTime}ms
+                    </span>
+                  </div>
+                )}
               </div>
             )}
-            
-            {submissionResult.message && (
+
+            {submissionResult.verdict && (
               <div style={{
-                backgroundColor: submissionResult.success ? '#f0f9ff' : '#fef2f2',
-                border: `1px solid ${submissionResult.success ? '#bae6fd' : '#fecaca'}`,
+                backgroundColor: verdictColors.bg,
+                border: `1px solid ${verdictColors.border}`,
                 borderRadius: '8px',
                 padding: '12px',
-                color: submissionResult.success ? '#0369a1' : '#dc2626',
+                marginBottom: '12px',
+              }}>
+                <div style={{
+                  fontWeight: 600,
+                  fontSize: '1rem',
+                  color: verdictColors.text,
+                  marginBottom: '4px',
+                }}>
+                  {submissionResult.verdict}
+                </div>
+              </div>
+            )}
+
+            {submissionResult.message && (
+              <div style={{
+                backgroundColor: isSuccess ? '#f0f9ff' : submissionResult.success ? '#f8fafc' : '#fef2f2',
+                border: `1px solid ${isSuccess ? '#bae6fd' : submissionResult.success ? '#e2e8f0' : '#fecaca'}`,
+                borderRadius: '8px',
+                padding: '12px',
+                color: isSuccess ? '#0369a1' : submissionResult.success ? '#475569' : '#dc2626',
                 fontSize: '0.9rem',
               }}>
                 {submissionResult.message}
@@ -340,32 +470,38 @@ const ProblemViewPage: React.FC = () => {
           }}>
             <button
               onClick={() => setShowSubmissionModal(false)}
+              disabled={isPolling}
               style={{
-                backgroundColor: '#f3f4f6',
+                backgroundColor: isPolling ? '#e5e7eb' : '#f3f4f6',
                 color: '#374151',
                 border: 'none',
                 borderRadius: '8px',
                 padding: '10px 20px',
                 fontSize: '0.9rem',
                 fontWeight: 500,
-                cursor: 'pointer',
+                cursor: isPolling ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s ease',
+                opacity: isPolling ? 0.6 : 1,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#e5e7eb';
+                if (!isPolling) e.currentTarget.style.backgroundColor = '#e5e7eb';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                if (!isPolling) e.currentTarget.style.backgroundColor = '#f3f4f6';
               }}
             >
               Close
             </button>
-            
-            {submissionResult.success && (
+
+            {submissionResult.success && !isPolling && (
               <button
                 onClick={() => {
                   setShowSubmissionModal(false);
-                  navigate('/dashboard');
+                  if (contestSlug) {
+                    navigate(`/contest/${contestSlug}`);
+                  } else {
+                    navigate('/');
+                  }
                 }}
                 style={{
                   background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
@@ -387,7 +523,7 @@ const ProblemViewPage: React.FC = () => {
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                View Dashboard
+                Back to Contest
               </button>
             )}
           </div>
@@ -466,7 +602,7 @@ const ProblemViewPage: React.FC = () => {
               </span>
               
               <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                {problem.timeLimit}ms / {problem.memoryLimit}MB
+                {problem.timeLimit}ms
               </span>
             </div>
           </div>
@@ -607,12 +743,12 @@ const ProblemViewPage: React.FC = () => {
 
           <div style={{ flex: 1, minHeight: '400px' }}>
             <CodeEditor
-              problemId={problemId ? parseInt(problemId) : undefined} 
-              onSubmit={handleSubmit} 
-              onTest={handleTest} 
-              onChange={(newCode) => setCode(newCode)} 
+              problemId={problemId ? parseInt(problemId) : undefined}
+              onSubmit={handleSubmit}
+              onChange={(newCode) => setCode(newCode)}
               onLanguageChange={(newLanguage) => setLanguage(newLanguage)}
-              height="100%" 
+              height="100%"
+              showTestingControls={false}
             />
           </div>
         </div>

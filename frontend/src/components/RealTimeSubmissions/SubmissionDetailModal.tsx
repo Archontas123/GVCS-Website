@@ -172,15 +172,6 @@ const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({ submissio
                 </div>
               </div>
             )}
-
-            {submission.memoryUsed && (
-              <div>
-                <div className="text-muted" style={{ fontSize: '12px', marginBottom: '4px' }}>Memory Used</div>
-                <div style={{ fontWeight: '600', fontFamily: 'monospace' }}>
-                  {Math.round(submission.memoryUsed / 1024)}KB
-                </div>
-              </div>
-            )}
           </div>
 
           {submission.submissionTime && (

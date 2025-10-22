@@ -135,9 +135,26 @@ class ApiService {
     return response.data;
   }
 
-  async getTeamSubmissions(teamId?: number): Promise<ApiResponse<Submission[]>> {
-    const url = teamId ? `/submissions?teamId=${teamId}` : '/submissions';
-    const response = await this.api.get(url);
+  async getTeamSubmissions(
+    teamId: number,
+    params?: { page?: number; limit?: number; contestId?: number }
+  ): Promise<ApiResponse<{
+    submissions: any[];
+    pagination: { page: number; limit: number; total: number; pages: number };
+  }>> {
+    if (teamId === undefined || teamId === null) {
+      throw new Error('Team ID is required to fetch submissions.');
+    }
+
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', params.page.toString());
+    if (params?.limit) searchParams.set('limit', params.limit.toString());
+    if (params?.contestId) searchParams.set('contestId', params.contestId.toString());
+
+    const queryString = searchParams.toString();
+    const response = await this.api.get(
+      `/submissions/team/${teamId}${queryString ? `?${queryString}` : ''}`
+    );
     return response.data;
   }
 

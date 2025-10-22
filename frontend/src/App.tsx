@@ -10,7 +10,6 @@ import HomePage from './pages/HomePage';
 import JoinContestPage from './pages/JoinContestPage';
 import TeamRegistrationPage from './pages/TeamRegistrationPage';
 import TeamLoginPage from './pages/TeamLoginPage';
-import DashboardPage from './pages/DashboardPage';
 import ProblemViewPage from './pages/ProblemViewPage';
 import CodeEditorTestPage from './pages/CodeEditorTestPage';
 import AdminLoginPage from './pages/AdminLoginPage';
@@ -203,8 +202,8 @@ function App() {
           <Route
             path="/"
             element={
-              auth.isAuthenticated ?
-              <Navigate to="/dashboard" replace /> :
+              auth.isAuthenticated && teamContestSlug ?
+              <Navigate to={`/contest/${teamContestSlug}`} replace /> :
               <HomePage />
             }
           />
@@ -215,20 +214,20 @@ function App() {
             element={<ProblemTestPage />}
           />
 
-          <Route 
-            path="/join-contest" 
+          <Route
+            path="/join-contest"
             element={
-              auth.isAuthenticated ? 
-              <Navigate to="/dashboard" replace /> : 
+              auth.isAuthenticated && teamContestSlug ?
+              <Navigate to={`/contest/${teamContestSlug}`} replace /> :
               <JoinContestPage />
-            } 
+            }
           />
 
           <Route
             path="/team-registration"
             element={
-              auth.isAuthenticated ?
-              <Navigate to={teamContestSlug ? `/contest/${teamContestSlug}` : '/dashboard'} replace /> :
+              auth.isAuthenticated && teamContestSlug ?
+              <Navigate to={`/contest/${teamContestSlug}`} replace /> :
               <TeamRegistrationPage />
             }
           />
@@ -236,19 +235,19 @@ function App() {
           <Route
             path="/register"
             element={
-              auth.isAuthenticated ?
-              <Navigate to={teamContestSlug ? `/contest/${teamContestSlug}` : '/dashboard'} replace /> :
+              auth.isAuthenticated && teamContestSlug ?
+              <Navigate to={`/contest/${teamContestSlug}`} replace /> :
               <TeamRegistrationPage />
             }
           />
           
-          <Route 
-            path="/login" 
+          <Route
+            path="/login"
             element={
-              auth.isAuthenticated ? 
-              <Navigate to="/dashboard" replace /> : 
+              auth.isAuthenticated && teamContestSlug ?
+              <Navigate to={`/contest/${teamContestSlug}`} replace /> :
               <TeamLoginPage />
-            } 
+            }
           />
 
           {/* Team Routes wrapped in Layout */}
@@ -266,15 +265,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ContestPage />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <DashboardPage />
                 </ProtectedRoute>
               }
             />
