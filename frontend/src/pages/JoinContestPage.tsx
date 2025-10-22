@@ -107,17 +107,6 @@ const JoinContestPage: React.FC = () => {
           maxWidth: '600px',
           width: '100%',
         }}>
-          <h1 style={{
-            fontSize: 'clamp(1.5rem, 4vw, 3rem)',
-            fontWeight: 'bold',
-            color: 'white',
-            marginBottom: '48px',
-            letterSpacing: '0.05em',
-            textShadow: '4px 4px 0px #212529',
-          }}>
-            Hack The Valley
-          </h1>
-
           {error && (
             <div style={{
               padding: '16px 20px',

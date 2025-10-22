@@ -261,9 +261,9 @@ const Header: React.FC<HeaderProps> = ({
   }, [showProfileMenu, showMobileMenu]);
 
   return (
-    <nav style={{ 
-      position: 'sticky', 
-      top: 0, 
+    <nav style={{
+      position: 'sticky',
+      top: 0,
       zIndex: 100,
       backgroundColor: '#ffffff',
       borderBottom: '1px solid #e2e8f0',
@@ -273,30 +273,6 @@ const Header: React.FC<HeaderProps> = ({
       alignItems: 'center',
       fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
     }}>
-      <div
-        style={{
-          cursor: 'pointer',
-          flexGrow: isMobile ? 1 : 0,
-          display: 'flex',
-          alignItems: 'center',
-        }}
-        onClick={() => navigate(isAuthenticated && contestSlug ? `/contest/${contestSlug}` : '/')}
-      >
-        <span style={{ marginRight: '12px', fontSize: '1.5rem' }}>CS</span>
-        {!isMobile && (
-          <h1 style={{ 
-            fontWeight: 700, 
-            fontSize: '1.5rem',
-            color: '#1d4ed8',
-            letterSpacing: '-0.02em',
-            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-            margin: 0,
-          }}>
-            Hack The Valley
-          </h1>
-        )}
-      </div>
-
       <div style={{ flexGrow: 1 }} />
 
       {displayTime && (
