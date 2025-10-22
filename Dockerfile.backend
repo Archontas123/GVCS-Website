@@ -25,12 +25,20 @@ RUN mkdir -p logs && \
 
 FROM node:18-alpine AS production
 
-# Install system dependencies for SQLite and other requirements
+# Install system dependencies for SQLite, language runtimes, and execution tooling
 RUN apk add --no-cache \
     sqlite \
     dumb-init \
     curl \
+    bash \
+    build-base \
+    openjdk17-jdk \
+    python3 \
+    py3-pip \
     && rm -rf /var/cache/apk/*
+
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 # Create app user
 RUN addgroup -g 1001 -S appgroup && \
