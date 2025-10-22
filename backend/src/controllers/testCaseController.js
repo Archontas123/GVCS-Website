@@ -424,11 +424,29 @@ class TestCase {
     });
 
     try {
+      // Helper to ensure valid JSON for database JSON columns
+      const ensureValidJson = (value) => {
+        if (value === null || value === undefined) return null;
+        if (typeof value === 'string') {
+          try {
+            JSON.parse(value);
+            return value; // Already valid JSON string
+          } catch {
+            return JSON.stringify(value);
+          }
+        }
+        return JSON.stringify(value);
+      };
+
       const testCasesToInsert = testCasesData.map(data => ({
         problem_id: problemId,
-        input: data.input || '',
-        expected_output: data.expected_output || '',
-        is_sample: data.is_sample || false
+        test_case_name: data.test_case_name,
+        input_parameters: ensureValidJson(data.input_parameters),
+        expected_return: ensureValidJson(data.expected_return),
+        parameter_types: ensureValidJson(data.parameter_types),
+        explanation: data.explanation || '',
+        is_sample: data.is_sample || false,
+        converted_to_params: true
       }));
 
       const insertedResults = await db('test_cases').insert(testCasesToInsert).returning('id');

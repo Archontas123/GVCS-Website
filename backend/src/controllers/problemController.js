@@ -263,14 +263,9 @@ class Problem {
       
       const problemId = Array.isArray(result) ? result[0].id || result[0] : result.id || result;
 
-      if (problemData.sample_input && problemData.sample_output) {
-        await db('test_cases').insert({
-          problem_id: problemId,
-          input: problemData.sample_input.trim(),
-          expected_output: problemData.sample_output.trim(),
-          is_sample: true
-        });
-      }
+      // Note: The legacy sample_input/sample_output fields are not automatically converted to test cases
+      // This is because the new system requires structured input_parameters and expected_return
+      // Test cases must be created separately using the test case creation endpoints
 
       const createdProblem = await this.findById(problemId);
       
