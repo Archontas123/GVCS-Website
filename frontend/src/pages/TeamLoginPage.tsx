@@ -64,7 +64,7 @@ const TeamLoginPage: React.FC = () => {
 
         auth.login(team, response.data.token);
 
-        const targetPath = contestSlug ? `/contest/${contestSlug}` : '/dashboard';
+        const targetPath = contestSlug ? `/contest/${contestSlug}` : '/';
         navigate(targetPath, { replace: true });
 
       } else {

@@ -534,12 +534,19 @@ const ProblemViewPage: React.FC = () => {
 
 
   return (
-    <div style={{
-      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
+    <>
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+      <div style={{
+        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+      }}>
       <div style={{
         backgroundColor: '#ffffff',
         borderBottom: '1px solid #e2e8f0',
@@ -753,9 +760,10 @@ const ProblemViewPage: React.FC = () => {
           </div>
         </div>
       </div>
-      
+
       {renderSubmissionModal()}
-    </div>
+      </div>
+    </>
   );
 };
 

@@ -258,6 +258,7 @@ function App() {
               timeRemaining={contestTimer}
               isAuthenticated={auth.isAuthenticated}
               onLogout={auth.logout}
+              contestSlug={teamContestSlug || undefined}
             >
               <Routes>
             <Route

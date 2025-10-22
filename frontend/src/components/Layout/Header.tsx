@@ -7,10 +7,11 @@ import '../../styles/theme.css';
 interface HeaderProps {
   teamName?: string;
   contestName?: string;
-  timeRemaining?: number; 
+  timeRemaining?: number;
   isAuthenticated: boolean;
   onLogout: () => void;
   contestId?: number;
+  contestSlug?: string;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -20,6 +21,7 @@ const Header: React.FC<HeaderProps> = ({
   isAuthenticated,
   onLogout,
   contestId,
+  contestSlug,
 }) => {
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -82,35 +84,37 @@ const Header: React.FC<HeaderProps> = ({
 
   const NavigationButtons = () => (
     <>
-      <button
-        onClick={() => handleNavigation('/dashboard')}
-        style={{ 
-          background: 'none',
-          border: 'none',
-          color: '#374151',
-          padding: '8px 16px',
-          margin: '0 4px',
-          borderRadius: '8px',
-          fontSize: '0.9rem',
-          fontWeight: 500,
-          cursor: 'pointer',
-          transition: 'all 0.2s ease',
-          fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#f3f4f6';
-          e.currentTarget.style.color = '#1d4ed8';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = 'transparent';
-          e.currentTarget.style.color = '#374151';
-        }}
-      >
-        Dashboard
-      </button>
+      {contestSlug && (
+        <button
+          onClick={() => handleNavigation(`/contest/${contestSlug}`)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#374151',
+            padding: '8px 16px',
+            margin: '0 4px',
+            borderRadius: '8px',
+            fontSize: '0.9rem',
+            fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#f3f4f6';
+            e.currentTarget.style.color = '#1d4ed8';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = '#374151';
+          }}
+        >
+          Problems
+        </button>
+      )}
       <button
         onClick={() => handleNavigation('/leaderboard')}
-        style={{ 
+        style={{
           background: 'none',
           border: 'none',
           color: '#374151',
@@ -151,29 +155,31 @@ const Header: React.FC<HeaderProps> = ({
         border: '1px solid #e2e8f0',
         overflow: 'hidden',
       }}>
-        <div 
-          style={{ 
-            cursor: 'pointer', 
-            borderBottom: '1px solid #e5e7eb',
-            padding: '12px 16px',
-            fontSize: '0.9rem',
-            fontWeight: 500,
-            color: '#374151',
-            fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-            transition: 'background-color 0.2s ease',
-          }}
-          onClick={() => handleNavigation('/dashboard')}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#f8fafc';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }}
-        >
-          Dashboard
-        </div>
-        <div 
-          style={{ 
+        {contestSlug && (
+          <div
+            style={{
+              cursor: 'pointer',
+              borderBottom: '1px solid #e5e7eb',
+              padding: '12px 16px',
+              fontSize: '0.9rem',
+              fontWeight: 500,
+              color: '#374151',
+              fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+              transition: 'background-color 0.2s ease',
+            }}
+            onClick={() => handleNavigation(`/contest/${contestSlug}`)}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#f8fafc';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            Problems
+          </div>
+        )}
+        <div
+          style={{
             cursor: 'pointer',
             padding: '12px 16px',
             fontSize: '0.9rem',
@@ -269,14 +275,14 @@ const Header: React.FC<HeaderProps> = ({
       alignItems: 'center',
       fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
     }}>
-      <div 
-        style={{ 
+      <div
+        style={{
           cursor: 'pointer',
           flexGrow: isMobile ? 1 : 0,
           display: 'flex',
           alignItems: 'center',
         }}
-        onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')}
+        onClick={() => navigate(isAuthenticated && contestSlug ? `/contest/${contestSlug}` : '/')}
       >
         <span style={{ marginRight: '12px', fontSize: '1.5rem' }}>CS</span>
         {!isMobile && (
