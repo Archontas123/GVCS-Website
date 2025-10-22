@@ -5,6 +5,17 @@
 
 import apiService from './api';
 
+const TEAM_TOKEN_KEY = 'programming_contest_token';
+
+const getTeamToken = (): string | null => {
+  try {
+    return localStorage.getItem(TEAM_TOKEN_KEY);
+  } catch (error) {
+    console.error('Failed to access localStorage for auth token:', error);
+    return null;
+  }
+};
+
 export interface SubmissionStatus {
   submissionId: number;
   problemLetter?: string;
@@ -57,11 +68,17 @@ class SubmissionTrackingService {
       if (!isPolling) return;
 
       try {
+        const token = getTeamToken();
+        const headers: Record<string, string> = {
+          'If-None-Match': this.etags.get(submissionId) || '',
+        };
+
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
         const response = await fetch(`/api/submissions/${submissionId}/status`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'If-None-Match': this.etags.get(submissionId) || '',
-          }
+          headers,
         });
 
         if (response.status === 304) {
@@ -228,11 +245,12 @@ class SubmissionTrackingService {
       });
 
       // Send subscription to server
+      const token = getTeamToken();
       const response = await fetch('/api/submissions/notifications/subscribe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         body: JSON.stringify({ subscription })
       });

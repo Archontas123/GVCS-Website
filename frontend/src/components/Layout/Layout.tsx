@@ -1,4 +1,5 @@
 import React, { ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import Header from './Header';
 
 interface LayoutProps {
@@ -22,17 +23,22 @@ const Layout: React.FC<LayoutProps> = ({
   contestId,
   contestSlug,
 }) => {
+  const location = useLocation();
+  const hideHeader = location.pathname.startsWith('/contest/');
+
   return (
     <>
-      <Header
-        teamName={teamName}
-        contestName={contestName}
-        timeRemaining={timeRemaining}
-        isAuthenticated={isAuthenticated}
-        onLogout={onLogout}
-        contestId={contestId}
-        contestSlug={contestSlug}
-      />
+      {!hideHeader && (
+        <Header
+          teamName={teamName}
+          contestName={contestName}
+          timeRemaining={timeRemaining}
+          isAuthenticated={isAuthenticated}
+          onLogout={onLogout}
+          contestId={contestId}
+          contestSlug={contestSlug}
+        />
+      )}
       {children}
     </>
   );

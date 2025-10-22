@@ -1,4 +1,5 @@
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const os = require('os');
@@ -193,7 +194,8 @@ class MultiLangExecutor {
       cwd = process.cwd(),
       input = '',
       timeout = 10000,
-      maxBuffer = 1024 * 1024 // 1MB
+      maxBuffer = 1024 * 1024, // 1MB
+      pathAdditions = []
     } = options;
 
     return new Promise((resolve) => {
@@ -201,17 +203,70 @@ class MultiLangExecutor {
 
       // Ensure compiler paths are in PATH for Windows
       const env = { ...process.env };
-      if (os.platform() === 'win32') {
-        const compilerPaths = [
+      const platform = os.platform();
+      const pathSeparator = platform === 'win32' ? ';' : ':';
+      const existingPathValue = env.PATH || '';
+      const existingEntries = existingPathValue
+        .split(pathSeparator)
+        .map(segment => segment.trim())
+        .filter(Boolean);
+
+      const candidatePaths = [];
+
+      if (platform === 'win32') {
+        candidatePaths.push(
           'C:\\msys64\\mingw64\\bin',
           'C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.7.6-hotspot\\bin',
           'C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.14.7-hotspot\\bin'
-        ];
-        const existingPath = env.PATH || '';
-        const pathsToAdd = compilerPaths.filter(p => !existingPath.includes(p));
-        if (pathsToAdd.length > 0) {
-          env.PATH = pathsToAdd.join(';') + ';' + existingPath;
+        );
+      }
+
+      if (process.env.JAVA_HOME) {
+        candidatePaths.push(path.join(process.env.JAVA_HOME, 'bin'));
+      }
+
+      const normalizedPathAdditions = Array.isArray(pathAdditions)
+        ? pathAdditions
+        : [pathAdditions].filter(Boolean);
+
+      candidatePaths.push(...normalizedPathAdditions);
+
+      const pathsToPrepend = [];
+      for (const rawPath of candidatePaths) {
+        if (!rawPath || typeof rawPath !== 'string') {
+          continue;
         }
+
+        const sanitizedPath = rawPath.replace(/["']/g, '').trim();
+        if (!sanitizedPath) {
+          continue;
+        }
+
+        let resolvedPath = sanitizedPath;
+        if (sanitizedPath.startsWith('~')) {
+          resolvedPath = path.join(os.homedir(), sanitizedPath.slice(1));
+        }
+
+        // Expand environment variables like $JAVA_HOME/bin
+        resolvedPath = resolvedPath.replace(/\$([A-Z_][A-Z0-9_]*)/gi, (_, name) => process.env[name] || '');
+
+        try {
+          if (!resolvedPath || !fsSync.existsSync(resolvedPath)) {
+            continue;
+          }
+        } catch (error) {
+          continue;
+        }
+
+        if (!existingEntries.includes(resolvedPath) && !pathsToPrepend.includes(resolvedPath)) {
+          pathsToPrepend.push(resolvedPath);
+        }
+      }
+
+      if (pathsToPrepend.length > 0) {
+        env.PATH = [...pathsToPrepend, ...existingEntries].join(pathSeparator);
+      } else {
+        env.PATH = existingPathValue;
       }
 
       const child = spawn(command, args, {
@@ -323,7 +378,8 @@ class MultiLangExecutor {
       // Execute compilation
       const result = await this.executeCommand(command, args, {
         cwd: execDir,
-        timeout: config.compileTimeout || 30000
+        timeout: config.compileTimeout || 30000,
+        pathAdditions: config.pathAdditions || []
       });
 
       if (!result.success) {
@@ -418,7 +474,8 @@ class MultiLangExecutor {
       const result = await this.executeCommand(command, args, {
         cwd: execDir,
         input,
-        timeout: adjustedTimeLimit
+        timeout: adjustedTimeLimit,
+        pathAdditions: config.pathAdditions || []
       });
 
       // Clean up

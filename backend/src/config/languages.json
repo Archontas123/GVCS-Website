@@ -8,6 +8,11 @@
     "compileTimeout": 30000,
     "timeMultiplier": 1.0,
     "supportsCompilation": true,
+    "pathAdditions": [
+      "/usr/bin",
+      "/usr/local/bin",
+      "C:\\msys64\\mingw64\\bin"
+    ],
     "mainFile": "solution.cpp",
     "outputFile": "solution.exe",
     "errorPatterns": [
@@ -24,6 +29,13 @@
     "compileTimeout": 30000,
     "timeMultiplier": 2.0,
     "supportsCompilation": true,
+    "pathAdditions": [
+      "$JAVA_HOME/bin",
+      "/usr/lib/jvm/java-21-openjdk-amd64/bin",
+      "/usr/lib/jvm/java-17-openjdk-amd64/bin",
+      "/usr/lib/jvm/java-11-openjdk-amd64/bin",
+      "/usr/lib/jvm/default-java/bin"
+    ],
     "mainFile": "Solution.java",
     "outputFile": "Solution.class",
     "requiredClass": "Solution",
@@ -36,10 +48,17 @@
   "python": {
     "name": "Python",
     "extension": ".py",
-    "executeCmd": "python {source}",
+    "executeCmd": "python3 {source}",
     "compileTimeout": 0,
     "timeMultiplier": 3.0,
     "supportsCompilation": false,
+    "pathAdditions": [
+      "/usr/bin",
+      "/usr/local/bin",
+      "$PYENV_ROOT/shims",
+      "$HOME/.pyenv/shims",
+      "$HOME/.asdf/shims"
+    ],
     "mainFile": "solution.py",
     "errorPatterns": [
       "SyntaxError:",
