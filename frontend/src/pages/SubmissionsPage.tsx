@@ -43,6 +43,7 @@ const SubmissionsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [displayCount, setDisplayCount] = useState(20); // Show 20 submissions initially
 
   useEffect(() => {
     if (team?.id && token) {
@@ -102,25 +103,6 @@ const SubmissionsPage: React.FC = () => {
     return `${(ms / 1000).toFixed(2)}s`;
   };
 
-  const formatMemory = (mb?: number): string => {
-    if (mb === undefined || mb === null) return 'N/A';
-    return `${mb.toFixed(2)}MB`;
-  };
-
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} min ago`;
-    if (diffHours < 24) return `${diffHours} hours ago`;
-
-    return date.toLocaleString();
-  };
-
   const openSubmissionDetails = (submission: Submission) => {
     setSelectedSubmission(submission);
     setShowDetails(true);
@@ -161,7 +143,7 @@ const SubmissionsPage: React.FC = () => {
       <div className="submissions-header">
         <h1>My Submissions</h1>
         <button onClick={fetchSubmissions} className="refresh-button">
-          🔄 Refresh
+          Refresh
         </button>
       </div>
 
@@ -170,69 +152,73 @@ const SubmissionsPage: React.FC = () => {
           <p>No submissions yet. Start solving problems!</p>
         </div>
       ) : (
-        <div className="submissions-table-container">
-          <table className="submissions-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Problem</th>
-                <th>Status</th>
-                <th>Tests</th>
-                <th>Time</th>
-                <th>Memory</th>
-                <th>Points</th>
-                <th>Language</th>
-                <th>Submitted</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {submissions.map((submission, index) => (
-                <tr key={submission.id}>
-                  <td>{submissions.length - index}</td>
-                  <td>
-                    {submission.problem_letter && (
-                      <strong>{submission.problem_letter}. </strong>
-                    )}
-                    {submission.problem_title || `Problem ${submission.problem_id}`}
-                  </td>
-                  <td>
-                    <span
-                      className="status-badge"
-                      style={{
-                        backgroundColor: getStatusColor(submission.status),
-                      }}
-                    >
-                      {getStatusLabel(submission.status)}
-                    </span>
-                  </td>
-                  <td>
-                    {submission.test_cases_passed !== undefined &&
-                    submission.total_test_cases !== undefined
-                      ? `${submission.test_cases_passed}/${submission.total_test_cases}`
-                      : 'N/A'}
-                  </td>
-                  <td>{formatTime(submission.execution_time)}</td>
-                  <td>{formatMemory(submission.memory_used)}</td>
-                  <td>{submission.points_earned?.toFixed(1) || '0.0'}</td>
-                  <td>
-                    <span className="language-badge">{submission.language}</span>
-                  </td>
-                  <td>{formatDate(submission.submitted_at)}</td>
-                  <td>
-                    <button
-                      onClick={() => openSubmissionDetails(submission)}
-                      className="view-details-button"
-                      disabled={!submission.judge_output?.testCases}
-                    >
-                      View Details
-                    </button>
-                  </td>
+        <>
+          <div className="submissions-table-container">
+            <table className="submissions-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Problem</th>
+                  <th>Status</th>
+                  <th>Tests</th>
+                  <th>Time</th>
+                  <th>Points</th>
+                  <th>Language</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {submissions.slice(0, displayCount).map((submission, index) => (
+                  <tr
+                    key={submission.id}
+                    onClick={() => openSubmissionDetails(submission)}
+                    style={{ cursor: submission.judge_output?.testCases ? 'pointer' : 'default' }}
+                    className={submission.judge_output?.testCases ? 'clickable-row' : ''}
+                  >
+                    <td>{submissions.length - index}</td>
+                    <td>
+                      {submission.problem_letter && (
+                        <strong>{submission.problem_letter}. </strong>
+                      )}
+                      {submission.problem_title || `Problem ${submission.problem_id}`}
+                    </td>
+                    <td>
+                      <span
+                        className="status-badge"
+                        style={{
+                          backgroundColor: getStatusColor(submission.status),
+                        }}
+                      >
+                        {getStatusLabel(submission.status)}
+                      </span>
+                    </td>
+                    <td>
+                      {submission.test_cases_passed !== undefined &&
+                      submission.total_test_cases !== undefined
+                        ? `${submission.test_cases_passed}/${submission.total_test_cases}`
+                        : 'N/A'}
+                    </td>
+                    <td>{formatTime(submission.execution_time)}</td>
+                    <td>{submission.points_earned?.toFixed(1) || '0.0'}</td>
+                    <td>
+                      <span className="language-badge">{submission.language}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {displayCount < submissions.length && (
+            <div className="load-more-container">
+              <button
+                onClick={() => setDisplayCount(prev => prev + 20)}
+                className="load-more-button"
+              >
+                Load More ({submissions.length - displayCount} remaining)
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Submission Details Modal */}
@@ -273,10 +259,6 @@ const SubmissionsPage: React.FC = () => {
                 <div className="stat-item">
                   <span className="stat-label">Execution Time:</span>
                   <span>{formatTime(selectedSubmission.execution_time)}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Memory Used:</span>
-                  <span>{formatMemory(selectedSubmission.memory_used)}</span>
                 </div>
                 <div className="stat-item">
                   <span className="stat-label">Points:</span>
@@ -324,7 +306,6 @@ const SubmissionsPage: React.FC = () => {
                         >
                           <div className="test-case-header">
                             <div className="test-case-title" style={{ color: textColor }}>
-                              {isSample ? '📝 ' : '🔒 '}
                               {testCase.testCase || `Test Case #${index + 1}`}
                               {isSample && ' (Sample)'}
                             </div>
@@ -364,16 +345,9 @@ const SubmissionsPage: React.FC = () => {
                           )}
 
                           {/* Execution metrics */}
-                          {(testCase.executionTime !== undefined ||
-                            testCase.memoryUsed !== undefined) && (
+                          {testCase.executionTime !== undefined && (
                             <div className="test-case-metrics" style={{ color: textColor }}>
-                              {testCase.executionTime !== undefined &&
-                                `⏱️ ${testCase.executionTime}ms`}
-                              {testCase.executionTime !== undefined &&
-                                testCase.memoryUsed !== undefined &&
-                                ' | '}
-                              {testCase.memoryUsed !== undefined &&
-                                `💾 ${testCase.memoryUsed}MB`}
+                              {testCase.executionTime}ms
                             </div>
                           )}
                         </div>

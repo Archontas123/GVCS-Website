@@ -365,7 +365,7 @@ const ProblemViewPage: React.FC = () => {
                 boxShadow: '3px 3px 0px #212529',
               }}>
                 <span style={{ fontSize: 'clamp(0.45rem, 1.2vw, 0.55rem)', color: '#212529', fontWeight: 'bold' }}>
-                  ⏱ {problem.timeLimit}ms
+                  {problem.timeLimit}ms
                 </span>
               </div>
             </div>
@@ -545,7 +545,7 @@ const ProblemViewPage: React.FC = () => {
               margin: 0,
               textShadow: '2px 2px 0px rgba(33, 37, 41, 0.1)',
             }}>
-              💻 Code Editor
+              Code Editor
             </h2>
             <p style={{
               fontSize: 'clamp(0.5rem, 1.2vw, 0.6rem)',

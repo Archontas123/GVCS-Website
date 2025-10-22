@@ -75,7 +75,7 @@ const SubmissionTracker: React.FC<SubmissionTrackerProps> = ({
       case 'pending':
         return { icon: '...', color: '#6b7280', bg: '#f3f4f6', text: 'In Queue...' };
       case 'judging':
-        return { icon: '⚙', color: '#1d4ed8', bg: '#dbeafe', text: 'Judging...' };
+        return { icon: '...', color: '#1d4ed8', bg: '#dbeafe', text: 'Judging...' };
       default:
         return { icon: '?', color: '#6b7280', bg: '#f3f4f6', text: verdict || 'Unknown' };
     }
@@ -301,37 +301,6 @@ const SubmissionTracker: React.FC<SubmissionTrackerProps> = ({
               </div>
             </div>
 
-            <div
-              style={{
-                backgroundColor: '#f8fafc',
-                border: '3px solid #212529',
-                padding: '0.75rem',
-                boxShadow: '3px 3px 0px #212529',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 'clamp(0.45rem, 1.2vw, 0.5rem)',
-                  color: '#6b7280',
-                  marginBottom: '0.5rem',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Memory
-              </div>
-              <div
-                style={{
-                  fontSize: 'clamp(0.55rem, 1.5vw, 0.65rem)',
-                  fontWeight: 'bold',
-                  color: '#212529',
-                }}
-              >
-                {status?.memoryUsed !== undefined && status?.memoryUsed !== null
-                  ? `${Math.round(status.memoryUsed)}MB`
-                  : '---'}
-              </div>
-            </div>
-
             {status?.totalTestCases !== undefined && status?.totalTestCases !== null && (
               <div
                 style={{
@@ -413,7 +382,7 @@ const SubmissionTracker: React.FC<SubmissionTrackerProps> = ({
                   lineHeight: '1.6',
                 }}
               >
-                ⏱ Wait time: {status.queueInfo.estimatedWaitTime}
+                Wait time: {status.queueInfo.estimatedWaitTime}
               </div>
             </div>
           )}
@@ -518,7 +487,6 @@ const SubmissionTracker: React.FC<SubmissionTrackerProps> = ({
                                 color: textColor,
                               }}
                             >
-                              {isSample ? '📝 ' : '🔒 '}
                               {testCase.testCase || `Test Case #${index + 1}`}
                               {isSample && ' (Sample)'}
                             </div>
@@ -591,7 +559,7 @@ const SubmissionTracker: React.FC<SubmissionTrackerProps> = ({
                           )}
 
                           {/* Show execution metrics */}
-                          {(testCase.executionTime !== undefined || testCase.memoryUsed !== undefined) && (
+                          {testCase.executionTime !== undefined && (
                             <div
                               style={{
                                 fontSize: 'clamp(0.35rem, 1.0vw, 0.45rem)',
@@ -600,9 +568,7 @@ const SubmissionTracker: React.FC<SubmissionTrackerProps> = ({
                                 opacity: 0.8,
                               }}
                             >
-                              {testCase.executionTime !== undefined && `⏱️ ${testCase.executionTime}ms`}
-                              {testCase.executionTime !== undefined && testCase.memoryUsed !== undefined && ' | '}
-                              {testCase.memoryUsed !== undefined && `💾 ${testCase.memoryUsed}MB`}
+                              {testCase.executionTime}ms
                             </div>
                           )}
                         </div>
