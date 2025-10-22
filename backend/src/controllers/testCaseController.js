@@ -263,6 +263,14 @@ class TestCase {
 
       return await this.findById(result.id);
     } catch (error) {
+      console.error('Test case creation error:', error);
+      console.error('Insert data:', JSON.stringify(insertData, null, 2));
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        detail: error.detail,
+        column: error.column
+      });
       throw new DatabaseError('Failed to create test case', error);
     }
   }
