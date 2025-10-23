@@ -104,8 +104,11 @@ const SubmissionsPage: React.FC = () => {
   };
 
   const openSubmissionDetails = (submission: Submission) => {
-    setSelectedSubmission(submission);
-    setShowDetails(true);
+    // Only open if there's judge output to display
+    if (submission.judge_output?.testCases) {
+      setSelectedSubmission(submission);
+      setShowDetails(true);
+    }
   };
 
   const closeSubmissionDetails = () => {
