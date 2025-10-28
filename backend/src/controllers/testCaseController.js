@@ -369,9 +369,38 @@ class TestCase {
         action: 'testcase_update'
       });
 
+      // Helper to ensure valid JSON for database JSON columns
+      const ensureValidJson = (value) => {
+        if (value === null || value === undefined) return null;
+        if (typeof value === 'string') {
+          // Check if it's already valid JSON
+          try {
+            JSON.parse(value);
+            return value; // Already valid JSON string
+          } catch {
+            // Not valid JSON, so wrap it as a JSON string
+            return JSON.stringify(value);
+          }
+        }
+        // It's an object/array, stringify it
+        return JSON.stringify(value);
+      };
+
+      // Format JSON fields before updating
+      const formattedUpdateData = { ...updateData };
+      if (formattedUpdateData.input_parameters !== undefined) {
+        formattedUpdateData.input_parameters = ensureValidJson(formattedUpdateData.input_parameters);
+      }
+      if (formattedUpdateData.expected_return !== undefined) {
+        formattedUpdateData.expected_return = ensureValidJson(formattedUpdateData.expected_return);
+      }
+      if (formattedUpdateData.parameter_types !== undefined) {
+        formattedUpdateData.parameter_types = ensureValidJson(formattedUpdateData.parameter_types);
+      }
+
       await db('test_cases')
         .where('id', testCaseId)
-        .update(updateData);
+        .update(formattedUpdateData);
 
       return await this.findById(testCaseId);
     } catch (error) {
