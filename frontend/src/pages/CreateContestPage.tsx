@@ -7,8 +7,6 @@ import { MdSave } from 'react-icons/md';
 interface ContestFormData {
   contest_name: string;
   description: string;
-  duration: number;
-  freeze_time: number;
 }
 
 const CreateContestPage: React.FC = () => {
@@ -18,46 +16,14 @@ const CreateContestPage: React.FC = () => {
   const [formData, setFormData] = useState<ContestFormData>({
     contest_name: '',
     description: '',
-    duration: 0,
-    freeze_time: 0,
   });
   
   const [errors, setErrors] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const durationOptions = [
-    { value: 0, label: 'Manual (no preset duration)' },
-    { value: 60, label: '1 hour' },
-    { value: 90, label: '1.5 hours' },
-    { value: 120, label: '2 hours' },
-    { value: 150, label: '2.5 hours' },
-    { value: 180, label: '3 hours' },
-    { value: 240, label: '4 hours' },
-    { value: 300, label: '5 hours' },
-  ];
-
-  const freezeTimeOptions = [
-    { value: 0, label: 'No freeze' },
-    { value: 15, label: '15 minutes' },
-    { value: 30, label: '30 minutes' },
-    { value: 45, label: '45 minutes' },
-    { value: 60, label: '1 hour' },
-  ];
-
   const handleChange = (field: keyof ContestFormData, value: any) => {
-    setFormData(prev => {
-      const next = {
-        ...prev,
-        [field]: value
-      };
-
-      if (field === 'duration' && value === 0) {
-        next.freeze_time = 0;
-      }
-
-      return next;
-    });
+    setFormData(prev => ({ ...prev, [field]: value }));
     if (errors.length > 0) setErrors([]);
     if (success) setSuccess(null);
   };
@@ -77,18 +43,6 @@ const CreateContestPage: React.FC = () => {
       newErrors.push('Contest description must be at least 10 characters long');
     }
 
-    const isManualDuration = formData.duration === 0;
-
-    if (!isManualDuration && formData.duration < 30) {
-      newErrors.push('Contest duration must be at least 30 minutes');
-    }
-
-    if (isManualDuration && formData.freeze_time > 0) {
-      newErrors.push('Freeze time is not supported when no duration is set');
-    } else if (!isManualDuration && formData.freeze_time > formData.duration) {
-      newErrors.push('Freeze time cannot be longer than contest duration');
-    }
-
     setErrors(newErrors);
     return newErrors.length === 0;
   };
@@ -104,13 +58,9 @@ const CreateContestPage: React.FC = () => {
     setErrors([]);
 
     try {
-      const isManualDuration = formData.duration === 0;
       const contestData = {
         contest_name: formData.contest_name.trim(),
         description: formData.description.trim(),
-        start_time: null,
-        duration: isManualDuration ? null : formData.duration,
-        freeze_time: isManualDuration ? 0 : formData.freeze_time,
         manual_control: true,
         is_active: false
       };
@@ -407,56 +357,11 @@ const CreateContestPage: React.FC = () => {
                   <div className="form-helper">Provide details about the contest for participants</div>
                 </div>
 
-                <div className="form-row">
-                  <div className="form-field">
-                    <label className="form-label">Contest Scheduling</label>
-                    <div className="manual-mode-banner">
-                      <strong>Manual control enabled.</strong> You can start and end this contest from the admin dashboard when you're ready. No preset start time is required.
-                    </div>
-                  </div>
-                  <div className="form-field">
-                    <label className="form-label">Duration</label>
-                    <select
-                      className="form-select"
-                      value={formData.duration}
-                      onChange={(e) => handleChange('duration', parseInt(e.target.value))}
-                      disabled={isLoading}
-                    >
-                      {durationOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="form-helper">
-                      {formData.duration === 0
-                        ? 'Manual control: you decide when to end the contest.'
-                        : 'Planned contest duration used for timers and progress.'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Freeze Time */}
                 <div className="form-field">
-                  <label className="form-label">Freeze Time</label>
-                  <select
-                    className="form-select"
-                    value={formData.freeze_time}
-                    onChange={(e) => handleChange('freeze_time', parseInt(e.target.value))}
-                    disabled={isLoading || formData.duration === 0}
-                  >
-                    {freezeTimeOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="form-helper">
-                    {formData.duration === 0
-                      ? 'Enable a preset duration to configure leaderboard freeze.'
-                      : 'How long before the end the leaderboard should freeze.'}
+                  <label className="form-label">Contest Scheduling</label>
+                  <div className="manual-mode-banner">
+                    <strong>Manual control enabled.</strong> You can start and end this contest from the admin dashboard when you're ready. No preset start time is required.
                   </div>
-                  <div className="form-helper">Scoreboard freeze before contest end</div>
                 </div>
 
                 <div className="button-group">

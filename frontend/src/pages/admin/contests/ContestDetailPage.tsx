@@ -18,10 +18,7 @@ interface Contest {
   id: number;
   contest_name: string;
   description: string;
-  start_time?: string | null;
-  duration?: number | null;
   manual_control?: boolean;
-  freeze_time?: number;
   registration_code: string;
   contest_url?: string;
   status: 'pending_manual' | 'not_started' | 'running' | 'frozen' | 'ended';
@@ -152,9 +149,6 @@ const ContestDetailPage: React.FC = () => {
       const result = await apiService.updateContest(contest.id, {
         contest_name: contest.contest_name,
         description: contest.description,
-        start_time: contest.start_time || null,
-        duration: contest.duration ?? null,
-        freeze_time: contest.freeze_time ?? 0,
         manual_control: contest.manual_control ?? true,
         is_active: contest.is_active
       });
@@ -799,54 +793,6 @@ const ContestDetailPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '0.65rem', color: '#212529' }}>
-                      Start Time (Optional)
-                    </label>
-                    <DateTimePicker
-                      value={contest.start_time}
-                      onChange={(value) => setContest({ ...contest, start_time: value || null })}
-                    />
-                    <small style={{
-                      display: 'block',
-                      marginTop: '6px',
-                      color: '#6b7280',
-                      fontSize: '0.55rem',
-                    }}>
-                      For planning/display only
-                    </small>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '0.65rem', color: '#212529' }}>
-                      End Time
-                    </label>
-                    {contest.start_time && contest.duration ? (
-                      <DateTimePicker
-                        value={new Date(new Date(contest.start_time).getTime() + (contest.duration || 0) * 60000).toISOString()}
-                        onChange={(value) => {
-                          if (!contest.start_time) return;
-                          const endTime = new Date(value);
-                          const startTime = new Date(contest.start_time);
-                          if (Number.isNaN(endTime.getTime()) || Number.isNaN(startTime.getTime())) return;
-                          const duration = Math.max(0, Math.floor((endTime.getTime() - startTime.getTime()) / 60000));
-                          setContest({ ...contest, duration });
-                        }}
-                      />
-                    ) : (
-                      <div style={{
-                        padding: '12px',
-                        border: '3px dashed #212529',
-                        background: '#f9fafb',
-                        fontSize: '0.6rem',
-                        color: '#6b7280'
-                      }}>
-                        Provide a start time and duration to calculate an estimated end time.
-                      </div>
-                    )}
-                  </div>
-                </div>
 
               </div>
             )}

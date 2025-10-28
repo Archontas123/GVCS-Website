@@ -13,8 +13,6 @@ import DateTimePicker from '../../../components/common/DateTimePicker';
 interface ContestFormData {
   contestName: string;
   description: string;
-  duration: number;
-  freeze_time: number;
 }
 
 const CreateContestPage: React.FC = () => {
@@ -24,54 +22,29 @@ const CreateContestPage: React.FC = () => {
   const [formData, setFormData] = useState<ContestFormData>({
     contestName: '',
     description: '',
-    duration: 0,
-    freeze_time: 0,
   });
   
   const [saving, setSaving] = useState(false);
 
   const handleInputChange = (field: keyof ContestFormData) => (value: string | number) => {
-    setFormData(prev => {
-      const next: ContestFormData = { ...prev, [field]: value as any };
-
-      if (field === 'duration' && Number(value) === 0) {
-        next.freeze_time = 0;
-      }
-
-      return next;
-    });
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSave = async () => {
     try {
       setSaving(true);
-      
+
       if (!formData.contestName.trim()) {
         throw new Error('Contest name is required');
       }
-      
+
       if (!formData.description.trim()) {
         throw new Error('Description is required');
-      }
-      
-      if (formData.duration < 0) {
-        throw new Error('Duration cannot be negative');
-      }
-
-      if (formData.duration === 0 && formData.freeze_time > 0) {
-        throw new Error('Freeze time is only available when a duration is set');
-      }
-
-      if (formData.duration > 0 && formData.freeze_time > formData.duration) {
-        throw new Error('Freeze time cannot exceed the planned duration');
       }
 
       const contestData = {
         contest_name: formData.contestName.trim(),
         description: formData.description,
-        start_time: null,
-        duration: formData.duration === 0 ? null : formData.duration,
-        freeze_time: formData.duration === 0 ? 0 : formData.freeze_time,
         manual_control: true,
         is_active: false
       };
@@ -225,83 +198,6 @@ const CreateContestPage: React.FC = () => {
                 >
                   Manual control is enabled. Start and end this contest from the admin dashboard when the teams are ready.
                 </div>
-              </div>
-
-              {/* Duration */}
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: '8px',
-                    fontWeight: 'bold',
-                    color: '#212529',
-                    fontSize: '0.7rem',
-                    fontFamily: "'Press Start 2P', cursive",
-                  }}
-                >
-                  Duration (minutes)
-                </label>
-                <input
-                  type="number"
-                  value={formData.duration}
-                  onChange={(e) => handleInputChange('duration')(parseInt(e.target.value) || 0)}
-                  min="0"
-                  placeholder="120"
-                  style={{
-                    width: '100%',
-                    border: '3px solid #212529',
-                    fontSize: '0.8rem',
-                    padding: '12px 16px',
-                    backgroundColor: '#ffffff',
-                    color: '#1f2937',
-                    fontFamily: "system-ui, sans-serif",
-                    boxSizing: 'border-box',
-                  }}
-                />
-                <p style={{ fontSize: '0.65rem', color: '#6b7280', marginTop: '8px', lineHeight: '1.6' }}>
-                  {formData.duration === 0
-                    ? 'Manual mode: duration and end time will be determined when you close the contest.'
-                    : `Planned duration: ${formData.duration} minutes.`}
-                </p>
-              </div>
-
-              {/* Freeze Time */}
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: '8px',
-                    fontWeight: 'bold',
-                    color: '#212529',
-                    fontSize: '0.7rem',
-                    fontFamily: "'Press Start 2P', cursive",
-                  }}
-                >
-                  Freeze Time (min)
-                </label>
-                <input
-                  type="number"
-                  value={formData.freeze_time}
-                  onChange={(e) => handleInputChange('freeze_time')(parseInt(e.target.value) || 0)}
-                  min="0"
-                  placeholder="30"
-                  style={{
-                    width: '100%',
-                    border: '3px solid #212529',
-                    fontSize: '0.8rem',
-                    padding: '12px 16px',
-                    backgroundColor: '#ffffff',
-                    color: '#1f2937',
-                    fontFamily: "system-ui, sans-serif",
-                    boxSizing: 'border-box',
-                  }}
-                  disabled={saving || formData.duration === 0}
-                />
-                <p style={{ fontSize: '0.65rem', color: '#6b7280', marginTop: '8px', lineHeight: '1.6' }}>
-                  {formData.duration === 0
-                    ? 'Set a duration above to enable leaderboard freeze functionality.'
-                    : 'Minutes before the planned end to freeze the leaderboard.'}
-                </p>
               </div>
             </div>
 

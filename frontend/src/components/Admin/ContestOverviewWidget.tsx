@@ -13,11 +13,6 @@ interface ContestStats {
 interface ActiveContest {
   id: number;
   contest_name: string;
-  start_time?: string | null;
-  duration?: number | null;
-  time_remaining_seconds: number;
-  time_elapsed_seconds: number;
-  progress_percentage: number;
   status: 'pending_manual' | 'not_started' | 'running' | 'frozen' | 'ended';
   manual_control?: boolean;
   registration_code: string;
@@ -86,11 +81,6 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
               return {
                 id: contest.id,
                 contest_name: contest.contest_name,
-                start_time: contest.start_time || null,
-                duration: contest.duration ?? null,
-                time_remaining_seconds: progress?.time_remaining_seconds || 0,
-                time_elapsed_seconds: progress?.time_elapsed_seconds || 0,
-                progress_percentage: progress?.progress_percentage || 0,
                 status: progress?.status || 'not_started',
                 manual_control: progress?.manual_control ?? contest.manual_control ?? true,
                 registration_code: contest.registration_code,
@@ -408,59 +398,6 @@ const ContestOverviewWidget: React.FC<ContestOverviewWidgetProps> = ({
                     </button>
                   </div>
 
-                  <div style={{ marginBottom: '20px' }}>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      marginBottom: '8px'
-                    }}>
-                      <span style={{
-                        fontSize: '0.875rem',
-                        color: '#6b7280'
-                      }}>
-                        Progress
-                      </span>
-                      <span style={{
-                        fontSize: '0.875rem',
-                        color: '#6b7280'
-                      }}>
-                        {contest.progress_percentage.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div style={{
-                      width: '100%',
-                      height: '10px',
-                      backgroundColor: '#f3f4f6',
-                      borderRadius: '8px',
-                      overflow: 'hidden'
-                    }}>
-                      <div style={{
-                        width: `${contest.progress_percentage}%`,
-                        height: '100%',
-                        backgroundColor: '#1d4ed8',
-                        borderRadius: '8px',
-                        transition: 'width 0.3s ease'
-                      }} />
-                    </div>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      marginTop: '8px'
-                    }}>
-                      <span style={{
-                        fontSize: '0.75rem',
-                        color: '#6b7280'
-                      }}>
-                        Remaining: {formatTime(contest.time_remaining_seconds)}
-                      </span>
-                      <span style={{
-                        fontSize: '0.75rem',
-                        color: '#6b7280'
-                      }}>
-                        Duration: {contest.duration ? `${contest.duration} min` : 'Manual'}
-                      </span>
-                    </div>
-                  </div>
 
                   <div style={{
                     display: 'flex',

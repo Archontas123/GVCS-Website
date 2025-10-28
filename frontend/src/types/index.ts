@@ -18,9 +18,6 @@ export interface Contest {
   contestName: string;
   description: string;
   registrationCode: string;
-  startTime?: string | null;
-  duration?: number | null; 
-  freezeTime?: number | null; 
   isActive: boolean;
   manualControl?: boolean;
 }
@@ -129,9 +126,6 @@ export interface AuthState {
 // Contest timer types
 export interface ContestTimer {
   contestId: number;
-  startTime: string;
-  duration: number;
-  timeRemaining: number; // in seconds
   isRunning: boolean;
   isFrozen: boolean;
   hasEnded: boolean;
