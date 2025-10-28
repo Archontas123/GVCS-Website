@@ -1404,7 +1404,7 @@ const ProblemDetailPage: React.FC = () => {
                       <div key={testCase.id} style={{ padding: '16px', border: '4px solid #212529', background: '#ffffff', boxShadow: '4px 4px 0px #212529' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between', marginBottom: '12px' }}>
                           <h4 style={{ fontWeight: 'bold', fontSize: '0.75rem', margin: 0, color: '#212529' }}>
-                            Test Case {testCase.order}
+                            TC#{testCase.order} - {testCase.test_case_name}
                           </h4>
                           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                             {testCase.sample && (
