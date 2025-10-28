@@ -284,7 +284,7 @@ class JudgeEngine {
         if (!isHidden) {
           detail.inputParameters = testCase.input_parameters || inputData;
           detail.expectedReturn = testCase.expected_return || expectedOutput;
-          detail.actualOutput = executeResult.output || '';
+          detail.actualOutput = executeResult.output ?? '';
 
           if (executeResult.error) {
             detail.error = executeResult.error;
@@ -410,7 +410,7 @@ class JudgeEngine {
         if (!isHidden) {
           detail.input = testCase.input;
           detail.expectedOutput = testCase.output;
-          detail.actualOutput = executeResult.output || '';
+          detail.actualOutput = executeResult.output ?? '';
 
           if (executeResult.error) {
             detail.error = executeResult.error;
@@ -488,7 +488,7 @@ class JudgeEngine {
     }
 
     const outputMatch = this.compareOutputs(
-      executeResult.output || '',
+      executeResult.output ?? '',
       testCase.output
     );
 

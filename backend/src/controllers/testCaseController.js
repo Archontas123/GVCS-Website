@@ -88,15 +88,15 @@ class TestCase {
       errors.push('Test case name must not exceed 200 characters');
     }
 
-    if (!data.input_parameters) {
+    if (data.input_parameters == null) {
       errors.push('Input parameters are required');
     }
 
-    if (!data.expected_return) {
+    if (data.expected_return == null) {
       errors.push('Expected return value is required');
     }
 
-    if (!data.parameter_types) {
+    if (data.parameter_types == null) {
       errors.push('Parameter types are required');
     }
 

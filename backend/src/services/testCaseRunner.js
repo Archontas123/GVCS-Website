@@ -272,7 +272,7 @@ class TestCaseRunner {
         executionTime: executeResult.executionTime || 0,
         memoryUsed: executeResult.memoryUsed || 0,
         exitCode: executeResult.exitCode,
-        output: executeResult.output || '',
+        output: executeResult.output ?? '',
         error: executeResult.error || '',
         input: testCase.input,
         expectedOutput: testCase.expectedOutput,
@@ -332,7 +332,7 @@ class TestCaseRunner {
 
     // Compare output
     const outputMatches = this.compareOutputs(
-      executeResult.output || '', 
+      executeResult.output ?? '',
       testCase.expectedOutput
     );
 
@@ -555,7 +555,7 @@ class TestCaseRunner {
         submission_id: submissionId,
         test_case_id: result.testCaseId,
         result: result.verdict === 'Accepted' ? 'passed' : 'failed',
-        output: result.output || '',
+        output: result.output ?? '',
         expected_output: result.expectedOutput || '',
         execution_time: result.executionTime || 0,
         memory_used: result.memoryUsed || 0,

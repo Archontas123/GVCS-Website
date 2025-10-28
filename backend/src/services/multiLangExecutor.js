@@ -513,7 +513,7 @@ class MultiLangExecutor {
 
       const executionResult = {
         success: result.success,
-        output: result.output || '',
+        output: result.output ?? '',
         error: result.error || '',
         executionTime: result.executionTime || 0,
         memoryUsed: result.memoryUsed || 0,
