@@ -1,6 +1,5 @@
 const cron = require('node-cron');
 const { db } = require('../utils/db');
-const logger = require('../utils/logger');
 const contestTemplateService = require('./contestTemplateService');
 const websocketService = require('./websocketService');
 const notificationService = require('./notificationService');
@@ -33,9 +32,7 @@ class ContestSchedulerService {
       // Schedule cleanup task
       this.scheduleCleanupTask();
       
-      logger.info('Contest scheduler initialized');
     } catch (error) {
-      logger.error('Error initializing contest scheduler:', error);
     }
   }
 
@@ -74,7 +71,6 @@ class ContestSchedulerService {
       // Schedule notifications
       await this.scheduleNotifications(scheduledContest);
 
-      logger.info('Contest scheduled:', {
         scheduleId: scheduledContest.id,
         contestName: contestData.contest_name,
         scheduledTime: contestData.scheduled_time
@@ -82,7 +78,6 @@ class ContestSchedulerService {
 
       return scheduledContest;
     } catch (error) {
-      logger.error('Error scheduling contest:', error);
       throw error;
     }
   }
@@ -115,7 +110,6 @@ class ContestSchedulerService {
       // Schedule the recurring task
       await this.scheduleRecurringTask(recurringContest);
 
-      logger.info('Recurring contest scheduled:', {
         recurringId: recurringContest.id,
         name: recurringData.name,
         cronExpression: recurringData.cron_expression
@@ -123,7 +117,6 @@ class ContestSchedulerService {
 
       return recurringContest;
     } catch (error) {
-      logger.error('Error scheduling recurring contest:', error);
       throw error;
     }
   }
@@ -161,7 +154,6 @@ class ContestSchedulerService {
         await this.createSeriesContests(createdSeries.id, seriesData.contests, adminId);
       }
 
-      logger.info('Contest series created:', {
         seriesId: createdSeries.id,
         name: seriesData.name,
         contestCount: seriesData.contests?.length || 0
@@ -169,7 +161,6 @@ class ContestSchedulerService {
 
       return createdSeries;
     } catch (error) {
-      logger.error('Error creating contest series:', error);
       throw error;
     }
   }
@@ -203,7 +194,6 @@ class ContestSchedulerService {
       scheduledTime
     });
 
-    logger.info(`Contest task scheduled: ${taskId} at ${scheduledTime.toISOString()}`);
   }
 
   /**
@@ -211,7 +201,6 @@ class ContestSchedulerService {
    */
   async executeScheduledContest(scheduledContest) {
     try {
-      logger.info(`Executing scheduled contest: ${scheduledContest.id}`);
 
       // Create the actual contest
       const contestData = {
@@ -240,14 +229,12 @@ class ContestSchedulerService {
       // Send notifications
       await notificationService.sendContestCreatedNotification(contest);
 
-      logger.info('Scheduled contest executed successfully:', {
         scheduleId: scheduledContest.id,
         contestId: contest.id
       });
 
       return contest;
     } catch (error) {
-      logger.error('Error executing scheduled contest:', error);
       
       // Mark as failed
       await db('scheduled_contests')
@@ -283,9 +270,7 @@ class ContestSchedulerService {
         recurringContest
       });
 
-      logger.info(`Recurring task scheduled: ${taskId} with expression ${recurringContest.cron_expression}`);
     } catch (error) {
-      logger.error('Error scheduling recurring task:', error);
       throw error;
     }
   }
@@ -295,7 +280,6 @@ class ContestSchedulerService {
    */
   async executeRecurringContest(recurringContest) {
     try {
-      logger.info(`Executing recurring contest: ${recurringContest.id}`);
 
       const now = new Date();
       const contestName = `${recurringContest.name} - ${now.toISOString().split('T')[0]}`;
@@ -330,14 +314,12 @@ class ContestSchedulerService {
         status: 'success'
       });
 
-      logger.info('Recurring contest executed successfully:', {
         recurringId: recurringContest.id,
         contestId: contest.id
       });
 
       return contest;
     } catch (error) {
-      logger.error('Error executing recurring contest:', error);
 
       // Log failed execution
       await db('recurring_contest_executions').insert({
@@ -405,7 +387,6 @@ class ContestSchedulerService {
         await this.scheduleContest(scheduleData, adminId);
       }
     } catch (error) {
-      logger.error('Error creating series contests:', error);
       throw error;
     }
   }
@@ -420,7 +401,6 @@ class ContestSchedulerService {
       const now = new Date();
       return new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(); // Placeholder
     } catch (error) {
-      logger.error('Error calculating next execution:', error);
       return null;
     }
   }
@@ -438,9 +418,7 @@ class ContestSchedulerService {
         await this.scheduleContestTask(contest);
       }
 
-      logger.info(`Loaded ${scheduled.length} scheduled contests`);
     } catch (error) {
-      logger.error('Error loading scheduled contests:', error);
     }
   }
 
@@ -457,9 +435,7 @@ class ContestSchedulerService {
         await this.scheduleRecurringTask(recurringContest);
       }
 
-      logger.info(`Loaded ${recurring.length} recurring contest schedules`);
     } catch (error) {
-      logger.error('Error loading recurring schedules:', error);
     }
   }
 
@@ -476,9 +452,7 @@ class ContestSchedulerService {
         this.contestSeries.set(seriesData.id, seriesData);
       }
 
-      logger.info(`Loaded ${series.length} contest series`);
     } catch (error) {
-      logger.error('Error loading contest series:', error);
     }
   }
 
@@ -503,10 +477,8 @@ class ContestSchedulerService {
           cancelled_at: new Date().toISOString()
         });
 
-      logger.info('Scheduled contest cancelled:', { scheduleId, adminId });
       return true;
     } catch (error) {
-      logger.error('Error cancelling scheduled contest:', error);
       throw error;
     }
   }
@@ -532,10 +504,8 @@ class ContestSchedulerService {
           disabled_at: new Date().toISOString()
         });
 
-      logger.info('Recurring contest disabled:', { recurringId, adminId });
       return true;
     } catch (error) {
-      logger.error('Error disabling recurring contest:', error);
       throw error;
     }
   }
@@ -566,7 +536,6 @@ class ContestSchedulerService {
         recent_executions: parseInt(stats.recent_executions.count)
       };
     } catch (error) {
-      logger.error('Error getting scheduler stats:', error);
       return {
         active_scheduled: 0,
         active_recurring: 0,
@@ -608,9 +577,7 @@ class ContestSchedulerService {
         .where('executed_at', '<', cutoffDate)
         .delete();
 
-      logger.info('Scheduled contest cleanup completed');
     } catch (error) {
-      logger.error('Error during scheduled cleanup:', error);
     }
   }
 }

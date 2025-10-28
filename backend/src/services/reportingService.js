@@ -1,5 +1,4 @@
 const { db } = require('../utils/db');
-const logger = require('../utils/logger');
 const fs = require('fs').promises;
 const path = require('path');
 const analyticsService = require('./analyticsService');
@@ -17,7 +16,6 @@ class ReportingService {
     try {
       await fs.mkdir(this.exportDirectory, { recursive: true });
     } catch (error) {
-      logger.error('Error creating export directory:', error);
     }
   }
 
@@ -29,7 +27,6 @@ class ReportingService {
       const reportId = `platform_${Date.now()}`;
       const dateRange = options.dateRange || 30;
 
-      logger.info('Generating platform report:', { reportId, dateRange });
 
       const [
         overview,
@@ -73,10 +70,8 @@ class ReportingService {
         expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString() // 90 days
       });
 
-      logger.info('Platform report generated successfully:', { reportId });
       return report;
     } catch (error) {
-      logger.error('Error generating platform report:', error);
       throw error;
     }
   }
@@ -88,7 +83,6 @@ class ReportingService {
     try {
       const reportId = `contest_${contestId}_${Date.now()}`;
       
-      logger.info('Generating detailed contest report:', { contestId, reportId });
 
       const [
         basicAnalytics,
@@ -129,10 +123,8 @@ class ReportingService {
         expires_at: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString() // 180 days
       });
 
-      logger.info('Detailed contest report generated:', { contestId, reportId });
       return report;
     } catch (error) {
-      logger.error('Error generating detailed contest report:', error);
       throw error;
     }
   }
@@ -189,7 +181,6 @@ class ReportingService {
             expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
           });
 
-        logger.info('Contest data exported successfully:', { contestId, format, filePath });
         return { filePath, fileSize: stats.size, exportId };
       } catch (exportError) {
         // Update export request with error
@@ -202,7 +193,6 @@ class ReportingService {
         throw exportError;
       }
     } catch (error) {
-      logger.error('Error exporting contest data:', error);
       throw error;
     }
   }
@@ -236,7 +226,6 @@ class ReportingService {
         system_health: systemHealth
       };
     } catch (error) {
-      logger.error('Error generating live dashboard:', error);
       throw error;
     }
   }
@@ -283,7 +272,6 @@ class ReportingService {
 
       return report;
     } catch (error) {
-      logger.error('Error generating team report:', error);
       throw error;
     }
   }
@@ -305,10 +293,8 @@ class ReportingService {
 
       const result = await db('analytics_tasks').insert(task).returning('*');
       
-      logger.info('Report scheduled:', { taskId: result[0].id, name: reportConfig.name });
       return result[0];
     } catch (error) {
-      logger.error('Error scheduling report:', error);
       throw error;
     }
   }
@@ -331,7 +317,6 @@ class ReportingService {
         )
         .first();
     } catch (error) {
-      logger.error('Error getting contest statistics:', error);
       return {};
     }
   }
@@ -349,7 +334,6 @@ class ReportingService {
         )
         .first();
     } catch (error) {
-      logger.error('Error getting team statistics:', error);
       return {};
     }
   }
@@ -368,7 +352,6 @@ class ReportingService {
         )
         .first();
     } catch (error) {
-      logger.error('Error getting submission statistics:', error);
       return {};
     }
   }

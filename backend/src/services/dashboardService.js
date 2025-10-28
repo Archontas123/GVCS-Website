@@ -1,5 +1,4 @@
 const { db } = require('../utils/db');
-const logger = require('../utils/logger');
 const websocketService = require('./websocketService');
 const analyticsService = require('./analyticsService');
 
@@ -47,7 +46,6 @@ class DashboardService {
       const result = await db('analytics_dashboards').insert(dashboard).returning('*');
       const createdDashboard = result[0];
 
-      logger.info('Dashboard created:', {
         dashboardId: createdDashboard.id,
         name: dashboardConfig.name,
         type: dashboardConfig.type
@@ -55,7 +53,6 @@ class DashboardService {
 
       return createdDashboard;
     } catch (error) {
-      logger.error('Error creating dashboard:', error);
       throw error;
     }
   }
@@ -82,7 +79,6 @@ class DashboardService {
         access_permissions: JSON.parse(dashboard.access_permissions || '{}')
       };
     } catch (error) {
-      logger.error('Error getting dashboard:', error);
       throw error;
     }
   }
@@ -105,7 +101,6 @@ class DashboardService {
         try {
           data[widget.id] = await this.getWidgetData(widget, contestId, config.filters);
         } catch (widgetError) {
-          logger.error(`Error getting data for widget ${widget.id}:`, widgetError);
           data[widget.id] = { error: widgetError.message };
         }
       }
@@ -117,7 +112,6 @@ class DashboardService {
         filters: config.filters
       };
     } catch (error) {
-      logger.error('Error getting dashboard data:', error);
       throw error;
     }
   }
@@ -153,15 +147,12 @@ class DashboardService {
             data: dashboardData
           });
         } catch (error) {
-          logger.error('Error in dashboard update interval:', error);
         }
       }, refreshRate);
 
       this.updateIntervals.set(socketId, intervalId);
 
-      logger.info('Live dashboard started:', { dashboardId, socketId });
     } catch (error) {
-      logger.error('Error starting live dashboard:', error);
       throw error;
     }
   }
@@ -181,9 +172,7 @@ class DashboardService {
       // Remove from active dashboards
       this.activeDashboards.delete(socketId);
 
-      logger.info('Live dashboard stopped:', { socketId });
     } catch (error) {
-      logger.error('Error stopping live dashboard:', error);
     }
   }
 
@@ -413,7 +402,6 @@ class DashboardService {
         access_permissions: JSON.parse(dashboard.access_permissions || '{}')
       }));
     } catch (error) {
-      logger.error('Error getting dashboards:', error);
       throw error;
     }
   }
@@ -438,7 +426,6 @@ class DashboardService {
       
       return await this.createDashboard(clonedDashboard, adminId);
     } catch (error) {
-      logger.error('Error cloning dashboard:', error);
       throw error;
     }
   }
@@ -466,10 +453,8 @@ class DashboardService {
         .where({ id: dashboardId })
         .update(updateData);
       
-      logger.info('Dashboard updated:', { dashboardId, adminId });
       return await this.getDashboard(dashboardId);
     } catch (error) {
-      logger.error('Error updating dashboard:', error);
       throw error;
     }
   }
@@ -483,10 +468,8 @@ class DashboardService {
         .where({ id: dashboardId })
         .delete();
       
-      logger.info('Dashboard deleted:', { dashboardId, adminId });
       return true;
     } catch (error) {
-      logger.error('Error deleting dashboard:', error);
       throw error;
     }
   }

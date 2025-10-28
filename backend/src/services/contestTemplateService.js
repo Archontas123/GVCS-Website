@@ -1,5 +1,4 @@
 const { db } = require('../utils/db');
-const logger = require('../utils/logger');
 
 /**
  * Contest Template Service for managing reusable contest configurations
@@ -186,7 +185,6 @@ class ContestTemplateService {
       const result = await db('contests').insert(contest).returning('*');
       const createdContest = result[0];
 
-      logger.info(`Contest created from template: ${templateId}`, {
         contestId: createdContest.id,
         template: templateId,
         adminId
@@ -194,7 +192,6 @@ class ContestTemplateService {
 
       return createdContest;
     } catch (error) {
-      logger.error('Error creating contest from template:', error);
       throw error;
     }
   }
@@ -224,7 +221,6 @@ class ContestTemplateService {
         is_custom: true
       });
 
-      logger.info('Custom template saved:', {
         templateId: savedTemplate.id,
         name: templateData.name,
         adminId
@@ -232,7 +228,6 @@ class ContestTemplateService {
 
       return savedTemplate;
     } catch (error) {
-      logger.error('Error saving custom template:', error);
       throw error;
     }
   }
@@ -259,9 +254,7 @@ class ContestTemplateService {
         });
       });
 
-      logger.info(`Loaded ${customTemplates.length} custom templates`);
     } catch (error) {
-      logger.error('Error loading custom templates:', error);
     }
   }
 
@@ -306,7 +299,6 @@ class ContestTemplateService {
 
       return await this.saveTemplate(templateData, adminId);
     } catch (error) {
-      logger.error('Error cloning contest as template:', error);
       throw error;
     }
   }
@@ -350,7 +342,6 @@ class ContestTemplateService {
 
       if (problems.length > 0) {
         await db('problems').insert(problems);
-        logger.info(`Generated ${problems.length} problems from template`, {
           contestId,
           templateId
         });
@@ -358,7 +349,6 @@ class ContestTemplateService {
 
       return problems;
     } catch (error) {
-      logger.error('Error generating problems from template:', error);
       throw error;
     }
   }
@@ -430,7 +420,6 @@ class ContestTemplateService {
           .first()
       };
     } catch (error) {
-      logger.error('Error getting template usage:', error);
       return { total_usage: 0, recent_usage: 0, last_used: null };
     }
   }
@@ -458,14 +447,12 @@ class ContestTemplateService {
 
       this.templates.delete(templateId);
 
-      logger.info('Template deleted:', {
         templateId,
         adminId
       });
 
       return true;
     } catch (error) {
-      logger.error('Error deleting template:', error);
       throw error;
     }
   }
@@ -484,7 +471,6 @@ class ContestTemplateService {
 
       return await this.saveTemplate(templateData, adminId);
     } catch (error) {
-      logger.error('Error importing template:', error);
       throw error;
     }
   }

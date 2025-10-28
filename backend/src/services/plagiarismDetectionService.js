@@ -1,5 +1,4 @@
 const { db } = require('../utils/db');
-const logger = require('../utils/logger');
 const crypto = require('crypto');
 
 class PlagiarismDetectionService {
@@ -46,7 +45,6 @@ class PlagiarismDetectionService {
         throw new Error('Submission not found');
       }
 
-      logger.info('Starting plagiarism analysis:', { submissionId });
 
       // Get all other submissions for the same problem
       const otherSubmissions = await db('submissions')
@@ -93,7 +91,6 @@ class PlagiarismDetectionService {
           });
       }
 
-      logger.info('Plagiarism analysis completed:', {
         submissionId,
         suspiciousMatches: analysisResults.length,
         maxSimilarity: analysisResults.length > 0 ? Math.max(...analysisResults.map(r => r.similarity_score)) : 0
@@ -106,7 +103,6 @@ class PlagiarismDetectionService {
         max_similarity: analysisResults.length > 0 ? Math.max(...analysisResults.map(r => r.similarity_score)) : 0
       };
     } catch (error) {
-      logger.error('Error analyzing submission for plagiarism:', error);
       throw error;
     }
   }
@@ -148,7 +144,6 @@ class PlagiarismDetectionService {
         }
       };
     } catch (error) {
-      logger.error('Error calculating code similarity:', error);
       return { score: 0, details: {} };
     }
   }
@@ -411,7 +406,6 @@ class PlagiarismDetectionService {
         await db('plagiarism_analysis_results').insert(analysisRecords);
       }
     } catch (error) {
-      logger.error('Error storing analysis results:', error);
       throw error;
     }
   }
@@ -421,7 +415,6 @@ class PlagiarismDetectionService {
    */
   async analyzeContest(contestId) {
     try {
-      logger.info('Starting batch plagiarism analysis for contest:', { contestId });
 
       const submissions = await db('submissions')
         .where({ contest_id: contestId })
@@ -440,14 +433,11 @@ class PlagiarismDetectionService {
           processedCount++;
 
           if (processedCount % 10 === 0) {
-            logger.info(`Processed ${processedCount}/${submissions.length} submissions`);
           }
         } catch (error) {
-          logger.error(`Error analyzing submission ${submission.id}:`, error);
         }
       }
 
-      logger.info('Contest plagiarism analysis completed:', {
         contestId,
         totalSubmissions: submissions.length,
         suspiciousSubmissions: results.length
@@ -460,7 +450,6 @@ class PlagiarismDetectionService {
         suspicious_submissions: results
       };
     } catch (error) {
-      logger.error('Error analyzing contest for plagiarism:', error);
       throw error;
     }
   }
@@ -492,7 +481,6 @@ class PlagiarismDetectionService {
 
       return report;
     } catch (error) {
-      logger.error('Error getting plagiarism report:', error);
       throw error;
     }
   }
@@ -511,10 +499,8 @@ class PlagiarismDetectionService {
           reviewed_at: new Date().toISOString()
         });
 
-      logger.info('Plagiarism analysis marked as reviewed:', { analysisId, decision });
       return true;
     } catch (error) {
-      logger.error('Error marking analysis as reviewed:', error);
       throw error;
     }
   }
@@ -538,7 +524,6 @@ class PlagiarismDetectionService {
 
       return stats;
     } catch (error) {
-      logger.error('Error getting similarity statistics:', error);
       return {};
     }
   }

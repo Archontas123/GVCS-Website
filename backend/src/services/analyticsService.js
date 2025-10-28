@@ -1,5 +1,4 @@
 const { db } = require('../utils/db');
-const logger = require('../utils/logger');
 
 class AnalyticsService {
   /**
@@ -65,7 +64,6 @@ class AnalyticsService {
       this.cache.set(cacheKey, { data: overview, timestamp: Date.now() });
       return overview;
     } catch (error) {
-      logger.error('Error getting platform overview:', error);
       throw error;
     }
   }
@@ -121,7 +119,6 @@ class AnalyticsService {
         problems: problemStats
       };
     } catch (error) {
-      logger.error('Error getting contest analytics:', error);
       throw error;
     }
   }
@@ -173,7 +170,6 @@ class AnalyticsService {
         time_patterns: timePatterns
       };
     } catch (error) {
-      logger.error('Error getting team analytics:', error);
       throw error;
     }
   }
@@ -212,7 +208,6 @@ class AnalyticsService {
         last_updated: new Date().toISOString()
       };
     } catch (error) {
-      logger.error('Error getting contest dashboard:', error);
       throw error;
     }
   }
@@ -253,10 +248,8 @@ class AnalyticsService {
 
       await this.saveReport('contest', contestId, report);
 
-      logger.info('Contest report generated:', { contestId });
       return report;
     } catch (error) {
-      logger.error('Error generating contest report:', error);
       throw error;
     }
   }
@@ -286,7 +279,6 @@ class AnalyticsService {
         active_teams: parseInt(uniqueTeams.active_teams)
       };
     } catch (error) {
-      logger.error('Error getting participation data:', error);
       return { hourly_submissions: [], active_teams: 0 };
     }
   }
@@ -312,7 +304,6 @@ class AnalyticsService {
 
       return trends;
     } catch (error) {
-      logger.error('Error getting submission trends:', error);
       return [];
     }
   }
@@ -342,7 +333,6 @@ class AnalyticsService {
         percentage: total > 0 ? ((stat.count / total) * 100).toFixed(2) : 0
       }));
     } catch (error) {
-      logger.error('Error getting language statistics:', error);
       return [];
     }
   }
@@ -383,7 +373,6 @@ class AnalyticsService {
           : 0
       }));
     } catch (error) {
-      logger.error('Error getting problem statistics:', error);
       return [];
     }
   }
@@ -412,7 +401,6 @@ class AnalyticsService {
       if (previousCount === 0) return currentCount > 0 ? 100 : 0;
       return ((currentCount - previousCount) / previousCount * 100).toFixed(2);
     } catch (error) {
-      logger.error('Error calculating growth rate:', error);
       return 0;
     }
   }
@@ -438,7 +426,6 @@ class AnalyticsService {
 
       return await query;
     } catch (error) {
-      logger.error('Error getting team submission history:', error);
       return [];
     }
   }
@@ -470,7 +457,6 @@ class AnalyticsService {
         total_submissions: parseInt(team.total_submissions || 0)
       }));
     } catch (error) {
-      logger.error('Error getting current standings:', error);
       return [];
     }
   }
@@ -497,7 +483,6 @@ class AnalyticsService {
         .orderBy('submissions.submitted_at', 'desc')
         .limit(limit);
     } catch (error) {
-      logger.error('Error getting recent submissions:', error);
       return [];
     }
   }
@@ -519,7 +504,6 @@ class AnalyticsService {
         generated_at: new Date().toISOString()
       });
     } catch (error) {
-      logger.error('Error saving report:', error);
     }
   }
 

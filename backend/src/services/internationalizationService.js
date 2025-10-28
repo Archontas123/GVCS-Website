@@ -1,5 +1,4 @@
 const { db } = require('../utils/db');
-const logger = require('../utils/logger');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -24,9 +23,7 @@ class InternationalizationService {
     try {
       await this.loadSupportedLanguages();
       await this.loadTranslations();
-      logger.info('Internationalization service initialized');
     } catch (error) {
-      logger.error('Error initializing i18n service:', error);
     }
   }
 
@@ -59,9 +56,7 @@ class InternationalizationService {
         }
       }
 
-      logger.info(`Loaded ${this.supportedLanguages.size} supported languages`);
     } catch (error) {
-      logger.error('Error loading supported languages:', error);
     }
   }
 
@@ -80,9 +75,7 @@ class InternationalizationService {
         await this.loadLanguageTranslations(langCode);
       }
 
-      logger.info(`Loaded translations for ${this.translations.size} languages`);
     } catch (error) {
-      logger.error('Error loading translations:', error);
     }
   }
 
@@ -105,7 +98,6 @@ class InternationalizationService {
           translations.set(key, value);
         }
       } catch (fileError) {
-        logger.warn(`Translation file not found: ${filePath}`);
       }
 
       // Load from database (overrides file translations)
@@ -118,9 +110,7 @@ class InternationalizationService {
       }
 
       this.translations.set(languageCode, translations);
-      logger.info(`Loaded ${translations.size} translations for ${languageCode}`);
     } catch (error) {
-      logger.error(`Error loading translations for ${languageCode}:`, error);
     }
   }
 
@@ -137,7 +127,6 @@ class InternationalizationService {
     const langTranslations = this.translations.get(lang);
     
     if (!langTranslations) {
-      logger.warn(`Language not supported: ${lang}`);
       return key;
     }
 
@@ -151,7 +140,6 @@ class InternationalizationService {
 
     // Fallback to key if no translation found
     if (!translation) {
-      logger.warn(`Translation not found: ${key} (${lang})`);
       return key;
     }
 
@@ -224,10 +212,8 @@ class InternationalizationService {
       }
       this.translations.get(languageCode).set(key, value);
 
-      logger.info('Translation updated:', { key, languageCode, category });
       return true;
     } catch (error) {
-      logger.error('Error setting translation:', error);
       throw error;
     }
   }
@@ -251,10 +237,8 @@ class InternationalizationService {
         importedCount++;
       }
 
-      logger.info(`Imported ${importedCount} translations for ${languageCode}`);
       return importedCount;
     } catch (error) {
-      logger.error('Error importing translations:', error);
       throw error;
     }
   }
@@ -281,10 +265,8 @@ class InternationalizationService {
       const outputPath = filePath || path.join(this.translationsPath, `${languageCode}_export.json`);
       await fs.writeFile(outputPath, JSON.stringify(exportData, null, 2), 'utf8');
 
-      logger.info(`Exported translations for ${languageCode} to ${outputPath}`);
       return outputPath;
     } catch (error) {
-      logger.error('Error exporting translations:', error);
       throw error;
     }
   }
@@ -317,7 +299,6 @@ class InternationalizationService {
 
       return stats;
     } catch (error) {
-      logger.error('Error getting translation stats:', error);
       throw error;
     }
   }
@@ -468,10 +449,8 @@ class InternationalizationService {
       this.supportedLanguages.set(language.language_code, language);
       this.translations.set(language.language_code, new Map());
 
-      logger.info('New language added:', { code: language.language_code, name: language.language_name });
       return result[0];
     } catch (error) {
-      logger.error('Error adding language:', error);
       throw error;
     }
   }
@@ -526,7 +505,6 @@ class InternationalizationService {
         }))
       };
     } catch (error) {
-      logger.error('Error getting localized contest data:', error);
       throw error;
     }
   }
@@ -539,7 +517,6 @@ class InternationalizationService {
    * @returns {Promise<string>} Translated text (currently just marked as auto-translated)
    */
   async autoTranslate(text, fromLanguage, toLanguage) {
-    logger.info(`Auto-translate requested: ${fromLanguage} -> ${toLanguage}`);
     
     return `[AUTO-TRANSLATED from ${fromLanguage}] ${text}`;
   }
@@ -558,7 +535,6 @@ class InternationalizationService {
       
       return result?.last_update;
     } catch (error) {
-      logger.error('Error getting last update time:', error);
       return null;
     }
   }
@@ -592,7 +568,6 @@ class InternationalizationService {
       const categories = await query;
       return categories.map(c => c.category);
     } catch (error) {
-      logger.error('Error getting categories:', error);
       return [];
     }
   }
@@ -608,10 +583,8 @@ class InternationalizationService {
         .where('updated_at', '<', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
         .delete();
 
-      logger.info(`Cleaned up ${result} unused translations`);
       return result;
     } catch (error) {
-      logger.error('Error cleaning up translations:', error);
       return 0;
     }
   }

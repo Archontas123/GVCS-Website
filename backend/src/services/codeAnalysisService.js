@@ -1,5 +1,4 @@
 const { db } = require('../utils/db');
-const logger = require('../utils/logger');
 const crypto = require('crypto');
 
 /**
@@ -33,7 +32,6 @@ class CodeAnalysisService {
         throw new Error('Submission not found');
       }
 
-      logger.info('Starting code analysis:', { submissionId });
 
       const analysis = {
         submission_id: submissionId,
@@ -49,7 +47,6 @@ class CodeAnalysisService {
 
       await this.storeAnalysisResults(submissionId, analysis);
 
-      logger.info('Code analysis completed:', { 
         submissionId, 
         complexity: analysis.complexity_metrics.cyclomatic_complexity,
         quality_score: analysis.quality_metrics.overall_score 
@@ -57,7 +54,6 @@ class CodeAnalysisService {
 
       return analysis;
     } catch (error) {
-      logger.error('Error analyzing code:', error);
       throw error;
     }
   }
@@ -449,7 +445,6 @@ class CodeAnalysisService {
         .merge();
 
     } catch (error) {
-      logger.error('Error storing analysis results:', error);
       throw error;
     }
   }
@@ -477,7 +472,6 @@ class CodeAnalysisService {
 
       return null;
     } catch (error) {
-      logger.error('Error getting analysis results:', error);
       throw error;
     }
   }
@@ -491,7 +485,6 @@ class CodeAnalysisService {
    */
   async analyzeContest(contestId) {
     try {
-      logger.info('Starting batch code analysis for contest:', { contestId });
 
       const submissions = await db('submissions')
         .where({ contest_id: contestId })
@@ -507,14 +500,11 @@ class CodeAnalysisService {
           processedCount++;
 
           if (processedCount % 20 === 0) {
-            logger.info(`Analyzed ${processedCount}/${submissions.length} submissions`);
           }
         } catch (error) {
-          logger.error(`Error analyzing submission ${submission.id}:`, error);
         }
       }
 
-      logger.info('Contest code analysis completed:', {
         contestId,
         totalSubmissions: submissions.length,
         analyzedSubmissions: results.length
@@ -527,7 +517,6 @@ class CodeAnalysisService {
         analysis_summary: this.generateAnalysisSummary(results)
       };
     } catch (error) {
-      logger.error('Error analyzing contest:', error);
       throw error;
     }
   }

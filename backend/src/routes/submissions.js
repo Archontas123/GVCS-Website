@@ -122,11 +122,11 @@ router.post('/submit', authenticateTeam, async (req, res) => {
         
         // Verify problem exists and get contest info
         const problem = await db('problems')
-            .select('problems.*', 'contests.id as contest_id', 'contests.start_time', 'contests.duration', 'contests.is_frozen')
+            .select('problems.*', 'contests.id as contest_id')
             .join('contests', 'problems.contest_id', 'contests.id')
             .where('problems.id', problemId)
             .first();
-            
+
         if (!problem) {
             return res.status(404).json({
                 success: false,
@@ -134,31 +134,8 @@ router.post('/submit', authenticateTeam, async (req, res) => {
             });
         }
 
-        // Check if contest is active and not frozen
+        // Contest timing checks removed - submissions always allowed
         const now = new Date();
-        const contestStart = new Date(problem.start_time);
-        const contestEnd = new Date(contestStart.getTime() + problem.duration * 60 * 1000);
-        
-        if (now < contestStart) {
-            return res.status(400).json({
-                success: false,
-                error: 'Contest has not started yet'
-            });
-        }
-        
-        if (now > contestEnd) {
-            return res.status(400).json({
-                success: false,
-                error: 'Contest has ended'
-            });
-        }
-
-        if (problem.is_frozen) {
-            return res.status(400).json({
-                success: false,
-                error: 'Contest is frozen - no new submissions accepted'
-            });
-        }
 
         // Store submission in database as pending
         const submission = await db('submissions').insert({
@@ -189,7 +166,6 @@ router.post('/submit', authenticateTeam, async (req, res) => {
             language: language,
             code: code,
             submissionTime: now,
-            contestEndTime: contestEnd,
             teamRecentSubmissions: parseInt(teamRecentSubmissions.count) || 0,
             timeLimit: problem.time_limit || 5000,
             memoryLimit: problem.memory_limit || 256

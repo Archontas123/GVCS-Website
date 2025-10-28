@@ -1,5 +1,4 @@
 const { db } = require('../utils/db');
-const logger = require('../utils/logger');
 const websocketService = require('./websocketService');
 const crypto = require('crypto');
 
@@ -41,7 +40,6 @@ class TeamCollaborationService {
         messageQueue: []
       });
 
-      logger.info('Team chat room created:', {
         roomId: chatRoom.id,
         contestId,
         teamId
@@ -49,7 +47,6 @@ class TeamCollaborationService {
 
       return chatRoom;
     } catch (error) {
-      logger.error('Error creating team chat room:', error);
       throw error;
     }
   }
@@ -103,10 +100,8 @@ class TeamCollaborationService {
         timestamp: new Date().toISOString()
       });
 
-      logger.info('User joined chat room:', { roomId, userId });
       return true;
     } catch (error) {
-      logger.error('Error joining chat room:', error);
       throw error;
     }
   }
@@ -165,7 +160,6 @@ class TeamCollaborationService {
         await this.handleFileShare(roomId, chatMessage.id, message.metadata);
       }
 
-      logger.info('Chat message sent:', {
         roomId,
         messageId: chatMessage.id,
         senderId,
@@ -174,7 +168,6 @@ class TeamCollaborationService {
 
       return chatMessage;
     } catch (error) {
-      logger.error('Error sending chat message:', error);
       throw error;
     }
   }
@@ -214,10 +207,8 @@ class TeamCollaborationService {
 
       await this.sendMessage(roomId, senderId, message, 'code_snippet');
 
-      logger.info('Code snippet shared:', { snippetId, roomId, senderId });
       return snippet;
     } catch (error) {
-      logger.error('Error sharing code snippet:', error);
       throw error;
     }
   }
@@ -265,10 +256,8 @@ class TeamCollaborationService {
 
       await this.sendMessage(roomId, initiatorId, message, 'collaboration_start');
 
-      logger.info('Collaborative session started:', { sessionId, roomId, initiatorId });
       return session;
     } catch (error) {
-      logger.error('Error starting collaborative session:', error);
       throw error;
     }
   }
@@ -305,10 +294,8 @@ class TeamCollaborationService {
         timestamp: new Date().toISOString()
       });
 
-      logger.info('User joined collaborative session:', { sessionId, userId });
       return session;
     } catch (error) {
-      logger.error('Error joining collaborative session:', error);
       throw error;
     }
   }
@@ -355,7 +342,6 @@ class TeamCollaborationService {
 
       return { success: true, new_code: newCode };
     } catch (error) {
-      logger.error('Error updating collaborative code:', error);
       throw error;
     }
   }
@@ -387,7 +373,6 @@ class TeamCollaborationService {
 
       return true;
     } catch (error) {
-      logger.error('Error updating cursor position:', error);
       throw error;
     }
   }
@@ -415,7 +400,6 @@ class TeamCollaborationService {
 
       return messages.reverse(); // Return in chronological order
     } catch (error) {
-      logger.error('Error getting chat messages:', error);
       throw error;
     }
   }
@@ -431,7 +415,6 @@ class TeamCollaborationService {
 
       return rooms;
     } catch (error) {
-      logger.error('Error getting team chat rooms:', error);
       throw error;
     }
   }
@@ -457,7 +440,6 @@ class TeamCollaborationService {
 
       return snippets;
     } catch (error) {
-      logger.error('Error getting code snippets:', error);
       throw error;
     }
   }
@@ -474,7 +456,6 @@ class TeamCollaborationService {
 
       return sessions;
     } catch (error) {
-      logger.error('Error getting collaborative sessions:', error);
       throw error;
     }
   }
@@ -487,7 +468,6 @@ class TeamCollaborationService {
     try {
       return await db('chat_rooms').where({ id: roomId }).first();
     } catch (error) {
-      logger.error('Error getting chat room:', error);
       return null;
     }
   }
@@ -507,7 +487,6 @@ class TeamCollaborationService {
           });
       }
     } catch (error) {
-      logger.error('Error handling code snippet:', error);
     }
   }
 
@@ -526,7 +505,6 @@ class TeamCollaborationService {
         });
       }
     } catch (error) {
-      logger.error('Error handling file share:', error);
     }
   }
 
@@ -576,7 +554,6 @@ class TeamCollaborationService {
         workspace_id: workspace.id
       });
 
-      logger.info('Team workspace created:', {
         workspaceId: workspace.id,
         contestId,
         teamId
@@ -584,7 +561,6 @@ class TeamCollaborationService {
 
       return workspace;
     } catch (error) {
-      logger.error('Error creating team workspace:', error);
       throw error;
     }
   }
@@ -609,9 +585,7 @@ class TeamCollaborationService {
         }
       }
 
-      logger.info(`Cleaned up ${inactiveSessions} inactive collaborative sessions`);
     } catch (error) {
-      logger.error('Error cleaning up inactive sessions:', error);
     }
   }
 }
