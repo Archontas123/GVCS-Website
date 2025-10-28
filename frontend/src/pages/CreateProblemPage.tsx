@@ -11,7 +11,6 @@ interface TypeOption {
 interface ProblemFormData {
   problemName: string;
   description: string;
-  problemStatement: string;
   inputFormat: string;
   constraints: string;
   outputFormat: string;
@@ -30,7 +29,6 @@ const CreateProblemPage: React.FC = () => {
   const [formData, setFormData] = useState<ProblemFormData>({
     problemName: '',
     description: '',
-    problemStatement: '',
     inputFormat: '',
     constraints: '',
     outputFormat: '',
@@ -277,7 +275,7 @@ ${formData.parameters.map((p, i) => `    ${p.name} = input_data[${i}]`).join('\n
 
       const problemData = {
         title: formData.problemName,
-        description: formData.problemStatement || formData.description,
+        description: formData.description,
         input_format: formData.useLeetCodeStyle
           ? `Function parameters: ${formData.parameters.map(p => `${p.name} (${p.type})`).join(', ')}`
           : formData.inputFormat || 'Please specify the input format for this problem.',
@@ -418,19 +416,8 @@ ${formData.parameters.map((p, i) => `    ${p.name} = input_data[${i}]`).join('\n
                 label="Description"
                 value={formData.description}
                 onChange={handleInputChange('description')}
-                placeholder="Write a short summary about the problem"
-                maxLength={140}
-                minRows={3}
-              />
-            </div>
-
-            <div>
-              <RichTextEditor
-                label="Problem Statement"
-                value={formData.problemStatement}
-                onChange={handleInputChange('problemStatement')}
                 placeholder="Describe the problem in detail..."
-                maxLength={1000}
+                maxLength={10000}
                 minRows={6}
               />
             </div>
