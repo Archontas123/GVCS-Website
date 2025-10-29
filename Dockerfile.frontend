@@ -67,8 +67,8 @@ RUN apk add --no-cache curl
 # Copy built application from builder stage
 COPY --from=builder /app/build /usr/share/nginx/html
 
-# Note: nginx.conf will be mounted as a volume from docker-compose
-# This allows for SSL certificate management without rebuilding the image
+# Copy custom nginx configuration for React SPA
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
