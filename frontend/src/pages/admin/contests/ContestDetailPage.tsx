@@ -231,6 +231,32 @@ const ContestDetailPage: React.FC = () => {
     }
   };
 
+  const handleDeleteContest = async () => {
+    if (!contest) return;
+
+    if (!window.confirm(`Delete contest "${contest.contest_name}"?\n\n⚠️ WARNING: This action cannot be undone!\n\nThe contest can only be deleted if it has no registered teams.`)) {
+      return;
+    }
+
+    try {
+      setActionInProgress(true);
+      const result = await apiService.deleteContest(contest.id);
+      if (result.success) {
+        alert('Contest deleted successfully!');
+        navigate('/admin/contests'); // Navigate back to contests list
+      } else {
+        throw new Error(result.message || 'Failed to delete contest');
+      }
+    } catch (error: any) {
+      console.error('Failed to delete contest:', error);
+      // Extract error message from API response
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to delete contest';
+      alert(`Cannot delete contest:\n\n${errorMessage}`);
+    } finally {
+      setActionInProgress(false);
+    }
+  };
+
   if (loading && !contest) {
     return (
       <>
@@ -737,32 +763,58 @@ const ContestDetailPage: React.FC = () => {
                       </p>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '12px' }}>
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                       {!contest.is_active ? (
-                        <button
-                          onClick={handleStartContest}
-                          disabled={actionInProgress}
-                          style={{
-                            background: actionInProgress ? '#6b7280' : '#16a34a',
-                            color: 'white',
-                            border: '4px solid #212529',
-                            boxShadow: '4px 4px 0px #212529',
-                            textShadow: '2px 2px 0px #212529',
-                            padding: '12px 20px',
-                            fontSize: '0.7rem',
-                            fontWeight: 'bold',
-                            cursor: actionInProgress ? 'not-allowed' : 'pointer',
-                            fontFamily: "'Press Start 2P', cursive",
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!actionInProgress) e.currentTarget.style.backgroundColor = '#15803d';
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!actionInProgress) e.currentTarget.style.backgroundColor = '#16a34a';
-                          }}
-                        >
-                          {actionInProgress ? '⏳ Starting...' : '▶️ Start Contest'}
-                        </button>
+                        <>
+                          <button
+                            onClick={handleStartContest}
+                            disabled={actionInProgress}
+                            style={{
+                              background: actionInProgress ? '#6b7280' : '#16a34a',
+                              color: 'white',
+                              border: '4px solid #212529',
+                              boxShadow: '4px 4px 0px #212529',
+                              textShadow: '2px 2px 0px #212529',
+                              padding: '12px 20px',
+                              fontSize: '0.7rem',
+                              fontWeight: 'bold',
+                              cursor: actionInProgress ? 'not-allowed' : 'pointer',
+                              fontFamily: "'Press Start 2P', cursive",
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!actionInProgress) e.currentTarget.style.backgroundColor = '#15803d';
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!actionInProgress) e.currentTarget.style.backgroundColor = '#16a34a';
+                            }}
+                          >
+                            {actionInProgress ? '⏳ Starting...' : '▶️ Start Contest'}
+                          </button>
+                          <button
+                            onClick={handleDeleteContest}
+                            disabled={actionInProgress}
+                            style={{
+                              background: actionInProgress ? '#6b7280' : '#dc2626',
+                              color: 'white',
+                              border: '4px solid #212529',
+                              boxShadow: '4px 4px 0px #212529',
+                              textShadow: '2px 2px 0px #212529',
+                              padding: '12px 20px',
+                              fontSize: '0.7rem',
+                              fontWeight: 'bold',
+                              cursor: actionInProgress ? 'not-allowed' : 'pointer',
+                              fontFamily: "'Press Start 2P', cursive",
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!actionInProgress) e.currentTarget.style.backgroundColor = '#b91c1c';
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!actionInProgress) e.currentTarget.style.backgroundColor = '#dc2626';
+                            }}
+                          >
+                            {actionInProgress ? '⏳ Deleting...' : '🗑️ Delete Contest'}
+                          </button>
+                        </>
                       ) : (
                         <button
                           onClick={handleEndContest}

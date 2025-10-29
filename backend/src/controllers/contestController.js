@@ -24,9 +24,6 @@ class Contest {
     this.manual_control = data.manual_control ?? true;
     this.is_registration_open = data.is_registration_open;
     this.is_frozen = data.is_frozen;
-    this.frozen_at = data.frozen_at;
-    this.ended_at = data.ended_at;
-    this.archived_at = data.archived_at;
     this.created_at = data.created_at;
   }
 
@@ -355,19 +352,16 @@ class Contest {
 
     if (contest.is_active) {
       status = contest.is_frozen ? 'frozen' : 'running';
-    } else if (contest.ended_at) {
-      status = 'ended';
     } else {
-      status = 'pending_manual';
+      // Contest is not active - it's either ended or hasn't started yet
+      // Since we removed timing fields, we consider inactive contests as ended
+      status = 'ended';
     }
 
     return {
       status,
       manual_control: manualControl,
       is_frozen: contest.is_frozen || false,
-      frozen_at: contest.frozen_at,
-      ended_at: contest.ended_at,
-      archived_at: contest.archived_at,
       current_server_time: now.toISOString()
     };
   }
@@ -563,11 +557,10 @@ class Contest {
   static async endContest(contestId, adminId) {
     const contest = await this.findById(contestId);
 
+    // If contest is already ended (not active), return the contest
     if (!contest.is_active) {
-      throw new ConflictError('Contest is not currently active');
+      return contest;
     }
-
-    const now = new Date();
 
     try {
       await db('contests')
@@ -575,7 +568,6 @@ class Contest {
         .update({
           is_active: false,
           is_registration_open: false,
-          ended_at: now,
           is_frozen: false
         });
 
