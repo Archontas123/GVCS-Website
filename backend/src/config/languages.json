@@ -4,7 +4,7 @@
     "name": "C++",
     "extension": ".cpp",
     "compileCmd": "g++ -O2 -std=c++17 -o solution.exe {source}",
-    "executeCmd": "solution.exe",
+    "executeCmd": "./solution.exe",
     "compileTimeout": 30000,
     "timeMultiplier": 1.0,
     "supportsCompilation": true,
