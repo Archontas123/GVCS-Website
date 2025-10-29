@@ -134,13 +134,13 @@ services:
   judge:
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: backend/docker/Dockerfile
     container_name: programming_contest_judge
     restart: unless-stopped
     privileged: false
     security_opt:
       - no-new-privileges:true
-      - seccomp:./docker/seccomp-profile.json
+      - seccomp:./backend/docker/seccomp-profile.json
     read_only: true
     tmpfs:
       - /tmp:exec,size=100M
