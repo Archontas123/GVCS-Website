@@ -344,8 +344,8 @@ const ContestPage: React.FC = () => {
         }
 
         .problem-card-hover:active {
-          transform: translate(6px, 6px);
-          box-shadow: 0px 0px 0px #212529 !important;
+          transform: scale(0.98);
+          box-shadow: 3px 3px 0px #212529 !important;
         }
       `}</style>
 
@@ -818,22 +818,6 @@ const ContestPage: React.FC = () => {
                             borderBottom: '3px solid #212529',
                             textShadow: '2px 2px 0px #212529',
                           }}>Time</th>
-                          <th style={{
-                            padding: '1rem',
-                            textAlign: 'left',
-                            fontSize: 'clamp(0.6rem, 1.5vw, 0.75rem)',
-                            fontWeight: 'bold',
-                            borderBottom: '3px solid #212529',
-                            textShadow: '2px 2px 0px #212529',
-                          }}>Memory</th>
-                          <th style={{
-                            padding: '1rem',
-                            textAlign: 'left',
-                            fontSize: 'clamp(0.6rem, 1.5vw, 0.75rem)',
-                            fontWeight: 'bold',
-                            borderBottom: '3px solid #212529',
-                            textShadow: '2px 2px 0px #212529',
-                          }}>Submitted</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -933,24 +917,6 @@ const ContestPage: React.FC = () => {
                                 {submission.executionTime !== null && submission.executionTime !== undefined
                                   ? `${submission.executionTime}ms`
                                   : '-'}
-                              </td>
-                              <td style={{
-                                padding: '1rem',
-                                fontSize: 'clamp(0.6rem, 1.5vw, 0.7rem)',
-                                color: '#212529',
-                                borderBottom: '1px solid #e5e7eb',
-                              }}>
-                                {submission.memoryUsed !== null && submission.memoryUsed !== undefined
-                                  ? `${Math.round(submission.memoryUsed / 1024)}MB`
-                                  : '-'}
-                              </td>
-                              <td style={{
-                                padding: '1rem',
-                                fontSize: 'clamp(0.6rem, 1.5vw, 0.7rem)',
-                                color: '#6b7280',
-                                borderBottom: '1px solid #e5e7eb',
-                              }}>
-                                {new Date(submission.submissionTime).toLocaleString()}
                               </td>
                             </tr>
                           );
