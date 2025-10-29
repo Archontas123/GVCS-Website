@@ -14,8 +14,8 @@ services:
         - REACT_APP_WS_URL=${REACT_APP_WS_URL:-ws://localhost:3000}
     container_name: programming_contest_frontend
     restart: unless-stopped
-    ports:
-      - "${FRONTEND_PORT:-80}:80"
+    expose:
+      - "80"
     depends_on:
       - backend
     environment:
