@@ -448,9 +448,9 @@ class TypeSystemService {
       case 'cpp':
         return this.generateCppParsing(functionParams, returnType);
       case 'java':
-        return this.generateJavaParsing(functionParams);
+        return this.generateJavaParsing(functionParams, returnType);
       case 'python':
-        return this.generatePythonParsing(functionParams);
+        return this.generatePythonParsing(functionParams, returnType);
       default:
         throw new Error(`Unsupported language: ${language}`);
     }
@@ -533,10 +533,11 @@ class TypeSystemService {
   /**
    * Generate Java JSON parsing code without external dependencies
    * @param {Array} functionParams - Array of parameter objects
+   * @param {string} returnType - Return type of the solution function (e.g., "INT[]", "STRING")
    * @returns {string} Java parsing code
    * @private
    */
-  static generateJavaParsing(functionParams) {
+  static generateJavaParsing(functionParams, returnType = 'INT') {
     const paramDeclarations = functionParams.map(param => {
       const { baseType, dimensions } = this.parseType(param.type);
       const langType = this.getLanguageType(baseType, 'java', dimensions);

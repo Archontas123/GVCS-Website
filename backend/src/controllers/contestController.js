@@ -1,10 +1,9 @@
 const { db } = require('../utils/db');
-const { 
-  ValidationError, 
-  AuthenticationError, 
+const {
+  ValidationError,
   NotFoundError,
   ConflictError,
-  DatabaseError 
+  DatabaseError
 } = require('../utils/errors');
 const notificationService = require('../services/notificationService');
 
@@ -239,12 +238,11 @@ class Contest {
   }
 
   /**
-   * Updates contest data with authorization checks and running contest restrictions
+   * Updates contest data with running contest restrictions
    * @param {number} contestId - The contest ID to update
    * @param {Object} updateData - The data to update
    * @param {number} adminId - The admin ID performing the update
    * @returns {Promise<Contest>} The updated contest instance
-   * @throws {AuthenticationError} When admin is not authorized
    * @throws {ValidationError} When trying to update restricted fields during contest
    * @throws {DatabaseError} When database operation fails
    */
@@ -299,41 +297,34 @@ class Contest {
   }
 
   /**
-   * Deletes contest by marking as inactive (soft delete)
+   * Deletes contest and all associated data (hard delete with cascading)
+   * Any admin can delete any contest
    * @param {number} contestId - The contest ID to delete
-   * @param {number} adminId - The admin ID performing the deletion
    * @returns {Promise<Object>} Success message object
-   * @throws {AuthenticationError} When admin is not authorized
-   * @throws {ConflictError} When contest has registered teams
+   * @throws {NotFoundError} When contest is not found
    * @throws {DatabaseError} When database operation fails
    */
-  static async delete(contestId, adminId) {
-    const existingContest = await this.findById(contestId);
-    
-    if (existingContest.created_by !== adminId) {
-      throw new AuthenticationError('Not authorized to delete this contest');
-    }
-
-    // Get contest registration code to check for teams
-    const contest = await db('contests')
-      .where('id', contestId)
-      .first('registration_code');
-
-    const teamsCount = await db('teams')
-      .where('contest_code', contest.registration_code)
-      .count('* as count')
-      .first();
-
-    if (parseInt(teamsCount.count) > 0) {
-      throw new ConflictError('Cannot delete contest with registered teams. Set as inactive instead.');
-    }
+  static async delete(contestId) {
+    // Verify contest exists (will throw NotFoundError if not found)
+    await this.findById(contestId);
 
     try {
+      // Get contest registration code to delete associated teams
+      const contest = await db('contests')
+        .where('id', contestId)
+        .first('registration_code');
+
+      // Delete teams associated with this contest (not cascaded due to contest_code instead of FK)
+      await db('teams')
+        .where('contest_code', contest.registration_code)
+        .del();
+
+      // Delete the contest (this will cascade delete problems, submissions, clarifications, etc.)
       await db('contests')
         .where('id', contestId)
-        .update({ is_active: false });
+        .del();
 
-      return { success: true, message: 'Contest marked as inactive' };
+      return { success: true, message: 'Contest and all associated data deleted successfully' };
     } catch (error) {
       throw new DatabaseError('Failed to delete contest', error);
     }

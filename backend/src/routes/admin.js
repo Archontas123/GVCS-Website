@@ -834,7 +834,8 @@ router.put('/contests/:id', verifyAdminToken, requireContestAccess, validate(con
 });
 
 /**
- * Delete contest (soft delete)
+ * Delete contest (hard delete with cascading)
+ * Any admin can delete any contest
  * @route DELETE /api/admin/contests/:id
  * @param {Object} req - Express request object
  * @param {Object} req.params - Route parameters
@@ -847,12 +848,11 @@ router.put('/contests/:id', verifyAdminToken, requireContestAccess, validate(con
  * @requires requireContestAccess - Contest access permission required
  * @throws {UnauthorizedError} 401 - Not authenticated or no contest access
  * @throws {NotFoundError} 404 - Contest not found
- * @throws {ConflictError} 409 - Contest cannot be deleted (active participants)
  * @throws {InternalServerError} 500 - Server error
  */
 router.delete('/contests/:id', verifyAdminToken, requireContestAccess, async (req, res, next) => {
   try {
-    const result = await Contest.delete(req.params.id, req.admin.id);
+    const result = await Contest.delete(req.params.id);
     res.success(result, 'Contest deleted successfully');
   } catch (error) {
     next(error);

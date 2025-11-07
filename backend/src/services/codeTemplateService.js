@@ -319,7 +319,7 @@ class CodeTemplateService {
   }
 
   /**
-   * Add Java JSON parsing using Gson
+   * Add Java JSON parsing (legacy fallback - should not be used for new problems)
    * @param {string} code - The Java wrapper code to modify
    * @param {string} inputFormat - Expected input format
    * @param {string} outputFormat - Expected output format
@@ -327,18 +327,45 @@ class CodeTemplateService {
    * @private
    */
   addJavaParsing(code, inputFormat, outputFormat) {
+    // Legacy fallback - uses simple manual JSON parsing without external dependencies
     const parsingCode = `
         String input = br.readLine();
-        Gson gson = new Gson();
-        
-        Map<String, Object> data = gson.fromJson(input, Map.class);
-        
+        // Simple JSON parsing - extract array from input
+        input = input.trim();
+
+        // Remove outer braces if present
+        if (input.startsWith("{") && input.endsWith("}")) {
+            input = input.substring(1, input.length() - 1);
+        }
+
+        // Extract array value (assumes format like {"nums": [1,2,3]})
+        int[] nums = null;
+        String[] keyValuePairs = input.split(":");
+        if (keyValuePairs.length >= 2) {
+            String arrayStr = keyValuePairs[1].trim();
+            // Remove trailing } if present
+            if (arrayStr.endsWith("}")) {
+                arrayStr = arrayStr.substring(0, arrayStr.length() - 1).trim();
+            }
+            // Remove [ and ]
+            arrayStr = arrayStr.replaceAll("^\\\\[|\\\\]$", "");
+            if (!arrayStr.isEmpty()) {
+                String[] parts = arrayStr.split(",");
+                nums = new int[parts.length];
+                for (int i = 0; i < parts.length; i++) {
+                    nums[i] = Integer.parseInt(parts[i].trim());
+                }
+            } else {
+                nums = new int[0];
+            }
+        }
+
         Solution sol = new Solution();
-        Object result = sol.solution(data);
-        
-        System.out.println(gson.toJson(result));
+        int result = sol.solution(nums);
+
+        System.out.println(result);
 `;
-    
+
     return code.replace('// Parse JSON input and call user function', parsingCode)
                .replace('// Output JSON result', '');
   }

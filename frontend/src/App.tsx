@@ -293,7 +293,7 @@ function App() {
             >
               <Routes>
             <Route
-              path="/problem/:problemId"
+              path="problem/:problemId"
               element={
                 <ProtectedRoute>
                   <ProblemViewPage />
@@ -302,12 +302,12 @@ function App() {
             />
 
             <Route
-              path="/editor-test"
+              path="editor-test"
               element={<CodeEditorTestPage />}
             />
 
             <Route
-              path="/leaderboard"
+              path="leaderboard"
               element={
                 <ProtectedRoute>
                   <LeaderboardPage />
@@ -316,7 +316,7 @@ function App() {
             />
 
             <Route
-              path="/submissions"
+              path="submissions"
               element={
                 <ProtectedRoute>
                   <SubmissionsPage />
