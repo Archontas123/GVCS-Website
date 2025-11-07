@@ -238,9 +238,10 @@ services:
     restart: unless-stopped
     volumes:
       - ./backend/monitoring/promtail.yml:/etc/promtail/config.yml:ro
-      - logs_data:/var/log/app:ro
-      - nginx_logs:/var/log/nginx:ro
-      - /var/log:/var/log:ro
+      - logs_data:/logs/app:ro
+      - nginx_logs:/logs/nginx:ro
+      - /var/log:/host/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
     command: -config.file=/etc/promtail/config.yml
     depends_on:

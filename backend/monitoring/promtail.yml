@@ -21,7 +21,7 @@ scrape_configs:
           job: hackathon-backend
           service: backend
           environment: production
-          __path__: /var/log/app/combined.log
+          __path__: /logs/app/combined.log
 
   - job_name: hackathon-backend-errors
     static_configs:
@@ -32,7 +32,7 @@ scrape_configs:
           service: backend
           level: error
           environment: production
-          __path__: /var/log/app/error.log
+          __path__: /logs/app/error.log
 
   # Nginx access logs
   - job_name: nginx-access
@@ -43,7 +43,7 @@ scrape_configs:
           job: nginx-access
           service: frontend
           environment: production
-          __path__: /var/log/nginx/access.log
+          __path__: /logs/nginx/access.log
     pipeline_stages:
       - regex:
           expression: '^(?P<remote_addr>\S+) - (?P<remote_user>\S+) \[(?P<time_local>[^\]]+)\] "(?P<method>\S+) (?P<path>\S+) (?P<protocol>\S+)" (?P<status>\d+) (?P<body_bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"'
@@ -62,7 +62,7 @@ scrape_configs:
           service: frontend
           level: error
           environment: production
-          __path__: /var/log/nginx/error.log
+          __path__: /logs/nginx/error.log
 
   # Docker container logs
   - job_name: docker-logs
@@ -101,7 +101,7 @@ scrape_configs:
           job: syslog
           service: system
           environment: production
-          __path__: /var/log/syslog
+          __path__: /host/var/log/syslog
 
   # PostgreSQL logs
   - job_name: postgres-logs
@@ -112,7 +112,7 @@ scrape_configs:
           job: postgres
           service: database
           environment: production
-          __path__: /var/log/postgresql/*.log
+          __path__: /host/var/log/postgresql/*.log
     pipeline_stages:
       - regex:
           expression: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} \w+) \[(?P<pid>\d+)\] (?P<level>\w+): (?P<message>.*)'
@@ -132,7 +132,7 @@ scrape_configs:
           job: redis
           service: cache
           environment: production
-          __path__: /var/log/redis/*.log
+          __path__: /host/var/log/redis/*.log
 
   # Contest-specific logs
   - job_name: contest-scheduler
@@ -143,7 +143,7 @@ scrape_configs:
           job: contest-scheduler
           service: scheduler
           environment: production
-          __path__: /var/log/app/contest-scheduler.log
+          __path__: /logs/app/contest-scheduler.log
 
   # Judge system logs
   - job_name: judge-system
@@ -154,7 +154,7 @@ scrape_configs:
           job: judge-system
           service: judge
           environment: production
-          __path__: /var/log/app/judge.log
+          __path__: /logs/app/judge.log
 
   # Load testing logs
   - job_name: load-tests
@@ -165,4 +165,4 @@ scrape_configs:
           job: load-tests
           service: testing
           environment: production
-          __path__: /var/log/app/load-test-*.log
+          __path__: /logs/app/load-test-*.log
