@@ -184,7 +184,7 @@ services:
     ports:
       - "${PROMETHEUS_PORT:-9090}:9090"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./backend/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -210,8 +210,8 @@ services:
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./backend/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./backend/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
     networks:
@@ -225,7 +225,7 @@ services:
     ports:
       - "${LOKI_PORT:-3100}:3100"
     volumes:
-      - ./monitoring/loki.yml:/etc/loki/local-config.yaml:ro
+      - ./backend/monitoring/loki.yml:/etc/loki/local-config.yaml:ro
       - loki_data:/loki
     command: -config.file=/etc/loki/local-config.yaml
     networks:
@@ -237,7 +237,7 @@ services:
     container_name: programming_contest_promtail
     restart: unless-stopped
     volumes:
-      - ./monitoring/promtail.yml:/etc/promtail/config.yml:ro
+      - ./backend/monitoring/promtail.yml:/etc/promtail/config.yml:ro
       - logs_data:/var/log/app:ro
       - nginx_logs:/var/log/nginx:ro
       - /var/log:/var/log:ro
